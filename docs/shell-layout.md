@@ -162,6 +162,11 @@ its end. The retained graphical session is not owned by that view.
 viewport receipt before publishing the exact touchable region. `HostedShellFrame`
 translates family-local input to window pixels, clips it to the viewport and
 rounds inward so fractional scaling cannot capture a transparent hole.
+Geometry updates join the Android root's `SurfaceSyncGroup`; the SurfaceView's
+asynchronous redraw receipt completes on matching pixel submission, before the
+layout-commit receipt. This keeps popup-driven family resizing from stretching
+the previous panel frame. Replacement retains the pending synchronization;
+output failure, Surface loss and closure release it without admitting input.
 
 Input readiness additionally requires an exact window-token/display/region
 observation from `FrameworkInputWindowObservationSource`, followed by the

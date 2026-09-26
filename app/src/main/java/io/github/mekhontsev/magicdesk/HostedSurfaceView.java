@@ -12,9 +12,10 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
 /** Android input, IME and Surface lifetime, independent of the guest display protocol. */
-final class HostedSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
+final class HostedSurfaceView extends SurfaceView implements SurfaceHolder.Callback2 {
     interface SurfaceBinding {
         void changed(android.view.Surface surface, int width, int height);
+        default void redraw(Runnable finished) { finished.run(); }
     }
     private final HostedPointerInput pointerInput;
     private final HostedCursor cursor = new HostedCursor();
@@ -289,6 +290,13 @@ final class HostedSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     }
     @Override public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         attachSurface(holder, width, height);
+    }
+    @Override public void surfaceRedrawNeeded(SurfaceHolder holder) {
+        surfaceRedrawNeededAsync(holder, () -> {});
+    }
+    @Override public void surfaceRedrawNeededAsync(SurfaceHolder holder, Runnable finished) {
+        if (surfaceBinding == null) finished.run();
+        else surfaceBinding.redraw(finished);
     }
     @Override public void surfaceDestroyed(SurfaceHolder holder) {
         releaseInput();

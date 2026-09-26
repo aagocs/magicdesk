@@ -18,6 +18,8 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
     private final boolean ownsOutput;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ShellFrameAdmission admission = new ShellFrameAdmission();
+    private final java.util.ArrayList<Runnable> redraws = new java.util.ArrayList<>();
+    private android.window.SurfaceSyncGroup resizeSync;
     private final Region region = new Region();
     private final ViewTreeObserver.OnPreDrawListener drawing = this::beforeDraw;
     private HostedShellFrame frame;
@@ -44,7 +46,12 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         content.getHolder().setFormat(PixelFormat.TRANSLUCENT);
         content.allowInput(false);
         addView(content, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        content.bind(output, this::surfaceChanged, ownsOutput);
+        content.bind(output, new HostedSurfaceView.SurfaceBinding() {
+            @Override public void changed(Surface surface, int width, int height) {
+                surfaceChanged(surface, width, height);
+            }
+            @Override public void redraw(Runnable finished) { redrawNeeded(finished); }
+        }, ownsOutput);
     }
 
     HostedSurfaceView content() { return content; }
@@ -95,10 +102,20 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         var completion = new CompletableFuture<Void>();
         pending = completion;
         frame = next;
+        synchronizeLayout();
         invalidatePresentation();
         if (previous != null) previous.completeExceptionally(
                 new java.util.concurrent.CancellationException("Shell presentation replaced"));
         return completion.copy();
+    }
+
+    private void synchronizeLayout() {
+        if (resizeSync == null && getRootSurfaceControl() != null) {
+            // Hold the root's geometry transaction too: a Callback2 receipt alone need not sync a local relayout.
+            var sync = new android.window.SurfaceSyncGroup("MagicDesk shell frame");
+            if (sync.add(getRootSurfaceControl(), null)) resizeSync = sync;
+            else sync.markSyncReady();
+        }
     }
 
     boolean inputReady() { return admission.ready(); }
@@ -114,7 +131,28 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         surfaceWidth = width;
         surfaceHeight = height;
         invalidatePresentation();
-        if (next == null && !closed) output.setSurface(null, 0, 0);
+        if (next == null) {
+            finishRedraws();
+            if (!closed) output.setSurface(null, 0, 0);
+        }
+    }
+
+    private void redrawNeeded(Runnable finished) {
+        if (closed || surface == null || frame == null) { finished.run(); return; }
+        // EVENT_WAIT: SurfaceView resize sync ends on matching pixel submission or output failure/teardown.
+        // Do not wait for the window commit here: Android needs this receipt to commit that layout.
+        redraws.add(finished);
+        invalidatePresentation();
+    }
+
+    private void finishRedraws() {
+        var sync = resizeSync;
+        resizeSync = null;
+        if (sync != null) sync.markSyncReady();
+        if (redraws.isEmpty()) return;
+        var callbacks = java.util.List.copyOf(redraws);
+        redraws.clear();
+        callbacks.forEach(Runnable::run);
     }
 
     private void invalidatePresentation() {
@@ -147,6 +185,7 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         getViewTreeObserver().removeOnPreDrawListener(drawing);
         admission.revoke();
         clearInput();
+        finishRedraws();
         cancelPending("Shell window detached");
         super.onDetachedFromWindow();
     }
@@ -180,7 +219,9 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         if (!admission.current(generation)) return;
         try {
             output.present(surface, frame.viewport()).whenComplete((ignored, error) -> main.post(() -> {
+                if (!admission.current(generation)) return;
                 if (error != null) { fail(generation, error); return; }
+                finishRedraws();
                 if (admission.pixels(generation)) publishRegion(generation);
             }));
         } catch (RuntimeException error) { fail(generation, error); }
@@ -222,6 +263,7 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         if (!admission.current(generation)) return;
         admission.revoke();
         clearInput();
+        finishRedraws();
         var completion = pending;
         pending = null;
         if (completion != null) completion.completeExceptionally(error);
@@ -240,6 +282,7 @@ final class HostedShellSurfaceView extends FrameLayout implements AutoCloseable 
         closed = true;
         admission.revoke();
         clearInput();
+        finishRedraws();
         frame = null;
         surface = null;
         if (!ownsOutput) output.setSurface(null, 0, 0);

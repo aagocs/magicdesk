@@ -44,7 +44,10 @@ public final class HostedFamilyInputTest {
 
     @Test public void borrowedSurfaceDetachesOnceAndLateCallbacksCannotDetachReplacement() throws Exception {
         RuntimeSourceFixture.verify("io.github.mekhontsev.magicdesk",
-                RuntimeSourceFixture.methods("HostedShellSurfaceView", "close", "surfaceChanged") + """
+                RuntimeSourceFixture.methods("HostedShellSurfaceView", "close", "surfaceChanged", "finishRedraws") + """
+            final ArrayList<Runnable> redraws = new ArrayList<>();
+            static class Sync { void markSyncReady() { } }
+            Sync resizeSync;
             static class Surface { }
             static class Output {
                 int detaches;
