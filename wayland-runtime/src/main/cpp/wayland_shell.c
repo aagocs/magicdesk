@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <wlr/backend/headless.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
+#include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
 struct MdwLayerSurface {
@@ -179,8 +180,8 @@ bool mdw_server_shell_output(MdwServer *server, int width, int height) {
         }
         return false;
     }
-    wlr_output_create_global(server->shell_output, server->display);
-    if (!mdw_toplevels_prepare(server)) {
+    if (!wlr_output_layout_add(server->output_layout, server->shell_output, 0, 0) ||
+            !mdw_toplevels_prepare(server)) {
         mdw_server_shell_output(server, 0, 0);
         return false;
     }

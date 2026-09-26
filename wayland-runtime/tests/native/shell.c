@@ -2,6 +2,7 @@
 #include "wayland_server.h"
 #include "frame_fd.h"
 #include "xdg-shell-client-protocol.h"
+#include "xdg-output-unstable-v1-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -15,12 +16,23 @@
 #include <unistd.h>
 #include <wayland-client.h>
 
+struct Monitor {
+    struct wl_output *output;
+    struct zxdg_output_v1 *xdg;
+    uint32_t global;
+    int width, height, updates;
+    bool removed;
+    char name[128], description[256];
+};
+
 struct Client {
     struct wl_display *display;
     struct wl_compositor *compositor;
     struct wl_shm *shm;
     struct xdg_wm_base *xdg;
     struct zwlr_layer_shell_v1 *shell;
+    struct zxdg_output_manager_v1 *output_manager;
+    struct Monitor monitors[8];
     struct wl_seat *seat;
     struct wl_keyboard *keyboard;
     struct wl_pointer *pointer;
@@ -244,6 +256,43 @@ static void capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
     }
 }
 static const struct wl_seat_listener seat_listener = {.capabilities = capabilities};
+static void output_position(void *data, struct zxdg_output_v1 *output, int32_t x, int32_t y) {
+    (void)data; (void)output;
+    assert(x == 0 && y == 0);
+}
+static void output_size(void *data, struct zxdg_output_v1 *output, int32_t width, int32_t height) {
+    (void)output;
+    struct Monitor *monitor = data;
+    monitor->width = width;
+    monitor->height = height;
+}
+static void output_done(void *data, struct zxdg_output_v1 *output) {
+    (void)output;
+    ((struct Monitor *)data)->updates++;
+}
+static void output_name(void *data, struct zxdg_output_v1 *output, const char *name) {
+    (void)output;
+    struct Monitor *monitor = data;
+    snprintf(monitor->name, sizeof(monitor->name), "%s", name);
+}
+static void output_description(void *data, struct zxdg_output_v1 *output, const char *description) {
+    (void)output;
+    struct Monitor *monitor = data;
+    snprintf(monitor->description, sizeof(monitor->description), "%s", description);
+}
+static const struct zxdg_output_v1_listener output_listener = {
+    .logical_position = output_position, .logical_size = output_size,
+    .done = output_done, .name = output_name, .description = output_description,
+};
+static void bind_output_metadata(struct Client *client) {
+    if (!client->output_manager) return;
+    for (int i = 0; i < client->outputs; i++) {
+        struct Monitor *monitor = &client->monitors[i];
+        if (monitor->xdg || monitor->removed) continue;
+        monitor->xdg = zxdg_output_manager_v1_get_xdg_output(client->output_manager, monitor->output);
+        zxdg_output_v1_add_listener(monitor->xdg, &output_listener, monitor);
+    }
+}
 static void global(void *data, struct wl_registry *registry, uint32_t name,
         const char *interface, uint32_t version) {
     (void)version;
@@ -260,10 +309,23 @@ static void global(void *data, struct wl_registry *registry, uint32_t name,
     } else if (!strcmp(interface, "wl_seat")) {
         client->seat = wl_registry_bind(registry, name, &wl_seat_interface, 1);
         wl_seat_add_listener(client->seat, &seat_listener, client);
-    } else if (!strcmp(interface, "wl_output")) client->outputs++;
+    } else if (!strcmp(interface, "zxdg_output_manager_v1")) {
+        assert(version >= 2);
+        client->output_manager = wl_registry_bind(registry, name, &zxdg_output_manager_v1_interface, 2);
+        bind_output_metadata(client);
+    } else if (!strcmp(interface, "wl_output")) {
+        assert(client->outputs < 8);
+        struct Monitor *monitor = &client->monitors[client->outputs++];
+        monitor->global = name;
+        monitor->output = wl_registry_bind(registry, name, &wl_output_interface, 1);
+        bind_output_metadata(client);
+    }
 }
 static void global_remove(void *data, struct wl_registry *registry, uint32_t name) {
-    (void)data; (void)registry; (void)name;
+    (void)registry;
+    struct Client *client = data;
+    for (int i = 0; i < client->outputs; i++)
+        if (client->monitors[i].global == name) client->monitors[i].removed = true;
 }
 static const struct wl_registry_listener registry_listener = {global, global_remove};
 
@@ -276,6 +338,9 @@ static void run_client(const char *socket, bool workspace, bool home) {
     assert(wl_display_roundtrip(client.display) >= 0);
     assert(wl_display_roundtrip(client.display) >= 0);
     assert(client.compositor && client.shm && client.shell && client.xdg && client.outputs == 1);
+    assert(client.output_manager && !strcmp(client.monitors[0].name, "MagicDesk"));
+    assert(client.monitors[0].description[0] && client.monitors[0].updates > 0);
+    if (!workspace) assert(client.monitors[0].width == 900 && client.monitors[0].height == 700);
     client.app = wl_compositor_create_surface(client.compositor);
     client.app_surface = xdg_wm_base_get_xdg_surface(client.xdg, client.app);
     xdg_surface_add_listener(client.app_surface, &app_listener, &client);
@@ -288,6 +353,14 @@ static void run_client(const char *socket, bool workspace, bool home) {
     zwlr_layer_surface_v1_add_listener(client.layer, &layer_listener, &client);
     configure_panel(&client);
     while (!client.closed) assert(wl_display_dispatch(client.display) >= 0);
+    assert(wl_display_roundtrip(client.display) >= 0);
+    if (!workspace) {
+        assert(client.outputs == 2 && client.monitors[0].removed && !client.monitors[1].removed);
+        assert(client.monitors[0].width == 1000 && client.monitors[0].height == 750);
+        assert(client.monitors[0].updates >= 2);
+        assert(client.monitors[1].width == 40 && client.monitors[1].height == 30);
+        assert(client.monitors[1].updates > 0 && client.monitors[1].name[0]);
+    }
     zwlr_layer_surface_v1_destroy(client.layer);
     wl_surface_destroy(client.panel);
     if (workspace) while (!client.app_closed) assert(wl_display_dispatch(client.display) >= 0);
@@ -295,6 +368,11 @@ static void run_client(const char *socket, bool workspace, bool home) {
     xdg_surface_destroy(client.app_surface);
     wl_surface_destroy(client.app);
     assert(wl_display_roundtrip(client.display) >= 0);
+    for (int i = 0; i < client.outputs; i++) {
+        zxdg_output_v1_destroy(client.monitors[i].xdg);
+        wl_output_destroy(client.monitors[i].output);
+    }
+    zxdg_output_manager_v1_destroy(client.output_manager);
     wl_display_disconnect(client.display);
 }
 
@@ -384,6 +462,8 @@ int main(int argc, char **argv) {
             MdwOutput *dependents = mdw_output_borrow_dependents(host.app_output);
             assert(dependents);
             mdw_output_destroy(dependents);
+            assert(mdw_server_shell_output(host.server, 1000, 750));
+            assert(mdw_output_scale(host.app_output, 2));
             assert(mdw_output_focus(host.app_output, true));
             assert(mdw_output_key(host.app_output, KEY_A, true));
             assert(mdw_output_pointer(host.panel_output, .1, .1));

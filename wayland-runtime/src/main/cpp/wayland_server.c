@@ -11,9 +11,12 @@
 #include <wlr/backend/headless.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/render/allocator.h>
+#include <wlr/render/swapchain.h>
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_data_device.h>
+#include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_xdg_shell.h>
@@ -520,6 +523,9 @@ MdwServer *mdw_server_create(void) {
     wl_list_init(&server->foreign_windows);
     server->display = wl_display_create();
     if (!server->display) goto fail;
+    server->output_layout = wlr_output_layout_create(server->display);
+    if (!server->output_layout ||
+            !wlr_xdg_output_manager_v1_create(server->display, server->output_layout)) goto fail;
     server->backend = wlr_headless_backend_create(wl_display_get_event_loop(server->display));
     if (!server->backend) goto fail;
     server->renderer = mdw_renderer_create();
@@ -605,8 +611,13 @@ static MdwOutput *create_output(MdwServer *server, uint64_t id, int width, int h
     if (!output->output) { free(output); return NULL; }
     // Only application hosts are monitors. Shell and dependent render targets
     // borrow their owner's coordinates; advertising them causes monitor churn.
-    if (configure && view->configure)
-        wlr_output_create_global(output->output, server->display);
+    // Hosts have independent local coordinate spaces, not a tiled desktop.
+    if (configure && view->configure &&
+            !wlr_output_layout_add(server->output_layout, output->output, 0, 0)) {
+        wlr_output_destroy(output->output);
+        free(output);
+        return NULL;
+    }
     if (!wlr_output_init_render(output->output, server->allocator, server->renderer)) {
         wlr_output_destroy(output->output);
         free(output);
@@ -675,6 +686,19 @@ bool mdw_output_scale(MdwOutput *output, double scale) {
     return true;
 }
 
+static bool commit_geometry(MdwOutput *output, struct wlr_output_state *state) {
+    // The headless backend consumes no pixels. Supply its modeset buffer without
+    // wlroots' implicit GPU clear; only output_frame submits and publishes pixels.
+    // Geometry must remain independent of a previous frame's completion fence.
+    struct wlr_output *native = output->output;
+    if (!wlr_output_configure_primary_swapchain(native, state, &native->swapchain)) return false;
+    struct wlr_buffer *buffer = wlr_swapchain_acquire(native->swapchain, NULL);
+    if (!buffer) return false;
+    wlr_output_state_set_buffer(state, buffer);
+    wlr_buffer_unlock(buffer);
+    return wlr_output_commit_state(native, state);
+}
+
 bool mdw_output_viewport(MdwOutput *output, int x, int y, int width, int height) {
     if (!output || !output->view || !output->output ||
             width < 1 || height < 1 || width > 4096 || height > 4096 ||
@@ -689,7 +713,7 @@ bool mdw_output_viewport(MdwOutput *output, int x, int y, int width, int height)
         wlr_output_state_set_enabled(&state, true);
         wlr_output_state_set_scale(&state, output->render_scale);
         wlr_output_state_set_custom_mode(&state, width, height, 60000);
-        committed = wlr_output_commit_state(output->output, &state);
+        committed = commit_geometry(output, &state);
         wlr_output_state_finish(&state);
     }
     if (committed) {
@@ -712,7 +736,7 @@ bool mdw_output_set_visible(MdwOutput *output, bool visible) {
         wlr_output_state_set_scale(&state, output->render_scale);
         wlr_output_state_set_custom_mode(&state, output->viewport_width, output->viewport_height, 60000);
     }
-    bool committed = wlr_output_commit_state(output->output, &state);
+    bool committed = visible ? commit_geometry(output, &state) : wlr_output_commit_state(output->output, &state);
     wlr_output_state_finish(&state);
     if (!committed) return false;
     output->visible = visible;

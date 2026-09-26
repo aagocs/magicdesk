@@ -286,7 +286,15 @@ The native API admits layer-shell only after its owner provides a shell event
 consumer and explicitly creates a logical shell output. This output is distinct
 from the borrowed render outputs. Shell and dependent render targets do not
 advertise additional `wl_output` globals; application hosts publish their own
-output geometry and scale. Layer surfaces use a separate catalog and
+output geometry and scale. All advertised outputs also expose `xdg-output`
+names, descriptions and logical dimensions through the server-owned wlroots
+output layout. Each host retains its local coordinate origin; this metadata
+does not arrange Android windows. Mode and scale commits update clients, and
+output destruction removes the corresponding logical monitor.
+Headless geometry commits supply a swapchain buffer without rendering it;
+frame callbacks alone render and publish pixels. Resizing or enabling an output
+therefore does not submit a blank GPU frame while previous rendering is in flight.
+Layer surfaces use a separate catalog and
 committed metadata callback, not `xdg_toplevel` application events. wlroots owns
 protocol validation and configure acknowledgements; the host owns placement and
 calls `mdw_shell_surface_configure`. Equal size configurations are suppressed;
@@ -525,6 +533,7 @@ render admission without consuming frame credit. The window fixture covers
 minimum-size coordinate mapping, unchanged metadata, rendering backpressure and
 hidden-output suspend/resume.
 The shell fixture checks explicit admission, separate application/shell catalogs,
+logical output discovery, resizing, scale and removal without exposing render-only targets,
 configure deduplication, transparent pixels, pointer interaction without keyboard
 capture, key release on policy revocation, idle-frame suppression, unmap/remap and scope teardown without
 application termination. The geometry fixture covers popup constraint adjustment,

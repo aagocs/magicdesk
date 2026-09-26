@@ -35,6 +35,7 @@ function(mdw_protocol name xml)
 	endforeach()
 endfunction()
 mdw_protocol(xdg-shell ${PROTOCOL_DIR}/stable/xdg-shell/xdg-shell.xml)
+mdw_protocol(xdg-output-unstable-v1 ${PROTOCOL_DIR}/unstable/xdg-output/xdg-output-unstable-v1.xml)
 mdw_protocol(linux-dmabuf-v1 ${PROTOCOL_DIR}/stable/linux-dmabuf/linux-dmabuf-v1.xml)
 mdw_protocol(text-input-unstable-v3 ${PROTOCOL_DIR}/unstable/text-input/text-input-unstable-v3.xml)
 set(MDW_WLR_PROTOCOL_DIR "" CACHE PATH "Protocol XML directory from pinned wlroots source")
@@ -152,6 +153,8 @@ if(MDG_ANDROID_BUILD)
 endif()
 set_tests_properties(wayland-window wayland-window-fd wayland-window-fixed-size wayland-window-minimum-size wayland-window-bounded-size wayland-interaction PROPERTIES TIMEOUT 15)
 add_executable(wayland-shell-test ../../../tests/native/shell.c
+	${CMAKE_CURRENT_BINARY_DIR}/xdg-output-unstable-v1-client-protocol.h
+	${CMAKE_CURRENT_BINARY_DIR}/xdg-output-unstable-v1-protocol.c
 	${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c
 	${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-client-protocol.h
 	${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.c)
