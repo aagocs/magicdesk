@@ -65,8 +65,9 @@ static const struct xdg_surface_listener popup_surface_listener = {.configure = 
 
 static void panel_configure(void *data, struct zwlr_layer_surface_v1 *layer, uint32_t serial, uint32_t width, uint32_t height) {
     struct Client *c = data;
-    assert(width == 64 && height == 24 && !c->popup);
     zwlr_layer_surface_v1_ack_configure(layer, serial);
+    if (width == 0 && height == 0) return;
+    assert(width == 64 && height == 24 && !c->popup);
     struct wl_region *input = wl_compositor_create_region(c->compositor);
     wl_region_add(input, 0, 0, 8, 24);
     wl_region_add(input, 56, 0, 8, 24);

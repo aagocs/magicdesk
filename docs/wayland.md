@@ -281,6 +281,9 @@ workspace to contribute its panels and reservations. A nested Linux desktop
 retains its own scope and cannot reserve space on its containing Android Desktop.
 Native wlroots owns protocol validation, configure/ack, scene nodes and seat
 state; the geometry model does not replace Android task planes.
+The [Waybar example](../scripts/examples/waybar/README.md) runs the ordinary
+Ubuntu panel against this workspace and exposes managed Android tasks through
+its standard taskbar module.
 
 The native API admits layer-shell only after its owner provides a shell event
 consumer and explicitly creates a logical shell output. This output is distinct
@@ -297,8 +300,11 @@ therefore does not submit a blank GPU frame while previous rendering is in fligh
 Layer surfaces use a separate catalog and
 committed metadata callback, not `xdg_toplevel` application events. wlroots owns
 protocol validation and configure acknowledgements; the host owns placement and
-calls `mdw_shell_surface_configure`. Equal size configurations are suppressed;
-remapping starts a fresh configure handshake.
+calls `mdw_shell_surface_configure`. Each initial commit receives a synchronous
+`configure(0, 0)`, allowing the client to choose its size while host placement is
+pending. The client must acknowledge it before attaching a buffer. This protocol
+handshake does not satisfy the host geometry request or assign a placement.
+Equal host size configurations are suppressed; remapping starts a fresh handshake.
 
 Revoking the shell output closes its layer surfaces and borrowed outputs without
 closing ordinary applications. The compositor bounds admitted layer surfaces to

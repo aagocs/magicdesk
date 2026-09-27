@@ -1,0 +1,20 @@
+{
+  "layer": "top",
+  "output": "MagicDesk",
+  "position": "top",
+  "height": 44,
+  "exclusive": true,
+  "spacing": 12,
+  "modules-left": ["custom/identity", "wlr/taskbar"],
+  "modules-right": ["custom/environment"],
+  "custom/identity": {"format": "Waybar", "tooltip": false},
+  "custom/environment": {"format": "Ubuntu / Wayland", "tooltip": false},
+  "wlr/taskbar": {
+    "format": "{title:.28}",
+    "all-outputs": true,
+    "active-first": false,
+    "tooltip-format": "{title}\n{app_id}",
+    "on-click": "minimize-raise",
+    "on-click-right": "maximize"
+  }
+}

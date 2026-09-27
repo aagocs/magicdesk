@@ -160,6 +160,8 @@ add_executable(wayland-shell-test ../../../tests/native/shell.c
 	${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.c)
 target_link_libraries(wayland-shell-test PRIVATE magicdesk_wayland magicdesk_frame)
 add_test(NAME wayland-shell COMMAND wayland-shell-test)
+add_test(NAME wayland-shell-deferred-layout COMMAND wayland-shell-test --deferred-layout)
+set_tests_properties(wayland-shell-deferred-layout PROPERTIES TIMEOUT 10)
 set_tests_properties(wayland-shell PROPERTIES TIMEOUT 15)
 add_executable(wayland-geometry-test ../../../tests/native/geometry.c
     ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c

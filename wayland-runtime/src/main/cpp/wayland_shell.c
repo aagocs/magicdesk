@@ -63,7 +63,12 @@ static void layer_commit(struct wl_listener *listener, void *data) {
     (void)data;
     struct MdwLayerSurface *layer = wl_container_of(listener, layer, commit);
     if (!layer->layer->initialized) return;
-    if (layer->layer->initial_commit) layer->configured_once = false;
+    if (layer->layer->initial_commit) {
+        layer->configured_once = false;
+        // Complete the protocol handshake before client sync, independently of host layout.
+        // Zero dimensions leave size to the client; only the host assigns placement.
+        wlr_layer_surface_v1_configure(layer->layer, 0, 0);
+    }
     publish(layer, layer->layer->initial_commit);
 }
 

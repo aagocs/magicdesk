@@ -42,7 +42,8 @@ struct Client {
     struct zwlr_layer_surface_v1 *layer;
     int app_width, app_height;
     int app_keys, panel_keys, buttons, secondary_buttons, frames, configures, outputs;
-    bool closed, workspace, home, app_closed;
+    int initial_configures, configuration_roundtrips;
+    bool closed, workspace, home, app_closed, deferred_layout;
 };
 
 static void buffer_release(void *data, struct wl_buffer *buffer) {
@@ -79,6 +80,14 @@ static void frame_done(void *data, struct wl_callback *callback, uint32_t time) 
 }
 static const struct wl_callback_listener frame_listener = {frame_done};
 
+static void configuration_roundtrip(void *data, struct wl_callback *callback, uint32_t serial) {
+    (void)serial;
+    struct Client *client = data;
+    wl_callback_destroy(callback);
+    assert(client->initial_configures == ++client->configuration_roundtrips);
+}
+static const struct wl_callback_listener configuration_listener = {configuration_roundtrip};
+
 static void configure_panel(struct Client *client) {
     if (client->home && client->configures > 0)
         zwlr_layer_surface_v1_set_layer(client->layer, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM);
@@ -88,6 +97,9 @@ static void configure_panel(struct Client *client) {
     zwlr_layer_surface_v1_set_exclusive_zone(client->layer, 24);
     zwlr_layer_surface_v1_set_margin(client->layer, 3, 0, 0, 0);
     wl_surface_commit(client->panel);
+    // EVENT_WAIT: sync must follow the initial configure; the fixture deadline fails a missing reply.
+    if (client->deferred_layout)
+        wl_callback_add_listener(wl_display_sync(client->display), &configuration_listener, client);
 }
 static void remap_done(void *data, struct wl_callback *callback, uint32_t serial) {
     (void)serial;
@@ -99,9 +111,16 @@ static const struct wl_callback_listener remap_listener = {remap_done};
 static void layer_configure(void *data, struct zwlr_layer_surface_v1 *surface,
         uint32_t serial, uint32_t width, uint32_t height) {
     struct Client *client = data;
-    assert((client->workspace ? width >= 64 : width == 64) && height == 24);
-    client->configures++;
     zwlr_layer_surface_v1_ack_configure(surface, serial);
+    if (width == 0 && height == 0) {
+        client->initial_configures++;
+        if (!client->deferred_layout) return;
+        width = 64;
+        height = 24;
+    } else {
+        assert((client->workspace ? width >= 64 : width == 64) && height == 24);
+        client->configures++;
+    }
     struct wl_region *input = wl_compositor_create_region(client->compositor);
     wl_region_add(input, 0, 0, 16, 24);
     wl_region_add(input, 48, 0, 16, 24);
@@ -125,6 +144,8 @@ static void layer_closed(void *data, struct zwlr_layer_surface_v1 *surface) {
     }
     assert(client->app_keys == 2 && client->panel_keys == 2 && client->buttons == 2);
     assert(client->frames > 0 && client->configures == 2);
+    if (client->deferred_layout)
+        assert(client->initial_configures == 2 && client->configuration_roundtrips == 2);
     client->closed = true;
 }
 static const struct zwlr_layer_surface_v1_listener layer_listener = {layer_configure, layer_closed};
@@ -329,8 +350,8 @@ static void global_remove(void *data, struct wl_registry *registry, uint32_t nam
 }
 static const struct wl_registry_listener registry_listener = {global, global_remove};
 
-static void run_client(const char *socket, bool workspace, bool home) {
-    struct Client client = {.workspace = workspace, .home = home};
+static void run_client(const char *socket, bool workspace, bool home, bool deferred_layout) {
+    struct Client client = {.workspace = workspace, .home = home, .deferred_layout = deferred_layout};
     client.display = wl_display_connect(socket);
     assert(client.display);
     struct wl_registry *registry = wl_display_get_registry(client.display);
@@ -383,6 +404,7 @@ struct Host {
     MdwKeyboard keyboard;
     MdwOutput *app_output, *panel_output;
     int frames, mappings, render_attempts;
+    bool deferred_layout;
 };
 static void window_event(void *data, uint64_t id, const MdwWindow *window) {
     struct Host *host = data;
@@ -403,6 +425,8 @@ static void shell_event(void *data, uint64_t id, const MdwShellSurface *surface)
     assert(surface->anchors == (MDW_ANCHOR_LEFT | MDW_ANCHOR_TOP | MDW_ANCHOR_RIGHT));
     assert(surface->exclusive_zone == 24 && surface->margin_top == 3);
     host->keyboard = surface->keyboard;
+    // Model an asynchronous layout owner: no geometry reply before the client's first buffer.
+    if (host->deferred_layout && !surface->mapped) return;
     assert(mdw_shell_surface_configure(host->server, id, 0, 3, 64, 24));
     assert(mdw_shell_surface_configure(host->server, id, 0, 3, 64, 24));
 }
@@ -433,13 +457,14 @@ static bool can_render(void *data, MdwOutput *output) {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 2 && !strcmp(argv[1], "--client")) { run_client(NULL, false, false); return 0; }
-    if (argc == 2 && !strcmp(argv[1], "--workspace-client")) { run_client(NULL, true, false); return 0; }
-    if (argc == 2 && !strcmp(argv[1], "--home-client")) { run_client(NULL, true, true); return 0; }
+    if (argc == 2 && !strcmp(argv[1], "--client")) { run_client(NULL, false, false, false); return 0; }
+    if (argc == 2 && !strcmp(argv[1], "--workspace-client")) { run_client(NULL, true, false, false); return 0; }
+    if (argc == 2 && !strcmp(argv[1], "--home-client")) { run_client(NULL, true, true, false); return 0; }
+    bool deferred_layout = argc == 2 && !strcmp(argv[1], "--deferred-layout");
     char directory[4096];
     snprintf(directory, sizeof(directory), "%s/mdw-shell-XXXXXX", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp");
     assert(mkdtemp(directory) && setenv("XDG_RUNTIME_DIR", directory, 1) == 0);
-    struct Host host = {.server = mdw_server_create()};
+    struct Host host = {.server = mdw_server_create(), .deferred_layout = deferred_layout};
     assert(host.server);
     assert(!mdw_server_shell_output(host.server, 800, 600));
     MdwEvents events = {.window = window_event, .shell = shell_event, .frame = frame_event,
@@ -449,7 +474,7 @@ int main(int argc, char **argv) {
     assert(mdw_server_shell_output(host.server, 900, 700));
     pid_t child = fork();
     assert(child >= 0);
-    if (child == 0) { run_client(mdw_server_socket(host.server), false, false); _exit(0); }
+    if (child == 0) { run_client(mdw_server_socket(host.server), false, false, deferred_layout); _exit(0); }
     int stage = 0;
     while (!host.window_destroyed) {
         assert(mdw_server_dispatch(host.server, -1) >= 0);
@@ -458,7 +483,7 @@ int main(int argc, char **argv) {
         if (host.panel_mapped && !host.panel_output)
             assert((host.panel_output = mdw_output_create(host.server, host.panel, 80, 40)));
         if (stage == 0 && host.app_output && host.panel_output && host.render_attempts >= 2) {
-            assert(host.frames == 1);
+            assert(deferred_layout ? host.frames >= 1 : host.frames == 1);
             MdwOutput *dependents = mdw_output_borrow_dependents(host.app_output);
             assert(dependents);
             mdw_output_destroy(dependents);
