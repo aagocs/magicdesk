@@ -1,0 +1,36 @@
+{
+  "version": 4,
+  "preset": "dark",
+  "colors": {
+    "background": "#141816", "panel": "#222824", "surface": "#343E37",
+    "text": "#F3F7F4", "muted": "#B8C4BC", "accent": "#85D8AF",
+    "danger": "#FF8C9B", "attention": "#EFCA80", "hover": "#46584C",
+    "desktop_text": "#F3F7F4"
+  },
+  "typography": { "font": "sans", "scale": 1 },
+  "shape": { "radiusScale": 0.75, "borderDp": 1 },
+  "backdrop": { "opacity": 0.96, "blurRadiusDp": 16 },
+  "composition": {
+    "panels": [
+      {
+        "id": "status", "edge": "top",
+        "style": { "length": "fill", "thicknessDp": 48, "paddingDp": 4, "radiusDp": 0, "backdrop": { "opacity": 1, "blurRadiusDp": 0 }, "reserveSpace": true },
+        "components": [
+          { "type": "start", "widthDp": 64 }, { "type": "spacer" },
+          { "type": "keyboard_layout", "minViewportDp": 700 },
+          { "type": "phone_screen", "minViewportDp": 800 },
+          { "type": "notifications" }, { "type": "quick_controls" },
+          { "type": "battery", "minViewportDp": 600 }, { "type": "clock" }
+        ]
+      },
+      {
+        "id": "apps", "edge": "bottom",
+        "style": { "length": "content", "alignment": "center", "maxLengthDp": 1000, "sideGapDp": 12, "edgeGapDp": 10, "thicknessDp": 56, "paddingDp": 4, "radiusDp": 8, "reserveSpace": true },
+        "components": [ { "type": "tasks" }, { "type": "open_tasks" }, { "type": "show_desktop", "minViewportDp": 560 } ]
+      }
+    ],
+    "start": { "sections": ["apps", "running", "recent", "tools"], "presentation": "grid", "tileWidthDp": 100, "iconSizeDp": 40 }
+  },
+  "feedback": { "normal": "transparent", "hover": "surface", "pressed": "hover", "selected": "surface", "focused": "hover", "disabled": "transparent", "outline": "accent" },
+  "motion": { "panels": "fade", "taskbar": "fade", "durationMs": 120, "feedbackMs": 40, "curve": "ease_out", "wallpaper": true }
+}

@@ -25,6 +25,11 @@ Confirm/cancel use the exact preview ID and the same scope. The JSON Schema is
 also available at `magicdesk://appearance/schema`. These operations use
 app-private state without Desktop or shell prerequisites; mutations require control.
 
+`appearance.themes` reads the bundled theme catalog. Each entry contains `id`,
+localized `name` and a normalized complete `document`, ready for
+`appearance.preview` in either scope. Choosing a catalog entry uses the same
+preview/confirm/cancel workflow as any other document, not a separate apply API.
+
 `appearance.import` reads a verified ordinary shell-readable `path`, accepts
 `format` (`zip` by default, or `json`), and returns an unconfirmed preview. It
 requires both **control** and **files_read**. A changed appearance revision

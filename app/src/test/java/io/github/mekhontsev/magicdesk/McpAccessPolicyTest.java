@@ -18,7 +18,7 @@ public final class McpAccessPolicyTest {
     }
     @Test public void appearanceSchemaAndValidationDoNotGrantMutation() {
         var observe = new McpAccessPolicy(Set.of());
-        for (String name : Set.of("appearance.schema", "appearance.validate", "appearance.get")) assertTrue(observe.allows(name));
+        for (String name : Set.of("appearance.schema", "appearance.validate", "appearance.get", "appearance.themes")) assertTrue(observe.allows(name));
         for (String name : Set.of("appearance.preview", "appearance.confirm", "appearance.cancel", "appearance.apply", "appearance.prune")) {
             assertFalse(observe.allows(name));
             assertTrue(new McpAccessPolicy(Set.of("control")).allows(name));

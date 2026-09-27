@@ -7,6 +7,18 @@ import org.json.JSONObject;
 final class AutomationAppearance {
     static DesktopAutomationResult execute(String command, JSONObject arguments) throws JSONException {
         final String scope = workspaceKey(arguments);
+        if (command.equals("appearance.themes")) {
+            try {
+                var context = MagicDeskApplication.applicationContext();
+                JSONArray themes = new JSONArray();
+                for (var entry : ShellThemes.ENTRIES) themes.put(new JSONObject().put("id", entry.id())
+                        .put("name", context.getString(entry.title()))
+                        .put("document", ShellAppearanceJson.encode(ShellThemes.load(entry.id(), context.getAssets()::open))));
+                return DesktopAutomationResult.success("ok", new JSONObject().put("themes", themes));
+            } catch (java.io.IOException error) {
+                return DesktopAutomationResult.failure(DesktopAutomationErrorCode.ACTION_FAILED, error.getMessage(), false);
+            }
+        }
         if (command.equals("appearance.prune")) {
             try {
                 var removed = AppearanceStore.pruneUnusedBundles();

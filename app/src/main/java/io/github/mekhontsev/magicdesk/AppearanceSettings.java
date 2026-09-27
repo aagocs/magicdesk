@@ -57,6 +57,9 @@ final class AppearanceSettings implements AutoCloseable {
         inherit.setOnClickListener(v -> reset());
         mRefreshers.add(() -> inherit.setVisibility(mWorkspaceKey == null ? View.GONE : View.VISIBLE));
         page.addView(inherit);
+        final Button themes = mUi.menuItem(R.string.appearance_choose_theme, UiColor.TEXT);
+        themes.setOnClickListener(v -> chooseTheme());
+        page.addView(themes);
         heading(page, R.string.appearance_colors);
         final LinearLayout presets = new LinearLayout(mActivity);
         final String[] ids = {"dark", "light", "contrast"};
@@ -318,7 +321,35 @@ final class AppearanceSettings implements AutoCloseable {
         mPreviewDialog.show(); UiAppearance.dialog(mPreviewDialog, mActivity);
     }
 
+    private void chooseTheme() {
+        final EditTarget target = target();
+        String[] names = ShellThemes.ENTRIES.stream().map(entry -> mActivity.getString(entry.title())).toArray(String[]::new);
+        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_choose_theme)
+                .setSingleChoiceItems(names, -1, null)
+                .setPositiveButton(R.string.appearance_preview, null).setNegativeButton(android.R.string.cancel, null).create();
+        dialog.setOnShowListener(d -> {
+            Button preview = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            preview.setEnabled(false);
+            dialog.getListView().setOnItemClickListener((parent, view, position, id) -> preview.setEnabled(true));
+            preview.setOnClickListener(v -> {
+                int selected = dialog.getListView().getCheckedItemPosition();
+                if (selected < 0) return;
+                try {
+                    preparePreview(() -> ShellAppearanceJson.encode(ShellThemes.load(
+                            ShellThemes.ENTRIES.get(selected).id(), mActivity.getAssets()::open)).toString(), target, dialog);
+                } catch (Exception error) { showError(error); }
+            });
+        });
+        showChild(dialog);
+    }
+
+    private interface DocumentSource { String read() throws Exception; }
+
     private void preparePreview(String document, EditTarget target, AlertDialog editor) {
+        preparePreview(() -> document, target, editor);
+    }
+
+    private void preparePreview(DocumentSource source, EditTarget target, AlertDialog editor) {
         requireCurrent(target);
         if (mFileBusy || mPendingFile != null) throw new IllegalStateException(mActivity.getString(R.string.appearance_file_busy));
         mFileBusy = true;
@@ -328,6 +359,7 @@ final class AppearanceSettings implements AutoCloseable {
             mFileThread = Thread.currentThread();
             try {
                 cancellation.throwIfCanceled();
+                String document = source.read();
                 prepareDocument(document, target.workspaceKey());
                 cancellation.throwIfCanceled();
                 mActivity.runOnUiThread(() -> {

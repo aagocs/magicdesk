@@ -14,6 +14,11 @@ import java.util.Set;
 public final class AutomationCommandCatalogTest {
     @Test public void appearanceScopesAndAssetFileBoundariesAreDiscoverable() throws Exception {
         var tools = AutomationCommandCatalog.create();
+        var themes = tool(tools, "appearance.themes");
+        assertTrue(themes.getJSONObject("annotations").getBoolean("readOnlyHint"));
+        assertTrue(new McpAccessPolicy(java.util.Set.of()).allows("appearance.themes"));
+        assertTrue(dataProperties(tools, "appearance.themes").getJSONObject("themes").getJSONObject("items")
+                .getJSONObject("properties").has("document"));
         for (String name : Set.of("appearance.get", "appearance.validate", "appearance.apply", "appearance.preview",
                 "appearance.confirm", "appearance.cancel", "appearance.preset", "appearance.reset", "appearance.import", "appearance.export")) {
             var input = tool(tools, name).getJSONObject("inputSchema");

@@ -15,6 +15,8 @@ final class AutomationCommandCatalog {
                         "Read effective and committed native shell configuration, workspace patch, known override keys, active preview ID and revision. Omit workspaceKey for global defaults. Independent of Desktop, shell access and Termux.", appearanceSchema(new JSONObject())))
                 .put(readTool("appearance.schema", "Read shell configuration schema",
                         "Read the authoritative JSON Schema for native appearance, composition, symbols, feedback and motion. Does not change state.", emptySchema()))
+                .put(readTool("appearance.themes", "Read built-in shell themes",
+                        "Read complete bundled theme documents with ids and names. Pass a document to appearance.preview and confirm/cancel its exact previewId. Works without Desktop, shell or Termux; does not apply a theme.", emptySchema()))
                 .put(readTool("appearance.validate", "Validate shell configuration",
                         "Validate and resolve a document without applying it. Reports JSON-pointer paths for invalid fields and component constraints.",
                         appearanceSchema(new JSONObject().put("document", openObjectProperty("Version 4 document, or workspace patch resolved over global defaults. Discover fields with appearance.schema.")), "document")))
@@ -1447,6 +1449,13 @@ final class AutomationCommandCatalog {
             throws JSONException {
         final JSONObject properties = new JSONObject();
         switch (toolName) {
+            case "appearance.themes":
+                properties.put("themes", arrayProperty("Bundled full themes, distinct from style-only presets.",
+                        openObjectProperty("Theme.").put("properties", new JSONObject()
+                                .put("id", stringProperty("Stable theme id."))
+                                .put("name", stringProperty("Display name."))
+                                .put("document", openObjectProperty("Resolved version 4 document for global or workspace preview.")))));
+                break;
             case "appearance.get":
             case "appearance.preview":
             case "appearance.confirm":

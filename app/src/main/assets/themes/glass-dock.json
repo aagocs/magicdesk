@@ -1,0 +1,27 @@
+{
+  "version": 4,
+  "preset": "dark",
+  "colors": {
+    "background": "#19191D", "panel": "#25252B", "surface": "#37373F",
+    "text": "#F6F4F7", "muted": "#C0BBC7", "accent": "#F2A8C0",
+    "danger": "#FF8495", "attention": "#F3CD81", "hover": "#4B4652",
+    "desktop_text": "#F6F4F7"
+  },
+  "typography": { "font": "sans", "scale": 1 },
+  "shape": { "radiusScale": 1, "borderDp": 1 },
+  "backdrop": { "opacity": 0.92, "blurRadiusDp": 24 },
+  "composition": {
+    "panels": [{
+      "id": "dock", "edge": "bottom",
+      "style": { "length": "content", "alignment": "center", "maxLengthDp": 1000, "sideGapDp": 12, "edgeGapDp": 12, "thicknessDp": 64, "paddingDp": 8, "radiusDp": 8, "reserveSpace": true },
+      "components": [
+        { "type": "start", "widthDp": 64 }, { "type": "tasks" },
+        { "type": "open_tasks" }, { "type": "notifications", "minViewportDp": 640 },
+        { "type": "quick_controls" }, { "type": "clock", "minViewportDp": 480 }
+      ]
+    }],
+    "start": { "sections": ["apps", "recent", "running", "tools"], "presentation": "grid", "tileWidthDp": 104, "iconSizeDp": 44 }
+  },
+  "feedback": { "normal": "transparent", "hover": "surface", "pressed": "hover", "selected": "surface", "focused": "hover", "disabled": "transparent", "outline": "accent" },
+  "motion": { "panels": "slide_scale", "taskbar": "slide", "durationMs": 160, "feedbackMs": 60, "curve": "ease_out", "distanceDp": 8, "scaleFrom": 0.98, "wallpaper": true }
+}

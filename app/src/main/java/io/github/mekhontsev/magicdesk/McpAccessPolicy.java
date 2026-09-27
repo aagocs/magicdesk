@@ -26,7 +26,7 @@ final class McpAccessPolicy {
             "get_self_test", "wait_for_state",
             "query_intent_handlers", "list_android_actions", "list_app_actions",
             "search_app_functions", "get_recording_status", "begin_trace", "end_trace",
-            "app.update_status", "graphics.list", "inspect_workspace", "appearance.get", "appearance.schema", "appearance.validate");
+            "app.update_status", "graphics.list", "inspect_workspace", "appearance.get", "appearance.themes", "appearance.schema", "appearance.validate");
     private final Set<Permission> mPermissions;
 
     McpAccessPolicy(final Set<String> names) {

@@ -1,0 +1,31 @@
+{
+  "version": 4,
+  "preset": "light",
+  "colors": {
+    "background": "#F0F2F1", "panel": "#FAFCFB", "surface": "#E3E9E6",
+    "text": "#202B26", "muted": "#526259", "accent": "#006E58",
+    "danger": "#B12842", "attention": "#824579", "hover": "#CFDED5",
+    "desktop_text": "#F3F7F4"
+  },
+  "typography": { "font": "sans", "scale": 1 },
+  "shape": { "radiusScale": 0.5, "borderDp": 1 },
+  "backdrop": { "opacity": 1, "blurRadiusDp": 0 },
+  "composition": {
+    "panels": [{
+      "id": "main", "edge": "bottom",
+      "style": { "length": "fill", "thicknessDp": 48, "paddingDp": 4, "radiusDp": 0, "reserveSpace": true },
+      "components": [
+        { "type": "start", "widthDp": 64 }, { "type": "tasks" },
+        { "type": "show_desktop", "minViewportDp": 640 }, { "type": "open_tasks" },
+        { "type": "notifications", "minViewportDp": 560 },
+        { "type": "keyboard_layout", "minViewportDp": 800 },
+        { "type": "phone_screen", "minViewportDp": 800 },
+        { "type": "quick_controls" }, { "type": "battery", "minViewportDp": 700 },
+        { "type": "clock" }
+      ]
+    }],
+    "start": { "sections": ["apps", "running", "recent", "tools"], "presentation": "list", "tileWidthDp": 100, "iconSizeDp": 32 }
+  },
+  "feedback": { "normal": "transparent", "hover": "surface", "pressed": "hover", "selected": "surface", "focused": "hover", "disabled": "transparent", "outline": "accent" },
+  "motion": { "panels": "fade", "taskbar": "none", "durationMs": 100, "feedbackMs": 0, "wallpaper": true }
+}

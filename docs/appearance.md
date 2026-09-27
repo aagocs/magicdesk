@@ -7,6 +7,22 @@ identity. **Use global defaults** removes that workspace's override. Dark, Light
 and Contrast change colors, typography, shapes and feedback while retaining
 backdrops, panel geometry, composition, resources and motion.
 
+**Choose theme** previews a complete appearance for the selected scope, including
+panel composition and Start layout. **Keep changes** applies it; cancellation
+restores the previous appearance. Built-in themes use the same JSON schema and
+publication path as imported documents:
+
+| Theme | Layout |
+| --- | --- |
+| [Workbench](../app/src/main/assets/themes/workbench.json) | Light, compact full-width bottom panel and list-style Start. |
+| [Glass Dock](../app/src/main/assets/themes/glass-dock.json) | Dark, translucent floating dock and grid-style Start. |
+| [Two Panels](../app/src/main/assets/themes/two-panels.json) | Top status panel with Start, plus a separate bottom task dock. |
+
+Secondary controls adapt to available width. Start, tasks, open tasks and quick
+controls remain available. Themes contain no external assets or service
+requirements; blur follows system availability. The linked files are the actual
+bundled documents and can be edited and imported as JSON.
+
 **Common background** sets background opacity (15-100%) and blur radius (0-64 dp)
 for native shell panels, popup backgrounds and appearance-bound dialogs in the
 selected scope. Select a panel to edit its edge, length, alignment, gaps,
