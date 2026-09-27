@@ -75,26 +75,27 @@ final class ShellAppearanceSchema {
                             .put("curve", enumeration(ShellMotion.Curve.values()))))
                     .put("resources", object(new JSONObject().put("icons", object(icons))
                             .put("bundle", type("string").put("pattern", "^(?:[a-f0-9]{64})?$"))
-                            .put("iconAssets", object(iconAssets)).put("font", assetPath(true)).put("wallpaper", assetPath(true)))))
+                            .put("iconAssets", object(iconAssets)).put("font", assetPath(true)).put("wallpaper", assetPath(true))
+                            .put("shader", ShaderWallpaperJson.schema()))))
                     .put("$schema", "https://json-schema.org/draft/2020-12/schema")
                     .put("title", "MagicDesk shell appearance")
                     .put("description", "Bounded native shell configuration. Missing fields inherit the selected preset and defaults. No commands, paths or scripts.");
         } catch (JSONException error) { throw new ExceptionInInitializerError(error); }
     }
 
-    private static JSONObject type(String value) throws JSONException { return new JSONObject().put("type", value); }
+    static JSONObject type(String value) throws JSONException { return new JSONObject().put("type", value); }
     private static JSONObject backdrop() throws JSONException {
         return object(new JSONObject().put("opacity", number(false, .15, 1).put("default", 1))
                 .put("blurRadiusDp", number(true, 0, 64).put("default", 0)));
     }
-    private static JSONObject assetPath(boolean empty) throws JSONException {
+    static JSONObject assetPath(boolean empty) throws JSONException {
         return type("string").put("maxLength", 160).put("pattern",
                 "^(?:[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)" + (empty ? "?" : "") + "$");
     }
-    private static JSONObject object(JSONObject properties) throws JSONException {
+    static JSONObject object(JSONObject properties) throws JSONException {
         return type("object").put("properties", properties).put("additionalProperties", false);
     }
-    private static JSONObject number(boolean integer, double min, double max) throws JSONException {
+    static JSONObject number(boolean integer, double min, double max) throws JSONException {
         return type(integer ? "integer" : "number").put("minimum", min).put("maximum", max);
     }
     private static JSONObject strings(String... values) throws JSONException {
@@ -119,6 +120,7 @@ final class ShellAppearanceSchema {
         }
         String type = rule.getString("type");
         boolean correct = switch (type) {
+            case "null" -> value == JSONObject.NULL;
             case "object" -> value instanceof JSONObject;
             case "array" -> value instanceof JSONArray;
             case "string" -> value instanceof String;

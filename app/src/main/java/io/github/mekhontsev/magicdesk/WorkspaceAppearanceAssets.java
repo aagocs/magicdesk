@@ -28,7 +28,7 @@ final class WorkspaceAppearanceAssets {
             ThemeAssets.Prepared prepared = active.get(resource);
             if (prepared == null) prepared = staged.get(resource);
             if (prepared == null) prepared = resource.hasAssets()
-                    ? ThemeAssets.get(context).prepare(resource.bundle(), resource.iconAssets().values(), resource.font(), resource.wallpaper())
+                    ? ThemeAssets.get(context).prepare(resource)
                     : ThemeAssets.Prepared.EMPTY;
             for (String path : resource.iconAssets().values()) bytes += imageBytes(prepared.icon(path), images);
             if (prepared.wallpaper() != null && wallpapers.add(prepared.wallpaper())) bytes += prepared.wallpaper().retainedBytes();

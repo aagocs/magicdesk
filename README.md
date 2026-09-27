@@ -134,10 +134,11 @@ options apply while Desktop is running and release their overrides when it ends.
 **Settings > Appearance** customizes MagicDesk's native interface with panels
 along any screen edge, including floating, translucent layouts and optional system
 background blur. Popups share the background style; individual panels can override it.
-Choose Workbench, Glass Dock or Two Panels for a complete layout, adjust colors,
+Choose a bundled theme for a complete layout, adjust colors,
 import/export a [JSON theme](docs/appearance.md), or use a theme bundle containing
-icons, fonts and wallpaper. Wallpapers can be static, animated WebP/GIF, or silent
-MP4/WebM loops, with automatic pause for power saving and reduced motion.
+icons, fonts and wallpaper. Wallpapers can be static, animated WebP/GIF, silent
+MP4/WebM loops, or configurable AGSL shaders such as the bundled Contours theme,
+with automatic pause for power saving and reduced motion.
 Global defaults can be overridden per workspace.
 Styles apply to open panels and built-in tools without restarting them, including
 when no Desktop is running. The declarative document controls panel contents,

@@ -61,7 +61,8 @@ final class ShellAppearanceJson {
                         role(feedback, "pressed", UiColor.HOVER), role(feedback, "selected", UiColor.SURFACE),
                         role(feedback, "focused", UiColor.HOVER), role(feedback, "disabled", UiColor.TRANSPARENT),
                         role(feedback, "outline", UiColor.ACCENT)), new ShellResources(icons,
-                                resourceRoot.optString("bundle", ""), iconAssets, resourceRoot.optString("font", ""), resourceRoot.optString("wallpaper", "")));
+                                resourceRoot.optString("bundle", ""), iconAssets, resourceRoot.optString("font", ""), resourceRoot.optString("wallpaper", ""),
+                                ShaderWallpaperJson.parse(resourceRoot.optJSONObject("shader"))));
     }
 
     private static ShellComposition composition(JSONObject input) throws JSONException {
@@ -153,7 +154,8 @@ final class ShellAppearanceJson {
                 .put("feedback", new JSONObject().put("normal", name(f.normal())).put("hover", name(f.hover())).put("pressed", name(f.pressed()))
                         .put("selected", name(f.selected())).put("focused", name(f.focused())).put("disabled", name(f.disabled())).put("outline", name(f.outline())))
                 .put("resources", new JSONObject().put("icons", icons).put("bundle", value.resources().bundle())
-                        .put("iconAssets", assets).put("font", value.resources().font()).put("wallpaper", value.resources().wallpaper()));
+                        .put("iconAssets", assets).put("font", value.resources().font()).put("wallpaper", value.resources().wallpaper())
+                        .put("shader", ShaderWallpaperJson.encode(value.resources().shader())));
     }
     private static ShellAppearance.Backdrop backdrop(JSONObject value) {
         return new ShellAppearance.Backdrop(number(value, "opacity", 1), value.optInt("blurRadiusDp", 0));

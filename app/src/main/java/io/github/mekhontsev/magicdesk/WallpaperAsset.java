@@ -13,14 +13,19 @@ import java.nio.ByteBuffer;
 
 /** Immutable, validated media plus a static poster. Playback instances are never shared. */
 final class WallpaperAsset {
-    enum Kind { IMAGE, ANIMATED_IMAGE, VIDEO }
+    enum Kind { IMAGE, ANIMATED_IMAGE, VIDEO, SHADER }
     private final Kind kind;
     private final Bitmap poster;
     private final byte[] encoded;
     private final int width, height;
+    private final ShaderWallpaperAsset shader;
 
     private WallpaperAsset(Kind kind, Bitmap poster, byte[] encoded, int width, int height) {
+        this(kind, poster, encoded, width, height, null);
+    }
+    private WallpaperAsset(Kind kind, Bitmap poster, byte[] encoded, int width, int height, ShaderWallpaperAsset shader) {
         this.kind = kind; this.poster = poster; this.encoded = encoded; this.width = width; this.height = height;
+        this.shader = shader;
         poster.setDensity(Bitmap.DENSITY_NONE);
     }
     static WallpaperAsset image(Bitmap bitmap) {
@@ -30,7 +35,12 @@ final class WallpaperAsset {
     Bitmap poster() { return poster; }
     int width() { return width; }
     int height() { return height; }
-    long retainedBytes() { return poster.getAllocationByteCount() + (encoded == null ? 0L : encoded.length); }
+    long retainedBytes() { return poster.getAllocationByteCount() + (encoded == null ? 0L : encoded.length)
+            + (shader == null ? 0L : shader.retainedBytes()); }
+    static WallpaperAsset shader(Bitmap poster, ShaderWallpaperAsset shader) {
+        return new WallpaperAsset(Kind.SHADER, poster, null, poster.getWidth(), poster.getHeight(), shader);
+    }
+    ShaderWallpaperAsset shader() { return shader; }
 
     /** The worker transfers ownership of bytes; callers must not modify them after this call. */
     static WallpaperAsset decode(byte[] bytes, int targetWidth, int targetHeight) throws IOException {

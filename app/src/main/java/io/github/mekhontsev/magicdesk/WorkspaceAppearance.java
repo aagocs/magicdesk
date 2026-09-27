@@ -54,7 +54,7 @@ public final class WorkspaceAppearance {
                 > MAX_OVERRIDE_BYTES) throw new IllegalArgumentException("Appearance overrides exceed 256 KiB");
         mResolved = Map.copyOf(resolved);
         for (ShellResources resource : resources) {
-            if (resource.hasAssets() && resource.bundle().isEmpty()) {
+            if (resource.hasBundleAssets() && resource.bundle().isEmpty()) {
                 throw ShellAppearanceSchema.invalid("/resources/bundle", "asset references require an installed bundle digest");
             }
         }

@@ -41,10 +41,12 @@ final class DesktopWallpaperController {
     private volatile boolean mUsingCustomWallpaper;
     private volatile boolean mUsingFallbackWallpaper;
     private volatile boolean mRendered;
-    private String mThemeWallpaperKey = "";
-    private final Runnable mAppearanceChanged = () -> {
-        if (!themeWallpaperKey().equals(mThemeWallpaperKey)) reload();
-    };
+    private WallpaperAsset mThemeWallpaper;
+    private final Runnable mAppearanceChanged = this::appearanceChanged;
+
+    private void appearanceChanged() {
+        if (AppearanceStore.assets(mActivity).wallpaper() != mThemeWallpaper) reload();
+    }
 
     DesktopWallpaperController(final DesktopShellActivity activity) {
         mActivity = activity;
@@ -82,15 +84,16 @@ final class DesktopWallpaperController {
         try {
             final String scope = AppearanceScopeBindings.find(mActivity);
             final ShellAppearance theme = AppearanceStore.current(mActivity);
-            if (!theme.resources().wallpaper().isEmpty()) {
+            if (!theme.resources().wallpaper().isEmpty() || theme.resources().shader() != null) {
                 if (scope == null) {
                     var r = theme.resources();
-                    AppearanceStore.apply(theme.withResources(new ShellResources(r.icons(), r.bundle(), r.iconAssets(), r.font(), "")));
+                    AppearanceStore.apply(theme.withResources(new ShellResources(r.icons(), r.bundle(), r.iconAssets(), r.font(), "", null)));
                 } else {
                     var patch = new org.json.JSONObject(AppearanceStore.snapshot(scope).patch());
                     var resources = patch.optJSONObject("resources");
                     if (resources == null) { resources = new org.json.JSONObject(); patch.put("resources", resources); }
                     resources.put("wallpaper", "");
+                    resources.put("shader", org.json.JSONObject.NULL);
                     AppearanceStore.apply(scope, patch.toString());
                 }
             }
@@ -148,8 +151,8 @@ final class DesktopWallpaperController {
             return;
         }
         mRendered = false;
-        mThemeWallpaperKey = themeWallpaperKey();
         final WallpaperAsset themeWallpaper = AppearanceStore.assets(mActivity).wallpaper();
+        mThemeWallpaper = themeWallpaper;
         final int generation = mLoadGeneration.incrementAndGet();
         final DisplayMetrics metrics = mWallpaperView.getResources().getDisplayMetrics();
         final int targetWidth = Math.max(1, metrics.widthPixels);
@@ -199,11 +202,6 @@ final class DesktopWallpaperController {
                 }
             }
         });
-    }
-
-    private String themeWallpaperKey() {
-        final var resources = AppearanceStore.current(mActivity).resources();
-        return resources.wallpaper().isEmpty() ? "" : resources.bundle() + "/" + resources.wallpaper();
     }
 
     private void recordRenderedEvent(final WallpaperResult result) {

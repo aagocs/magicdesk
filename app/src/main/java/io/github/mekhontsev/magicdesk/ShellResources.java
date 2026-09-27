@@ -4,7 +4,7 @@ import java.util.Map;
 
 /** Symbolic aliases and immutable bundle-relative resources; never arbitrary filesystem paths. */
 public record ShellResources(Map<Icon, Icon> icons, String bundle, Map<Icon, String> iconAssets,
-        String font, String wallpaper) {
+        String font, String wallpaper, ShaderWallpaper shader) {
     public enum Icon { DESKTOP, WINDOWS, NOTIFICATIONS, KEYBOARD, CONTROLS, FILES, TERMINAL, SETTINGS, SEARCH, CAMERA, VIDEO }
     public ShellResources {
         icons = Map.copyOf(icons); iconAssets = Map.copyOf(iconAssets);
@@ -17,7 +17,9 @@ public record ShellResources(Map<Icon, Icon> icons, String bundle, Map<Icon, Str
         }
     }
     public Icon resolve(Icon role) { return icons.getOrDefault(role, role); }
-    public boolean hasAssets() { return !iconAssets.isEmpty() || !font.isEmpty() || !wallpaper.isEmpty(); }
-    public ShellResources withBundle(String digest) { return new ShellResources(icons, digest, iconAssets, font, wallpaper); }
-    public static ShellResources defaults() { return new ShellResources(Map.of(), "", Map.of(), "", ""); }
+    public boolean hasAssets() { return hasBundleAssets() || shader != null; }
+    public boolean hasBundleAssets() { return !iconAssets.isEmpty() || !font.isEmpty() || !wallpaper.isEmpty()
+            || shader != null && !shader.textures().isEmpty(); }
+    public ShellResources withBundle(String digest) { return new ShellResources(icons, digest, iconAssets, font, wallpaper, shader); }
+    public static ShellResources defaults() { return new ShellResources(Map.of(), "", Map.of(), "", "", null); }
 }

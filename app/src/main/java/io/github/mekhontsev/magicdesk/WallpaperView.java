@@ -25,7 +25,7 @@ import android.widget.ImageView;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
-/** Per-output playback host. No input, focus, window transactions or independent frame loop. */
+/** Per-output playback host. No input, focus or window transactions. */
 final class WallpaperView extends FrameLayout {
     private interface Playback { void close(); }
 
@@ -97,6 +97,7 @@ final class WallpaperView extends FrameLayout {
         Display display = getDisplay();
         var motion = AppearanceStore.current(getContext()).motion();
         return !closed && !failed && asset != null && asset.kind() != WallpaperAsset.Kind.IMAGE
+                && (asset.kind() != WallpaperAsset.Kind.SHADER || isHardwareAccelerated())
                 && WallpaperPolicy.animate(motion.wallpaper(), motion.reduced(), ValueAnimator.areAnimatorsEnabled(),
                         power != null && power.isPowerSaveMode(), attached && isShown() && getWindowVisibility() == VISIBLE,
                         display != null && display.getState() == Display.STATE_ON);
@@ -119,6 +120,10 @@ final class WallpaperView extends FrameLayout {
             return;
         }
         int width = outputWidth, height = outputHeight;
+        if (selected.kind() == WallpaperAsset.Kind.SHADER) {
+            prepareShader(token, selected, width, height);
+            return;
+        }
         decoder.execute(() -> {
             try {
                 AnimatedImageDrawable animation = selected.animation(width, height);
@@ -129,6 +134,27 @@ final class WallpaperView extends FrameLayout {
                     setImage(animation);
                     animation.start();
                     state.accept("playing");
+                });
+            } catch (Exception error) { main.post(() -> failed(token, error)); }
+        });
+    }
+
+    private void prepareShader(int token, WallpaperAsset selected, int width, int height) {
+        decoder.execute(() -> {
+            try {
+                var shader = selected.shader().createShader(width, height);
+                main.post(() -> {
+                    if (token != playbackGeneration || !shouldPlay()) return;
+                    ShaderWallpaperDrawable drawable = new ShaderWallpaperDrawable(shader, width, height,
+                            selected.shader().spec.fps(), selected.shader().spec.fallbackColor(),
+                            error -> main.post(() -> failed(token, error)));
+                    preparing = false;
+                    playback = drawable::close;
+                    setImage(drawable);
+                    drawable.start();
+                    image.getViewTreeObserver().registerFrameCommitCallback(() -> main.post(() -> {
+                        if (token == playbackGeneration && shouldPlay()) state.accept("playing");
+                    }));
                 });
             } catch (Exception error) { main.post(() -> failed(token, error)); }
         });

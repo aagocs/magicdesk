@@ -12,7 +12,8 @@ final class ShellThemes {
     static final List<Entry> ENTRIES = List.of(
             new Entry("workbench", R.string.appearance_theme_workbench),
             new Entry("glass-dock", R.string.appearance_theme_glass_dock),
-            new Entry("two-panels", R.string.appearance_theme_two_panels));
+            new Entry("two-panels", R.string.appearance_theme_two_panels),
+            new Entry("contours", R.string.appearance_theme_contours));
     interface Source { InputStream open(String path) throws IOException; }
     private ShellThemes() { }
 

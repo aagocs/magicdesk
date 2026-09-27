@@ -3,6 +3,25 @@ package io.github.mekhontsev.magicdesk;
 import org.junit.Test;
 
 public final class WallpaperPlaybackTest {
+    @Test public void shadersUseTheSameCancellationAndCommittedFrameLifecycle() throws Exception {
+        verify("""
+            fixture.asset.kind = WallpaperAsset.Kind.SHADER;
+            fixture.refresh(); check(work.pending.size() == 1, "shader preparation must be off UI");
+            fixture.visible = false; fixture.refresh(); work.run(); main.run();
+            check(ShaderWallpaperDrawable.last == null, "hidden host attached late shader");
+            fixture.visible = true; fixture.refresh(); work.run(); main.run();
+            var first = ShaderWallpaperDrawable.last;
+            check(first.started && !states.contains("playing"), "reported playback before frame commit");
+            fixture.endPlayback(); image.commit(); main.run();
+            check(first.closed && !states.contains("playing"), "stale committed frame reported playback");
+            fixture.refresh(); work.run(); main.run(); image.commit(); main.run();
+            check(states.get(states.size() - 1).equals("playing"), "current frame not reported");
+            fixture.endPlayback(); fixture.asset.broken = true;
+            fixture.refresh(); work.run(); main.run();
+            check(failures.size() == 1 && fixture.failed && fixture.playback == null, "shader error did not retain poster");
+            fixture.refresh(); check(work.pending.isEmpty(), "broken shader retried on state event");
+            """);
+    }
     @Test public void stoppedOrReplacedLoadsCannotAttachOrReportStaleErrors() throws Exception {
         verify("""
             var first = fixture.asset;
@@ -45,6 +64,7 @@ public final class WallpaperPlaybackTest {
             }
             static class WallpaperAsset {
                 final Kind kind; final Bitmap poster; final byte[] encoded; final int width, height;
+                static class ShaderWallpaperAsset {} final ShaderWallpaperAsset shader;
             """ + RuntimeSourceFixture.topLevelMethods("WallpaperAsset", "<init>") + """
             }
             """ + RuntimeSourceFixture.methods("WallpaperAsset", "image", "videoSignature").replace("ByteBuffer", "java.nio.ByteBuffer") + """
@@ -72,13 +92,31 @@ public final class WallpaperPlaybackTest {
                 void clearAnimationCallbacks() { cleared = true; } void setCallback(Object value) { callback = value; }
             }
             static class WallpaperAsset {
-                enum Kind { VIDEO, ANIMATED_IMAGE }
+                enum Kind { VIDEO, ANIMATED_IMAGE, SHADER }
                 boolean broken; AnimatedImageDrawable last;
-                Kind kind() { return Kind.ANIMATED_IMAGE; }
+                Kind kind = Kind.ANIMATED_IMAGE;
+                Kind kind() { return kind; }
+                WallpaperAsset shader() { return this; }
+                final Spec spec = new Spec();
+                Object createShader(int w, int h) throws IOException {
+                    if (broken) throw new IOException("compile failed"); return new Object();
+                }
                 AnimatedImageDrawable animation(int w, int h) throws IOException {
                     if (broken) throw new IOException("decode failed");
                     return last = new AnimatedImageDrawable();
                 }
+            }
+            static class Spec { int fps() { return 30; } int fallbackColor() { return -1; } }
+            static class ShaderWallpaperDrawable {
+                static ShaderWallpaperDrawable last;
+                boolean started, closed;
+                ShaderWallpaperDrawable(Object shader, int w, int h, int fps, int color, java.util.function.Consumer<Throwable> failure) { last = this; }
+                void start() { started = true; } void close() { closed = true; }
+            }
+            static class Image {
+                List<Runnable> frames = new ArrayList<>(); Image getViewTreeObserver() { return this; }
+                void registerFrameCommitCallback(Runnable r) { frames.add(r); }
+                void commit() { var pending = List.copyOf(frames); frames.clear(); pending.forEach(Runnable::run); }
             }
             final class VideoPlayback implements Playback { VideoPlayback(int token, WallpaperAsset asset) {} void attach() {} public void close() {} }
             static Queue work = new Queue(), main = new Queue();
@@ -89,12 +127,13 @@ public final class WallpaperPlaybackTest {
             java.util.function.Consumer<Throwable> failure = failures::add;
             int playbackGeneration, outputWidth = 1920, outputHeight = 1080;
             boolean preparing, failed, closed, visible = true;
-            final Object image = new Object();
+            static final Image image = new Image();
             static AnimatedImageDrawable displayed; static int posters;
             boolean shouldPlay() { return visible && !closed && !failed; }
             void setImage(AnimatedImageDrawable value) { displayed = value; }
+            void setImage(ShaderWallpaperDrawable value) { }
             void showPoster() { posters++; }
-            """ + RuntimeSourceFixture.methods("WallpaperView", "refresh", "endPlayback", "failed")
+            """ + RuntimeSourceFixture.methods("WallpaperView", "refresh", "prepareShader", "endPlayback", "failed")
                 + "public static void verify() { var fixture = new Fixture();\n" + body + "\n}");
     }
 }

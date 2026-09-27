@@ -16,7 +16,7 @@ public final class WorkspaceAppearanceAssetsTest {
                 static class ThemeAssets {
                     static int calls;
                     static ThemeAssets get(Context context) { return new ThemeAssets(); }
-                    Prepared prepare(String bundle, Collection<String> icons, String font, String wallpaper) throws IOException {
+                    Prepared prepare(ShellResources resources) throws IOException {
                         calls++;
                         throw new IOException("unprepared asset");
                     }
@@ -33,7 +33,7 @@ public final class WorkspaceAppearanceAssetsTest {
                 }
                 static ShellResources resource(int id) {
                     return new ShellResources(Map.of(), String.format("%064x", id),
-                        Map.of(ShellResources.Icon.DESKTOP, "icons/desktop.png"), "", "wallpapers/work.png");
+                        Map.of(ShellResources.Icon.DESKTOP, "icons/desktop.png"), "", "wallpapers/work.png", null);
                 }
                 public static void verify() throws Exception {
                     var first = resource(1); var second = resource(2);
@@ -78,6 +78,6 @@ public final class WorkspaceAppearanceAssetsTest {
                 }
                 """ + RuntimeSourceFixture.nestedClass("WorkspaceAppearanceAssets", "WorkspaceAppearanceAssets")
                         .replace("final class WorkspaceAppearanceAssets", "static final class WorkspaceAppearanceAssets"),
-                "ShellResources");
+                "ShellResources", "ShaderWallpaper");
     }
 }

@@ -1,0 +1,15 @@
+{
+  "version": 4,
+  "preset": "dark",
+  "backdrop": { "opacity": 0.9, "blurRadiusDp": 20 },
+  "resources": {
+    "shader": {
+      "fps": 30,
+      "fallbackColor": "#202428",
+      "floats": [ { "name": "speed", "value": [0.12] }, { "name": "spacing", "value": [12] } ],
+      "colors": [ { "name": "base", "value": "#202428" }, { "name": "ink", "value": "#557A70" } ],
+      "source": "half4 main(float2 p) {\n  float2 uv = (p - 0.5 * md_resolution) / min(md_resolution.x, md_resolution.y);\n  float t = md_time * speed;\n  float field = uv.y + 0.17 * sin(uv.x * 4.0 + t) + 0.08 * sin(uv.x * 7.0 - t * 0.7);\n  float edge = abs(fract(field * spacing) - 0.5);\n  float line = 1.0 - smoothstep(0.018, 0.045, edge);\n  return mix(base, ink, half(line * 0.55));\n}"
+    }
+  },
+  "motion": { "wallpaper": true }
+}

@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.TreeSet;
 
 /**
- * Android decoder adapter, independent of appearance models and runtime services. Import/open and
+ * Android decoder adapter for immutable resource descriptions, independent of runtime services. Import/open and
  * prepare run on a worker before applying a theme. UI bindings retain Prepared; draw never loads.
  * Borrowed immutable bitmaps must not be recycled by consumers. Cache eviction does not recycle them.
  */
@@ -43,30 +43,24 @@ public final class ThemeAssets {
 
     public ThemeBundleStore store() { return store; }
 
-    public Prepared prepare(String bundle, Collection<String> iconPaths, String font, String wallpaper)
-            throws IOException {
+    public Prepared prepare(ShellResources resources) throws IOException {
         worker();
-        Objects.requireNonNull(bundle);
-        Objects.requireNonNull(iconPaths);
-        Objects.requireNonNull(font);
-        Objects.requireNonNull(wallpaper);
-        if (bundle.isEmpty()) {
-            if (!iconPaths.isEmpty() || !font.isEmpty() || !wallpaper.isEmpty()) {
+        if (resources.bundle().isEmpty()) {
+            if (resources.hasBundleAssets()) {
                 throw new IOException("Theme asset references require a bundle digest");
             }
-            return Prepared.EMPTY;
+            return resources.shader() == null ? Prepared.EMPTY : new Prepared("", Map.of(), null,
+                    shaderWallpaper(resources.shader(), null, Map.of()));
         }
-        return prepare(store.open(bundle), iconPaths, font, wallpaper);
+        return prepare(store.open(resources.bundle()), resources);
     }
 
     /** Reuses an import/open receipt, checking every requested file against its recorded hash. */
-    public Prepared prepare(ThemeBundle bundle, Collection<String> iconPaths, String font, String wallpaper)
-            throws IOException {
+    public Prepared prepare(ThemeBundle bundle, ShellResources resources) throws IOException {
         worker();
         Objects.requireNonNull(bundle);
-        Objects.requireNonNull(iconPaths);
-        Objects.requireNonNull(font);
-        Objects.requireNonNull(wallpaper);
+        Collection<String> iconPaths = resources.iconAssets().values();
+        String font = resources.font(), wallpaper = resources.wallpaper();
         if (iconPaths.size() > store.limits().entries()) throw new IOException("Too many theme icon references");
         var requested = new TreeSet<>(iconPaths);
         for (String path : requested) require(bundle, path, ThemeBundle.Kind.ICON);
@@ -82,8 +76,32 @@ public final class ThemeAssets {
         }
         WallpaperAsset background = wallpaper.isEmpty() ? null : wallpaper(wallpaper,
                 bundle.readAsset(wallpaper, ThemeBundle.Kind.WALLPAPER), store.limits(), store.limits().totalPixels() - pixels);
+        if (background != null) pixels += (long) background.width() * background.height();
+        if (resources.shader() != null) {
+            Map<String, Bitmap> textures = new HashMap<>();
+            for (var texture : resources.shader().textures()) {
+                String path = texture.path();
+                if (textures.containsKey(path)) continue;
+                require(bundle, path, ThemeBundle.Kind.WALLPAPER);
+                Bitmap bitmap = bitmap(path, ThemeBundle.Kind.WALLPAPER, bundle.readAsset(path, ThemeBundle.Kind.WALLPAPER),
+                        store.limits(), store.limits().totalPixels() - pixels);
+                if ((long) bitmap.getWidth() * bitmap.getHeight() > WallpaperPolicy.MAX_MOTION_PIXELS) {
+                    throw new IOException("Shader texture exceeds 4 megapixels: " + path);
+                }
+                pixels += (long) bitmap.getWidth() * bitmap.getHeight();
+                textures.put(path, bitmap);
+            }
+            background = shaderWallpaper(resources.shader(), background, textures);
+        }
         FontFaces faces = font.isEmpty() ? null : font(font, bundle.readAsset(font, ThemeBundle.Kind.FONT));
         return new Prepared(bundle.digest(), icons, faces, background);
+    }
+
+    private static WallpaperAsset shaderWallpaper(ShaderWallpaper spec, WallpaperAsset poster, Map<String, Bitmap> textures) throws IOException {
+        if (poster != null && poster.kind() != WallpaperAsset.Kind.IMAGE) throw new IOException("Shader poster must be static");
+        ShaderWallpaperAsset shader = new ShaderWallpaperAsset(spec, textures);
+        Bitmap bitmap = poster == null ? Bitmap.createBitmap(new int[] {spec.fallbackColor()}, 1, 1, Bitmap.Config.ARGB_8888) : poster.poster();
+        return WallpaperAsset.shader(bitmap, shader);
     }
 
     /** Memory pressure hook. Existing prepared snapshots remain valid. */

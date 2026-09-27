@@ -3089,13 +3089,20 @@ cover the reserved status- and navigation-bar insets above the wallpaper.
 Android can therefore keep normal system-bar behavior for HOME and freeform
 tasks without exposing bright wallpaper strips around snapped windows.
 
-Each `WallpaperView` owns its animated-image decoder or muted `MediaPlayer` and
-`SurfaceView`. Immutable theme assets may be shared; playback never is. The
-existing wallpaper executor performs image decoding, while video preparation
+Each `WallpaperView` owns its animated-image decoder, muted `MediaPlayer` and
+`SurfaceView`, or AGSL `RuntimeShader` drawable. Immutable theme assets may be
+shared; playback never is. `ShaderWallpaper` is the typed description;
+`ShaderWallpaperAsset` validates compilation and bindings during worker-side
+appearance preparation. Per-output shaders are also constructed on the wallpaper
+executor. `ShaderWallpaperDrawable` owns vsync callbacks with a capped frame
+rate; frames only update time and invalidate, with no resource loading or
+recompilation. The same resource snapshot and preview lifecycle owns its source,
+poster and textures. The existing wallpaper executor performs image decoding, while video preparation
 and first-frame readiness use Android callbacks with a bounded failure timeout.
 Visibility, attachment, display state, appearance, animator settings and power
-saving drive playback without polling or a Java frame loop. Loss of HOME focus
-does not stop animation. Stopping releases the decoder and restores the poster;
+saving drive playback without polling. Only an active AGSL drawable requests
+Choreographer frames. Loss of HOME focus
+does not stop animation. Stopping releases playback, cancels shader frames and restores the poster;
 stale completions cannot attach a previous source. Playback failure leaves the
 desktop usable and records a compatibility event. Wallpaper hosts own no input,
 focus, shell reservation or task transition.

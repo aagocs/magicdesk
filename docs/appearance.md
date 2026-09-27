@@ -17,6 +17,7 @@ publication path as imported documents:
 | [Workbench](../app/src/main/assets/themes/workbench.json) | Light, compact full-width bottom panel and list-style Start. |
 | [Glass Dock](../app/src/main/assets/themes/glass-dock.json) | Dark, translucent floating dock and grid-style Start. |
 | [Two Panels](../app/src/main/assets/themes/two-panels.json) | Top status panel with Start, plus a separate bottom task dock. |
+| [Contours](../app/src/main/assets/themes/contours.json) | Animated AGSL contour wallpaper and translucent bottom panel. |
 
 Secondary controls adapt to available width. Start, tasks, open tasks and quick
 controls remain available. Themes contain no external assets or service
@@ -71,7 +72,9 @@ Native bindings use already-prepared immutable assets. File access and decoding
 run on workers, never in draw callbacks. Style-only changes retain native Views,
 focus, text selection, tool state and PTYs. Composition changes reconcile native
 panel contents. Listeners and context bindings are released by their owners.
-No custom renderer, script, executable or polling loop is part of a theme.
+Themes cannot execute commands, scripts or general-purpose application code.
+Optional AGSL wallpaper programs run in Android's graphics pipeline, not a Linux
+runtime or a separate graphics engine.
 
 Panels contribute geometry and edge reservations to the existing shared
 `ShellLayout`. The native hosts consume that layout without acquiring new task,
@@ -244,6 +247,67 @@ removing the installed digest from portable `theme.json`. It does not export an
 outdated original document. JSON export captures the global document, or the
 selected workspace's sparse patch; it carries no binary assets.
 
+### AGSL Wallpapers
+
+`resources.shader` selects a single-pass Android `RuntimeShader` wallpaper.
+It works throughout the supported API range (Android 14+); rendering needs a
+hardware-accelerated Android host, not shell access, Termux or a Linux session.
+`resources.wallpaper`, when provided alongside a shader, must be a static image
+and becomes its poster. Otherwise `fallbackColor` supplies a solid poster
+(default `#202428`). Set `shader` to `null` to disable it, including in a
+workspace that inherits a global shader. Omitting it preserves inheritance.
+
+```json
+{
+  "version": 4,
+  "resources": {
+    "shader": {
+      "fps": 30,
+      "fallbackColor": "#202428",
+      "floats": [{ "name": "speed", "value": [0.2] }],
+      "colors": [{ "name": "ink", "value": "#557A70" }],
+      "source": "half4 main(float2 p) { float v = 0.7 + 0.3 * sin(p.x / md_resolution.x * 6.28 + md_time * speed); return half4(ink.rgb * v, 1); }"
+    }
+  }
+}
+```
+
+The host supplies declarations and bindings for:
+
+- `float2 md_resolution`: output width and height in physical pixels.
+- `float md_time`: elapsed animation seconds, restarting when playback resumes.
+- `floats`: up to 16 named parameters, each with 1-4 finite values in
+  `[-10000,10000]`; these become `float`, `float2`, `float3` or `float4` uniforms.
+- `colors`: up to 16 named `#RRGGBB` values, bound as color-managed
+  `layout(color) uniform half4` parameters.
+- `textures`: up to four `{ "name": "paper", "path": "wallpapers/paper.png" }`
+  inputs from the verified bundle. These become `uniform shader` inputs;
+  `paper.eval(position)` samples image-pixel coordinates with linear filtering
+  and clamped edges. Only static PNG/JPEG/WebP images, up to 4 megapixels each,
+  are accepted. Texture dimensions also count toward bundle pixel limits.
+
+Uniform names are unique across all three lists, start with an ASCII letter and
+contain at most 32 letters, digits or underscores. `md_`, `sk_` and `gl_` prefixes
+are reserved. Do not redeclare generated uniforms in `source`. The source is at
+most 16 KiB UTF-8, inside the ordinary 32 KiB document limit. Return premultiplied
+color from `half4 main(float2 position)` as required by
+[AGSL](https://developer.android.com/reference/android/graphics/RuntimeShader).
+
+All configuration uses the normal schema, workspace patches, preview/cancel,
+JSON/ZIP import/export and automation paths. A shader without textures or an
+image poster needs no bundle. Schema validation checks the typed description;
+asset preparation compiles and binds the program on a worker before applying or
+previewing it. Invalid programs leave the current appearance intact. Each
+output gets its own mutable shader; immutable textures may be shared. Source,
+textures and poster count toward the live appearance-media budget.
+
+`fps` is 1-60 (default 30), paced by Android vsync. Drawing performs no resource
+reads or recompilation. The ordinary visibility, display-power, power-saving,
+reduced-motion and **Animate wallpaper** policies stop callbacks and retain the
+poster. There is no touch/sensor capture, network access, multipass pipeline or
+application-window effect. Programs should be kept inexpensive: source and
+frame-rate limits do not guarantee GPU execution time for arbitrary AGSL code.
+
 ## Feedback And Motion
 
 `feedback` maps `normal`, `hover`, `pressed`, `selected`, `focused`, `disabled`
@@ -262,8 +326,8 @@ setting.
 `motion.wallpaper` (default `true`) controls animated wallpaper independently of
 panel effects. Settings exposes **Animate wallpaper** for the global appearance
 or the selected workspace. Disabling it keeps the source and shows its poster;
-re-enabling starts playback again. Wallpaper media is data, not executable theme
-code, and does not require Termux or a Linux graphics session.
+re-enabling starts playback again. Neither media nor AGSL wallpaper requires
+Termux or a Linux graphics session.
 
 Window frames, background fills, blur and shell reservations stay at their final
 geometry. Transformed content remains a child of an Android ViewGroup, which

@@ -4,6 +4,7 @@
     <string name="appearance_theme_workbench">Workbench</string>
     <string name="appearance_theme_glass_dock">Glass Dock</string>
     <string name="appearance_theme_two_panels">Two Panels</string>
+    <string name="appearance_theme_contours">Contours (AGSL)</string>
     <string name="appearance_colors">Colors and Text</string>
     <string name="appearance_dark">Dark</string>
     <string name="appearance_light">Light</string>

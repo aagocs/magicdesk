@@ -47,6 +47,9 @@ final class AppearanceBundles {
         for (String path : resources.iconAssets().values()) reference(references, path, ThemeBundle.Kind.ICON);
         reference(references, resources.font(), ThemeBundle.Kind.FONT);
         reference(references, resources.wallpaper(), ThemeBundle.Kind.WALLPAPER);
+        if (resources.shader() != null) for (var texture : resources.shader().textures()) {
+            reference(references, texture.path(), ThemeBundle.Kind.WALLPAPER);
+        }
         return references;
     }
 

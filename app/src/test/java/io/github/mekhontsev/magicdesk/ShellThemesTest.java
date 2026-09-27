@@ -24,7 +24,7 @@ public final class ShellThemesTest {
             ShellAppearanceSchema.validate(json);
             assertEquals(theme, ShellAppearanceJson.parse(json.toString()));
             assertEquals(theme, WorkspaceAppearancePatch.parse(json.toString()).resolve(ShellAppearance.preset("contrast")));
-            assertFalse(theme.resources().hasAssets());
+            assertFalse(theme.resources().hasBundleAssets());
             assertEquals(UiColor.TRANSPARENT, theme.feedback().normal());
             assertNotNull(theme.composition().panelFor(ShellComposition.Kind.START));
             assertTrue(theme.composition().start().sections().containsAll(List.of(ShellComposition.Section.values())));
@@ -32,7 +32,7 @@ public final class ShellThemesTest {
         try (var paths = Files.list(Path.of("src/main/assets/themes"))) {
             assertEquals(files, paths.map(path -> path.getFileName().toString()).collect(java.util.stream.Collectors.toSet()));
         }
-        assertEquals(3, ids.size());
+        assertEquals(4, ids.size());
     }
 
     @Test public void invalidNamesNeverOpenPathsAndMalformedDocumentsCloseTheirInput() {
