@@ -2,7 +2,13 @@
 
 set -eu
 
-SHIZUKU_PACKAGE=moe.shizuku.privileged.api
+SHIZUKU_PACKAGE=${1:-moe.shizuku.privileged.api}
+case "$SHIZUKU_PACKAGE" in
+    ''|*[!a-zA-Z0-9_.]*)
+        echo "Invalid manager package: $SHIZUKU_PACKAGE" >&2
+        exit 1
+        ;;
+esac
 SHELL_GROUPS="1004 1007 1011 1015 1028 1078 1079 3001 3002 3003 3006 3009 3011 3012"
 caller_uid=$(id -u)
 

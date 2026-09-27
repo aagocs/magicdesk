@@ -37,6 +37,13 @@ or **Root (su)**. Shizuku uses its official authorization and UserService API;
 direct root asks the installed root manager to start the same service. There
 is no libsu dependency, automatic backend fallback, or root requirement.
 
+[Shevery](https://github.com/HmnDev-Tech/shevery) uses the same Shizuku transport,
+not a separate service implementation. Select its package `com.hamondev.shevery`
+under **Settings > Integrations > Shizuku manager package**, keeping **Privileged
+service** set to **Shizuku**. Package changes apply after Exit and reopen;
+[setup instructions](getting-started.md#install) cover manager replacement.
+The effective UID and access limits apply equally to either manager.
+
 **Settings > Limits (next app start) > Maximum access** applies to either backend:
 
 - **Root** permits the launcher's UID 0 or 2000, without elevating a shell launcher.

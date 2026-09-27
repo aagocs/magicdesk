@@ -14,8 +14,9 @@ client use the same services you use interactively. Desktop is one way to work
 with these tools, not a requirement for using them.
 
 The APK requires **Android 14+**. Managed **Desktop requires Android 15+**.
-For privileged features, use [Shizuku](https://github.com/RikkaApps/Shizuku) on an unrooted device, or
-**direct root without Shizuku** on a rooted one. Both start the same privileged
+For privileged features, use [Shizuku](https://github.com/RikkaApps/Shizuku) or its
+compatible fork [Shevery](https://github.com/HmnDev-Tech/shevery) on an unrooted device, or
+**direct root without Shizuku** on a rooted one. These methods start the same privileged
 service. Root is optional, and root users can limit that service to Android's
 shell UID 2000. **Termux terminals and Linux graphical applications also work without Shizuku,
 root or a Desktop session**, on the phone or an Android-allowed secondary display.
@@ -390,6 +391,12 @@ own panels inside their viewer. See [shell layout](docs/shell-layout.md).
 
 ## Shizuku Or Direct Root
 
+[Shevery](https://github.com/HmnDev-Tech/shevery) works through the same Shizuku
+authorization and UserService API. Select **Shizuku** as the privileged service
+and set **Settings > Integrations > Shizuku manager package** to
+`com.hamondev.shevery`, then Exit and reopen MagicDesk. The managers cannot be
+installed together; see [setup instructions](docs/getting-started.md#install).
+
 **Rooted devices can use MagicDesk without installing or running Shizuku.**
 Choose **Settings > Integrations > Privileged service > Root (su)**, reopen
 MagicDesk and authorize it in your root manager. The control panel shows
@@ -603,7 +610,8 @@ Desktop adds window management on Android 15+; it is not a prerequisite for
 the independent tools.
 
 1. Install MagicDesk and open Phone Control Panel.
-2. For privileged features, start Shizuku and authorize MagicDesk, or select
+2. For privileged features, [set up Shizuku or Shevery](docs/getting-started.md#install)
+   and authorize MagicDesk, or select
    **Root (su)** in **Settings > Integrations**, reopen MagicDesk and approve the
    root request. Termux is optional and has its own permission setup.
 3. Use **Apps** for Files and other applications. Its **Terminal sessions** entry

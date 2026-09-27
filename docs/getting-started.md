@@ -20,6 +20,16 @@ For shell-backed operations:
    [Shizuku setup guide](https://shizuku.rikka.app/guide/setup/).
 3. Authorize MagicDesk when it requests Shizuku access.
 
+[Shevery](https://github.com/HmnDev-Tech/shevery) is a compatible alternative
+using the same authorization and UserService API. Before replacing Shizuku,
+use **Exit MagicDesk** to close active sessions. Uninstall the Shizuku manager
+before installing [Shevery](https://github.com/HmnDev-Tech/shevery/releases/latest):
+their Android permissions and provider authorities conflict. Start Shevery's
+server, then in MagicDesk's **Settings > Integrations** select **Shizuku** for
+**Privileged service** and set **Shizuku manager package** to
+`com.hamondev.shevery`. Exit and reopen MagicDesk, then grant access through
+Shevery. Keep **Limits > Maximum access > Shell** for UID 2000.
+
 Alternatively, on a rooted phone, choose **Settings > Integrations > Privileged
 service > Root (su)** and restart MagicDesk. Approve its request in the root
 manager. **Settings > Limits > Maximum access** defaults to **Shell** (UID 2000)
@@ -28,8 +38,8 @@ or **App only** to disable privileged startup. These changes apply after full
 Exit and reopen; Termux and Desktop have independent Limits switches. No root is required for the
 normal Shizuku path. See [Privilege boundaries](privilege-modes.md).
 
-MagicDesk does not start Shizuku itself or require root. After a reboot,
-Shizuku may need restarting, depending on its startup method. Missing shell
+MagicDesk does not start Shizuku or Shevery itself or require root. After a reboot,
+the selected server may need restarting, depending on its startup method. Missing shell
 access does not prevent ordinary UI or independently authorized Termux
 sessions from opening.
 
