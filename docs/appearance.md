@@ -5,13 +5,18 @@ tools without starting Desktop or acquiring display input. Choose **Global
 defaults**, or **Current workspace** when the host supplies a stable workspace
 identity. **Use global defaults** removes that workspace's override. Dark, Light
 and Contrast change colors, typography, shapes and feedback while retaining
-panel geometry, composition, resources and motion.
+backdrops, panel geometry, composition, resources and motion.
 
-Select a panel to edit its edge, length, alignment, gaps, thickness, padding,
-rounding, opacity and space reservation. Add or remove panels, reorder components,
-or move a component to another panel. Moving the last component leaves a spacer
-in its source panel. Removing a panel removes its components from the composition,
-not their underlying services or workspace tasks.
+**Common background** sets background opacity (15-100%) and blur radius (0-64 dp)
+for native shell panels, popup backgrounds and appearance-bound dialogs in the
+selected scope. Select a panel to edit its edge, length, alignment, gaps,
+thickness, padding, rounding and space reservation. **Use common background**
+inherits the common opacity and blur;
+uncheck it to edit both panel-specific sliders, initially set to the common
+values. Checking it again removes the panel override. Add or remove panels,
+reorder components, or move a component to another panel. Moving the last
+component leaves a spacer in its source panel. Removing a panel removes its
+components from the composition, not their underlying services or workspace tasks.
 
 JSON and theme ZIP import/export use Android's document picker. Imports,
 **Edit configuration** and **Panel components** offer a live preview with **Keep
@@ -20,16 +25,16 @@ Closing Settings cancels its preview and pending work; process restart discards
 unconfirmed previews. Edits and imports capture scope and revision so a late
 result cannot overwrite a newer configuration or a different workspace.
 
-Appearance does not restyle third-party applications, Android captions or
-terminal protocol colors. Widget bindings, Android application identities and
-permissions are independent. **System theme during Desktop** is a separate,
-temporary system-wide preference.
+Appearance does not restyle third-party applications, arbitrary Android dialogs,
+Android captions or terminal protocol colors. Widget bindings, Android
+application identities and permissions are independent. **System theme during
+Desktop** is a separate, temporary system-wide preference.
 
 ## Ownership And Scope
 
 `ShellAppearance` is an immutable density-independent model: semantic palette,
-typography, shape, composition, motion, feedback and resources. `AppearanceStore`
-owns global defaults and workspace patches in app-private preferences.
+typography, shape, backdrop, composition, motion, feedback and resources.
+`AppearanceStore` owns global defaults and workspace patches in app-private preferences.
 `WorkspaceAppearance` resolves patches over global defaults. Stable profile or
 workspace keys survive output changes; transient display IDs and live workspace
 residency IDs are not persistence keys. Ordinary tools use global defaults unless
@@ -40,7 +45,10 @@ Global documents inherit omitted fields from the named built-in `preset`
 document, not from its previous patch, and does not accept `preset`. Objects merge
 recursively; arrays replace whole lists. Overriding `composition.panels` owns the
 complete panel list, while overriding `typography.scale` still inherits the global
-font. Empty `{}` restores inheritance. There are at most 32 saved/preview scopes,
+font. Likewise, a workspace edit to `backdrop.opacity` leaves `blurRadiusDp`
+inherited, and a blur-radius edit leaves opacity inherited. Panel backdrop edits
+replace the panel list without overriding the root common backdrop in the
+workspace patch. Empty `{}` restores inheritance. There are at most 32 saved/preview scopes,
 keys of at most 512 UTF-8 bytes and 256 KiB total override/preview JSON.
 
 Native bindings use already-prepared immutable assets. File access and decoding
@@ -56,7 +64,7 @@ focus or input authority. Application task-area topology remains unchanged.
 ## Document
 
 Documents and workspace patches are at most 32 KiB with bounded nesting. The
-current document version is **3**. Unknown fields, invalid types, duplicate
+current document version is **4**. Unknown fields, invalid types, duplicate
 identities and out-of-range values are rejected before the appearance changes.
 The authoritative schema is available through **Export JSON Schema**,
 `appearance.schema`, and `magicdesk://appearance/schema`. Errors identify
@@ -64,9 +72,10 @@ JSON-pointer paths; typed model checks also enforce cross-panel uniqueness.
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "preset": "dark",
   "colors": { "accent": "#22D3EE" },
+  "backdrop": { "opacity": 0.9, "blurRadiusDp": 16 },
   "composition": {
     "panels": [
       {
@@ -81,7 +90,7 @@ JSON-pointer paths; typed model checks also enforce cross-panel uniqueness.
           "thicknessDp": 0,
           "paddingDp": 8,
           "radiusDp": 8,
-          "opacity": 0.88,
+          "backdrop": { "opacity": 0.88, "blurRadiusDp": 24 },
           "reserveSpace": true
         },
         "components": [ { "type": "start" }, { "type": "tasks" } ]
@@ -100,10 +109,36 @@ JSON-pointer paths; typed model checks also enforce cross-panel uniqueness.
 
 Color roles are `background`, `panel`, `surface`, `text`, `muted`, `accent`,
 `danger`, `attention`, `hover` and `desktop_text`, written as opaque `#RRGGBB`.
-Desktop label color is independent of panel text. Panel background opacity does
-not fade its icons or labels. Application artwork stays owned by the application
+Desktop label color is independent of panel text. Background opacity does
+not fade icons or labels. Application artwork stays owned by the application
 catalog. Fonts are `sans`, `serif` or `mono`, with scale 0.8-1.3. Control radius
 scale is 0-2 and border width 0-3 dp.
+
+## Backdrops
+
+The root `backdrop` supplies the common background for native shell panels and
+popup backgrounds through their Window bindings. Dialogs explicitly styled through
+`UiAppearance.dialog`, including Appearance settings and panel-owned dialogs,
+use the same backdrop; unrelated `AlertDialog` instances are not automatically
+themed. It contains `opacity` (0.15-1, default 1) and `blurRadiusDp` (integer
+0-64, default 0). A panel's optional `style.backdrop` object overrides that
+background; omitting it inherits the common backdrop, including later changes.
+In the typed model, an inherited `PanelStyle.backdrop` is `null`, not a copied
+default. The JSON field is omitted for inheritance rather than written as `null`.
+
+Blur is compositor background blur clipped to the surface's visible rounded
+region. It blurs what is behind the background, not the panel, popup or dialog's
+own icons, text or other content. Opacity likewise affects only the background.
+Radius 0 turns blur off. The requested dp radius is converted using the host's
+density and capped at 150 physical pixels.
+
+System blur support is optional and can change while a surface is open. When it
+is unavailable or disabled, the background retains the chosen opacity without
+blur; the stored appearance does not change. Standard system blur capability
+signals control the effect. MagicDesk neither forces blur on nor substitutes
+captured screenshots. Availability changes update the presentation without
+restarting Desktop or acquiring new services. Blur does
+not add a platform, privilege, HOME or input prerequisite to Appearance.
 
 ## Panels And Components
 
@@ -115,7 +150,7 @@ kind may occur only once across all panels, except `spacer`.
 Panel style uses `length` (`fill`, `content`), `alignment` (`start`, `center`,
 `end`), `maxLengthDp` (64-4096), `sideGapDp` and `edgeGapDp` (0-96),
 `thicknessDp` (0 for automatic, otherwise 40-160), `paddingDp` (0-16),
-`radiusDp` (0-32), `opacity` (0.15-1), and `reserveSpace`. Automatic thickness
+`radiusDp` (0-32), optional `backdrop`, and `reserveSpace`. Automatic thickness
 uses the native host's normal sizing. All lengths are density-independent and
 constrained to the available viewport. Start/end alignment follows the panel's
 long axis. Reserving panels contribute edge intervals; rectangular window
@@ -153,7 +188,7 @@ assets therefore references an already-installed bundle.
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "resources": {
     "iconAssets": { "files": "icons/files.png" },
     "font": "fonts/interface.ttf",

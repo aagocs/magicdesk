@@ -82,8 +82,11 @@ public final class UiAppearance {
     static void dialog(android.app.AlertDialog dialog, android.app.Activity owner) {
         final View root = dialog.getWindow().getDecorView();
         DialogContentInsets.bind(root, owner);
-        dialog.getWindow().setBackgroundDrawable(paint(root.getContext(),
-                UiColor.PANEL, 8 * root.getResources().getDisplayMetrics().density, UiColor.HOVER));
+        final Paint background = (Paint) paint(root.getContext(),
+                UiColor.PANEL, 8 * root.getResources().getDisplayMetrics().density, UiColor.HOVER);
+        background.backdrop = true;
+        background.refresh();
+        UiBackdrop.bind(dialog.getWindow(), background);
         dialogContents(root);
     }
     private static void dialogContents(View view) {
@@ -120,6 +123,7 @@ public final class UiAppearance {
             for (var drawable : new ArrayList<>(SYMBOLS.keySet())) drawable.refresh();
         }
         for (Paint paint : new ArrayList<>(PAINTS.keySet())) paint.refresh();
+        UiBackdrop.refreshAll();
         for (Binding binding : new ArrayList<>(BINDINGS.keySet())) binding.refresh();
     }
     static android.graphics.drawable.StateListDrawable feedback(Context context, int radius) {
@@ -140,6 +144,7 @@ public final class UiAppearance {
         final Paint paint = new Paint(context, context.getResources().getDisplayMetrics().density,
                 UiColor.PANEL, 0, UiColor.SURFACE);
         paint.panelId = panelId;
+        paint.backdrop = true;
         PAINTS.put(paint, true);
         paint.refresh();
         return paint;
@@ -183,13 +188,14 @@ public final class UiAppearance {
             }
         }
     }
-    private static final class Paint extends GradientDrawable {
+    static final class Paint extends GradientDrawable {
         final float density;
         final UiColor fill;
         final float radius;
         final UiColor border;
         final AppearanceScopeSource source;
         String panelId;
+        boolean backdrop;
         Paint(Context context, float density, UiColor fill, float radius, UiColor border) {
             this.density = density; this.fill = fill; this.radius = radius; this.border = border;
             source = new AppearanceScopeSource(context);
@@ -202,11 +208,16 @@ public final class UiAppearance {
                 return;
             }
             final int color = theme.palette().color(fill);
-            setColor(panel != null ? (Math.round(255 * panel.style().opacity()) << 24) | (color & 0xffffff) : color);
+            setColor(backdrop ? (Math.round(255 * backdropStyle().opacity()) << 24) | (color & 0xffffff) : color);
             setCornerRadius(panel != null ? panel.style().radiusDp() * density : radius * theme.shape().radiusScale());
             setStroke(border == UiColor.TRANSPARENT ? 0 : Math.round(density * theme.shape().borderDp()),
                     theme.palette().color(border));
             invalidateSelf();
+        }
+        ShellAppearance.Backdrop backdropStyle() {
+            final ShellAppearance theme = source.current();
+            final ShellPanel panel = panelId == null ? null : theme.composition().panel(panelId);
+            return panel != null && panel.style().backdrop() != null ? panel.style().backdrop() : theme.backdrop();
         }
     }
 }

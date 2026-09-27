@@ -1,10 +1,15 @@
 <resources>
+    <style name="AppDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:colorAccent">#22D3EE</item>
+    </style>
     <style name="UserPromptTheme" parent="@android:style/Theme.Material.Dialog.Alert">
         <item name="android:colorAccent">#22D3EE</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowCloseOnTouchOutside">true</item>
     </style>
     <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:alertDialogTheme">@style/AppDialogTheme</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#22D3EE</item>
@@ -31,6 +36,7 @@
     </style>
 
     <style name="DesktopChromeTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:alertDialogTheme">@style/AppDialogTheme</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowFullscreen">true</item>

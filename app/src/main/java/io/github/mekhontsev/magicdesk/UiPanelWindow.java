@@ -1,0 +1,44 @@
+package io.github.mekhontsev.magicdesk;
+
+import android.app.Dialog;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+
+/** Public Window decor for a native panel; its caller still owns placement and input. */
+final class UiPanelWindow implements AutoCloseable {
+    private final View content;
+    private final UiAppearance.Paint paint;
+    private final Window window;
+
+    UiPanelWindow(View content) {
+        this.content = content;
+        paint = (UiAppearance.Paint) content.getBackground();
+        // Obtain framework decor without showing a dialog or installing dialog input policy.
+        window = new Dialog(content.getContext(), R.style.DesktopChromeTheme).getWindow();
+        window.setCallback(null);
+        window.setType(WindowManager.LayoutParams.TYPE_APPLICATION_PANEL);
+        window.setDecorFitsSystemWindows(false);
+        content.setBackground(null);
+        window.setContentView(content);
+        window.getDecorView().setPadding(0, 0, 0, 0);
+        window.getDecorView().setClipToOutline(true);
+        UiBackdrop.bind(window, paint);
+    }
+
+    View view() { return window.getDecorView(); }
+
+    void attributes(WindowManager.LayoutParams params) { window.setAttributes(params); }
+
+    void presented(boolean visible) {
+        paint.setAlpha(visible ? 255 : 0);
+        UiBackdrop.presented(window, visible);
+    }
+
+    @Override public void close() {
+        UiBackdrop.unbind(window);
+        if (content.getParent() instanceof ViewGroup parent) parent.removeView(content);
+        content.setBackground(paint);
+    }
+}

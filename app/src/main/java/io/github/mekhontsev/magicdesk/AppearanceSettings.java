@@ -46,7 +46,6 @@ final class AppearanceSettings implements AutoCloseable {
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(mUi.dp(16), mUi.dp(8), mUi.dp(16), mUi.dp(8));
-        UiAppearance.background(page, UiColor.PANEL);
         final String workspace = AppearanceScopeBindings.find(mActivity);
         choice(page, R.string.appearance_scope, workspace == null ? new int[] {R.string.appearance_global}
                         : new int[] {R.string.appearance_global, R.string.appearance_workspace},
@@ -110,6 +109,16 @@ final class AppearanceSettings implements AutoCloseable {
             var t = current();
             apply(t.withShape(new ShellAppearance.Shape(value / 100f, t.shape().borderDp())));
         });
+        heading(page, R.string.appearance_backdrop);
+        slider(page, R.string.appearance_opacity, 15, 100,
+                () -> Math.round(current().backdrop().opacity() * 100), value -> {
+                    var t = current();
+                    apply(t.withBackdrop(new ShellAppearance.Backdrop(value / 100f, t.backdrop().blurRadiusDp())));
+                });
+        slider(page, R.string.appearance_blur_radius, 0, 64, () -> current().backdrop().blurRadiusDp(), value -> {
+            var t = current();
+            apply(t.withBackdrop(new ShellAppearance.Backdrop(t.backdrop().opacity(), value)));
+        });
         heading(page, R.string.appearance_panels);
         panelSelector(page);
         choice(page, R.string.appearance_edge, new int[] {R.string.appearance_top, R.string.appearance_bottom,
@@ -132,7 +141,7 @@ final class AppearanceSettings implements AutoCloseable {
                 () -> panel().style().thicknessDp() == 0 ? 64 : panel().style().thicknessDp(), v -> changeBar("thicknessDp", v));
         slider(page, R.string.appearance_padding, 0, 16, () -> panel().style().paddingDp(), v -> changeBar("paddingDp", v));
         slider(page, R.string.appearance_radius, 0, 32, () -> panel().style().radiusDp(), v -> changeBar("radiusDp", v));
-        slider(page, R.string.appearance_opacity, 15, 100, () -> Math.round(panel().style().opacity() * 100), v -> changeBar("opacity", v / 100f));
+        panelBackdropControls(page);
         final Switch reserve = new Switch(mActivity);
         UiAppearance.button(reserve, UiColor.ACCENT);
         reserve.setText(R.string.appearance_panel_reserve);
@@ -361,6 +370,40 @@ final class AppearanceSettings implements AutoCloseable {
         for (var panel : panels) if (panel.id().equals(mPanelId)) return panel;
         mPanelId = panels.get(0).id();
         return panels.get(0);
+    }
+
+    private void panelBackdropControls(LinearLayout page) {
+        final CheckBox inherit = new CheckBox(mActivity);
+        inherit.setText(R.string.appearance_inherit_backdrop);
+        UiAppearance.text(inherit, UiColor.TEXT);
+        UiAppearance.button(inherit, UiColor.ACCENT);
+        mRefreshers.add(() -> inherit.setChecked(panel().style().backdrop() == null));
+        inherit.setOnCheckedChangeListener((v, checked) -> {
+            if (!mRendering) replacePanel(withPanelBackdrop(panel(), checked ? null : current().backdrop()));
+        });
+        page.addView(inherit);
+        final LinearLayout override = new LinearLayout(mActivity);
+        override.setOrientation(LinearLayout.VERTICAL);
+        mRefreshers.add(() -> override.setVisibility(panel().style().backdrop() == null ? View.GONE : View.VISIBLE));
+        slider(override, R.string.appearance_opacity, 15, 100,
+                () -> Math.round(panelBackdrop().opacity() * 100),
+                value -> replacePanel(withPanelBackdrop(panel(),
+                        new ShellAppearance.Backdrop(value / 100f, panelBackdrop().blurRadiusDp()))));
+        slider(override, R.string.appearance_blur_radius, 0, 64, () -> panelBackdrop().blurRadiusDp(),
+                value -> replacePanel(withPanelBackdrop(panel(),
+                        new ShellAppearance.Backdrop(panelBackdrop().opacity(), value))));
+        page.addView(override);
+    }
+
+    private ShellAppearance.Backdrop panelBackdrop() {
+        return current().panelBackdrop(panel().id());
+    }
+
+    static ShellPanel withPanelBackdrop(ShellPanel panel, ShellAppearance.Backdrop backdrop) {
+        var style = panel.style();
+        return new ShellPanel(panel.id(), panel.edge(), new ShellAppearance.PanelStyle(
+                style.length(), style.alignment(), style.maxLengthDp(), style.sideGapDp(), style.edgeGapDp(),
+                style.thicknessDp(), style.paddingDp(), style.radiusDp(), backdrop, style.reserveSpace()), panel.components());
     }
 
     private void replacePanel(ShellPanel replacement) {

@@ -1,11 +1,11 @@
 {
-  "version": 3,
+  "version": 4,
   "preset": "dark",
   "composition": {
     "panels": [{
       "id": "dock",
       "edge": "bottom",
-      "style": { "length": "content", "maxLengthDp": 900, "edgeGapDp": 12, "sideGapDp": 12, "radiusDp": 8, "opacity": 0.9 },
+      "style": { "length": "content", "maxLengthDp": 900, "edgeGapDp": 12, "sideGapDp": 12, "radiusDp": 8, "backdrop": { "opacity": 0.9, "blurRadiusDp": 0 } },
       "components": [ { "type": "start" }, { "type": "tasks" }, { "type": "quick_controls" }, { "type": "clock" } ]
     }],
     "start": { "sections": ["apps", "recent", "tools"] }

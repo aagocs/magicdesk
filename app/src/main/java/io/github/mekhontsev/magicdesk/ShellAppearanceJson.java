@@ -51,6 +51,7 @@ final class ShellAppearanceJson {
         return new ShellAppearance(new ShellAppearance.Palette(colors),
                 new ShellAppearance.Typography(value(ShellAppearance.Font.class, type.optString("font", "sans")), number(type, "scale", 1)),
                 new ShellAppearance.Shape(number(shape, "radiusScale", 1), number(shape, "borderDp", 1)),
+                backdrop(object(root, "backdrop")),
                 composition(object(root, "composition")),
                 new ShellMotion(motion.optBoolean("reduced", false), value(ShellMotion.Effect.class, motion.optString("panels", "none")),
                         value(ShellMotion.Effect.class, motion.optString("taskbar", "none")), motion.optInt("durationMs", 160),
@@ -95,7 +96,8 @@ final class ShellAppearanceJson {
                             barStyle.optInt("maxLengthDp", b.maxLengthDp()), barStyle.optInt("sideGapDp", b.sideGapDp()),
                             barStyle.optInt("edgeGapDp", b.edgeGapDp()), barStyle.optInt("thicknessDp", b.thicknessDp()),
                             barStyle.optInt("paddingDp", b.paddingDp()), barStyle.optInt("radiusDp", b.radiusDp()),
-                            number(barStyle, "opacity", b.opacity()), barStyle.optBoolean("reserveSpace", b.reserveSpace())), components));
+                            barStyle.has("backdrop") ? backdrop(barStyle.getJSONObject("backdrop")) : null,
+                            barStyle.optBoolean("reserveSpace", b.reserveSpace())), components));
         }
         JSONObject start = object(input, "start");
         var sections = new ArrayList<ShellComposition.Section>();
@@ -125,20 +127,23 @@ final class ShellAppearanceJson {
             components.put(item);
         }
         var t = panel.style();
+        JSONObject style = new JSONObject().put("length", name(t.length())).put("alignment", name(t.alignment()))
+                .put("maxLengthDp", t.maxLengthDp()).put("sideGapDp", t.sideGapDp()).put("edgeGapDp", t.edgeGapDp())
+                .put("thicknessDp", t.thicknessDp()).put("paddingDp", t.paddingDp()).put("radiusDp", t.radiusDp())
+                .put("reserveSpace", t.reserveSpace());
+        if (t.backdrop() != null) style.put("backdrop", encodeBackdrop(t.backdrop()));
         panels.put(new JSONObject().put("id", panel.id()).put("edge", name(panel.edge())).put("components", components)
-                .put("style", new JSONObject().put("length", name(t.length())).put("alignment", name(t.alignment()))
-                        .put("maxLengthDp", t.maxLengthDp()).put("sideGapDp", t.sideGapDp()).put("edgeGapDp", t.edgeGapDp())
-                        .put("thicknessDp", t.thicknessDp()).put("paddingDp", t.paddingDp()).put("radiusDp", t.radiusDp())
-                        .put("opacity", Float.valueOf(t.opacity())).put("reserveSpace", t.reserveSpace())));
+                .put("style", style));
         }
         for (var section : s.sections()) sections.put(name(section));
         JSONObject icons = new JSONObject();
         for (var icon : value.resources().icons().entrySet()) icons.put(name(icon.getKey()), name(icon.getValue()));
         JSONObject assets = new JSONObject();
         for (var icon : value.resources().iconAssets().entrySet()) assets.put(name(icon.getKey()), icon.getValue());
-        return new JSONObject().put("version", 3).put("colors", colors)
+        return new JSONObject().put("version", 4).put("colors", colors)
                 .put("typography", new JSONObject().put("font", name(value.typography().font())).put("scale", Float.valueOf(value.typography().scale())))
                 .put("shape", new JSONObject().put("radiusScale", Float.valueOf(value.shape().radiusScale())).put("borderDp", Float.valueOf(value.shape().borderDp())))
+                .put("backdrop", encodeBackdrop(value.backdrop()))
                 .put("composition", new JSONObject().put("panels", panels).put("start", new JSONObject()
                         .put("sections", sections).put("presentation", name(s.presentation())).put("tileWidthDp", s.tileWidthDp()).put("iconSizeDp", s.iconSizeDp())))
                 .put("motion", new JSONObject().put("reduced", m.reduced()).put("panels", name(m.panels())).put("taskbar", name(m.taskbar()))
@@ -147,6 +152,12 @@ final class ShellAppearanceJson {
                         .put("selected", name(f.selected())).put("focused", name(f.focused())).put("disabled", name(f.disabled())).put("outline", name(f.outline())))
                 .put("resources", new JSONObject().put("icons", icons).put("bundle", value.resources().bundle())
                         .put("iconAssets", assets).put("font", value.resources().font()).put("wallpaper", value.resources().wallpaper()));
+    }
+    private static ShellAppearance.Backdrop backdrop(JSONObject value) {
+        return new ShellAppearance.Backdrop(number(value, "opacity", 1), value.optInt("blurRadiusDp", 0));
+    }
+    private static JSONObject encodeBackdrop(ShellAppearance.Backdrop value) throws JSONException {
+        return new JSONObject().put("opacity", Float.valueOf(value.opacity())).put("blurRadiusDp", value.blurRadiusDp());
     }
     private static <T extends Enum<T>> T value(Class<T> type, String value) { return Enum.valueOf(type, value.toUpperCase(Locale.ROOT)); }
     private static JSONObject object(JSONObject root, String key) throws JSONException { return root.has(key) ? root.getJSONObject(key) : new JSONObject(); }

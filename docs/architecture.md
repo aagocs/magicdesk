@@ -1051,14 +1051,34 @@ runtime integration and are not distributed through the same release path.
 
 ### Desktop UI
 
-- `ShellAppearance` separates semantic colors, typography, resources and control
-  shapes from panel layout. `AppearanceStore` persists app-private defaults and
-  sparse workspace overrides without Desktop or privileged services; Settings,
-  MCP and the CLI share its validator. Workspace keys use stable identities,
+- `ShellAppearance` separates semantic colors, typography, resources, control
+  shapes and background presentation from panel layout. Its `Backdrop` combines
+  opacity and blur radius; the common backdrop supplies native shell panels and
+  popup backgrounds through Window bindings, while a nullable `PanelStyle.backdrop`
+  overrides it for one panel. Dialogs explicitly styled by `UiAppearance.dialog`
+  share that backdrop; arbitrary Android dialogs are not automatically themed.
+  `AppearanceStore` persists app-private defaults and sparse workspace overrides
+  without Desktop or privileged services; Settings, MCP and the CLI share its
+  validator. Workspace keys use stable identities,
   while live host bindings resolve the appearance for Views on each display.
   `UiAppearance` updates existing native Views and drawables. `PanelGeometry`
   resolves density-independent dimensions through `DesktopShellLayout`, retaining
   the existing focus, input and task-area owners. See [Native appearance](appearance.md).
+- Backdrop blur is an optional compositor effect behind a surface, clipped to its
+  visible rounded region; native text, icons and other content remain sharp and
+  opaque. Radius 0 disables blur, and density conversion caps the radius at 150
+  physical pixels. Dynamic system blur availability changes presentation only:
+  an unavailable effect retains the chosen background opacity and stored settings.
+  Standard system capability signals are respected without forcing blur on or
+  substituting captured screenshots.
+  `UiPanelWindow` borrows public framework decor for native panels, preserving
+  their caller-owned window type, token, flags and geometry. `UiBackdrop` uses
+  `Window.setBackgroundBlurRadius`; Android owns dynamic capability observation.
+  Child-menu decor occupies only the menu, inside its unchanged larger input host.
+  Appearance controls and persistence require neither blur support nor Desktop,
+  HOME, input acquisition or privileged services. Workspace backdrop edits retain
+  the sparse field-level patch pipeline; panel overrides retain whole-panel-list
+  replacement semantics.
 - `ShellComposition` declares native panels at each edge, their components and Start sections.
   `ShellComponentLayout` allocates fixed and flexible slots; UI reconciliation
   retains component Views and the existing action/service owners. `ShellMotion`

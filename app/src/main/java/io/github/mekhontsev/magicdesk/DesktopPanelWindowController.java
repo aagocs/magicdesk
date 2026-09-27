@@ -45,6 +45,7 @@ final class DesktopPanelWindowController {
     private final DesktopPanelFocusGate mFocusGate;
     private final DesktopShellLayout mLayout;
     private final java.util.Set<ShellWindow> mShellWindows = new java.util.LinkedHashSet<>();
+    private final Map<View, UiPanelWindow> mDecorations = new java.util.IdentityHashMap<>();
     private ShellWindow mKeyboardShell;
     private DesktopSurfaceParent mSurfaceParent;
     private ShellLayoutScope.Binding mPanelLayout;
@@ -74,6 +75,7 @@ final class DesktopPanelWindowController {
     private boolean mVisibleFocusable;
 
     private View mChildPanel;
+    private UiPanelWindow mChildDecoration;
     private FrameLayout mChildHost;
     private String mChildTitle = "";
     private WindowManager.LayoutParams mChildParams;
@@ -440,7 +442,8 @@ final class DesktopPanelWindowController {
                 new FrameLayout.LayoutParams(width, height);
         panelParams.leftMargin = menuBounds.left;
         panelParams.topMargin = menuBounds.top;
-        host.addView(panel, panelParams);
+        mChildDecoration = panel.getBackground() instanceof UiAppearance.Paint ? new UiPanelWindow(panel) : null;
+        host.addView(mChildDecoration == null ? panel : mChildDecoration.view(), panelParams);
 
         int flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                 | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
@@ -853,7 +856,7 @@ final class DesktopPanelWindowController {
             return false;
         }
         mVisibleAdded = true;
-        UiMotion.reveal(panel, true);
+        UiMotion.reveal(windowView(panel), true);
         recordPanelState(true, mVisibleTitle, mBounds);
         requestFrame(panel, mVisibleParams, mVisibleTitle);
         return true;
@@ -907,6 +910,7 @@ final class DesktopPanelWindowController {
                 }
             });
             dialog.show();
+            UiAppearance.dialog(dialog, activity);
             return true;
         } catch (RuntimeException error) {
             mDialog = null;
@@ -930,9 +934,16 @@ final class DesktopPanelWindowController {
         }
         params.token = mWindowToken;
         try {
-            mWindowManager.addView(view, params);
+            if (view.getBackground() instanceof UiAppearance.Paint) {
+                final UiPanelWindow decoration = new UiPanelWindow(view);
+                mDecorations.put(view, decoration);
+                decoration.attributes(params);
+            }
+            mWindowManager.addView(windowView(view), params);
             return true;
         } catch (RuntimeException error) {
+            final UiPanelWindow decoration = mDecorations.remove(view);
+            if (decoration != null) decoration.close();
             Log.w(TAG, "failed to show " + kind + " " + title, error);
             CompatibilityDiagnostics.record(
                     "PANEL-004", "A desktop panel could not be shown",
@@ -951,7 +962,7 @@ final class DesktopPanelWindowController {
             }
             view.invalidate();
             try {
-                mWindowManager.updateViewLayout(view, params);
+                updateWindow(view, params);
             } catch (RuntimeException error) {
                 Log.w(TAG, "failed to request panel frame " + title, error);
                 CompatibilityDiagnostics.record(
@@ -983,10 +994,24 @@ final class DesktopPanelWindowController {
 
     private void removeView(final View view, final String kind) {
         try {
-            mWindowManager.removeViewImmediate(view);
+            mWindowManager.removeViewImmediate(windowView(view));
         } catch (RuntimeException error) {
             Log.w(TAG, "failed to remove " + kind, error);
+        } finally {
+            final UiPanelWindow decoration = mDecorations.remove(view);
+            if (decoration != null) decoration.close();
         }
+    }
+
+    private View windowView(View view) {
+        final UiPanelWindow decoration = mDecorations.get(view);
+        return decoration == null ? view : decoration.view();
+    }
+
+    private void updateWindow(View view, WindowManager.LayoutParams params) {
+        final UiPanelWindow decoration = mDecorations.get(view);
+        if (decoration != null) decoration.attributes(params);
+        mWindowManager.updateViewLayout(windowView(view), params);
     }
 
     private void dismissDialog() {
@@ -1034,6 +1059,11 @@ final class DesktopPanelWindowController {
         }
         final View panel = mChildPanel;
         final FrameLayout host = mChildHost;
+        if (mChildDecoration != null) {
+            if (host != null) host.removeView(mChildDecoration.view());
+            mChildDecoration.close();
+            mChildDecoration = null;
+        }
         if (host != null && panel != null && panel.getParent() == host) {
             host.removeView(panel);
         }
@@ -1098,12 +1128,13 @@ final class DesktopPanelWindowController {
                 final Rect local = new Rect(mChildBounds);
                 local.offset(-host.left, -host.top);
                 ((ChildPanelHost) mChildHost).setMenuBounds(local);
-                final FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mChildPanel.getLayoutParams();
+                final View menu = mChildDecoration == null ? mChildPanel : mChildDecoration.view();
+                final FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) menu.getLayoutParams();
                 if (params.width != local.width() || params.height != local.height()
                         || params.leftMargin != local.left || params.topMargin != local.top) {
                     params.width = local.width(); params.height = local.height();
                     params.leftMargin = local.left; params.topMargin = local.top;
-                    mChildPanel.setLayoutParams(params);
+                    menu.setLayoutParams(params);
                 }
                 updateGeometry(mChildHost, mChildParams,
                         new ShellBounds(host.left, host.top, host.right, host.bottom), mChildAdded);
@@ -1122,7 +1153,7 @@ final class DesktopPanelWindowController {
         params.x = bounds.left(); params.y = bounds.top();
         params.width = bounds.width(); params.height = bounds.height();
         if (added && mWindowManager != null) {
-            try { mWindowManager.updateViewLayout(view, params); }
+            try { updateWindow(view, params); }
             catch (RuntimeException error) {
                 CompatibilityDiagnostics.record("PANEL-003", "A desktop panel could not be resized",
                         "display=" + mDisplayId, error);

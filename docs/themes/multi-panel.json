@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "preset": "dark",
   "colors": { "panel": "#172624", "accent": "#8BE8C8" },
   "composition": {
@@ -13,7 +13,7 @@
           "sideGapDp": 12,
           "edgeGapDp": 12,
           "radiusDp": 8,
-          "opacity": 0.92
+          "backdrop": { "opacity": 0.92, "blurRadiusDp": 0 }
         },
         "components": [
           { "type": "start" },

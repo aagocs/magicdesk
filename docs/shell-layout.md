@@ -206,6 +206,12 @@ floating gaps and spaces between panels remain outside native input. Touch revea
 uses an inward gesture on the edge where it began. Wallpaper fills the physical
 display independently of shell content padding.
 
+Native backdrop opacity and optional compositor blur are presentation-only.
+`UiPanelWindow` wraps the actual native panel in public Window decor, including
+offset child menus inside their larger input host. `UiBackdrop` requests blur
+through that Window. Rounded blur regions and their lifetime follow that
+View; theme edits do not change reservations, task areas or input ownership.
+
 Automation exposes the live native panel set at `workspaces[].ui.panels`: each
 entry contains `id`, `edge`, stable content `bounds`, `paintBounds` and `outputBounds`
 in display pixels. These are committed host geometry, not frame/input readiness

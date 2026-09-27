@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -166,15 +165,15 @@ public final class DesktopChromeActivity extends Activity {
 
     private final class NativePanel extends FrameLayout {
         DesktopTaskbarHost.Panel definition;
-        final GradientDrawable paint;
+        final UiPanelWindow decoration;
         final Rect applied = new Rect();
         boolean added, hiddenTouch;
 
         NativePanel(DesktopTaskbarHost.Panel value) {
             super(value.view().getContext());
             definition = value;
-            paint = UiAppearance.panelPaint(value.view().getContext(), value.id());
-            setBackground(paint); setClipToOutline(true);
+            setBackground(UiAppearance.panelPaint(value.view().getContext(), value.id()));
+            decoration = new UiPanelWindow(this);
             setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             if (value.view().getParent() instanceof ViewGroup parent) parent.removeView(value.view());
             addView(value.view(), new FrameLayout.LayoutParams(value.content().width(), value.content().height()));
@@ -190,7 +189,7 @@ public final class DesktopChromeActivity extends Activity {
                 params.width = content.width(); params.height = content.height();
                 params.leftMargin = left; params.topMargin = top; view.setLayoutParams(params);
             }
-            paint.setAlpha(mPresented && !mEdgeHidden ? 255 : 0);
+            decoration.presented(mPresented && !mEdgeHidden);
             view.setAlpha(mPresented && !mEdgeHidden ? 1 : 0);
             view.setVisibility(mPresented ? View.VISIBLE : View.INVISIBLE);
             var target = PanelGeometry.presented(bounds(definition.output()), bounds(surface),
@@ -208,15 +207,16 @@ public final class DesktopChromeActivity extends Activity {
             // Shared shell layout already resolved stable system insets and panel reservations.
             window.setFitInsetsTypes(0); window.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
             window.setTitle("MagicDesk panel " + definition.id());
-            if (added) mWindowManager.updateViewLayout(this, window);
-            else { mWindowManager.addView(this, window); added = true; }
+            decoration.attributes(window);
+            if (added) mWindowManager.updateViewLayout(decoration.view(), window);
+            else { mWindowManager.addView(decoration.view(), window); added = true; }
             applied.set(rect);
         }
         void removeWindow() {
-            if (added && mWindowManager != null) mWindowManager.removeViewImmediate(this);
+            if (added && mWindowManager != null) mWindowManager.removeViewImmediate(decoration.view());
             added = false; applied.setEmpty();
         }
-        void release() { removeWindow(); removeAllViews(); UiMotion.cancel(definition.view()); }
+        void release() { removeWindow(); decoration.close(); removeAllViews(); UiMotion.cancel(definition.view()); }
         @Override public boolean dispatchGenericMotionEvent(MotionEvent event) {
             DesktopTaskbarHost.dispatchEdgeInput(mDisplayId, event);
             return super.dispatchGenericMotionEvent(event);

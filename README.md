@@ -131,7 +131,8 @@ lock, adaptive brightness and a temporary system-wide light/dark theme. These
 options apply while Desktop is running and release their overrides when it ends.
 
 **Settings > Appearance** customizes MagicDesk's native interface with panels
-along any screen edge, including floating, translucent layouts. Choose presets,
+along any screen edge, including floating, translucent layouts and optional system
+background blur. Popups share the background style; individual panels can override it. Choose presets,
 import/export a [JSON theme](docs/appearance.md), or use a theme bundle containing
 icons, fonts and wallpaper. Global defaults can be overridden per workspace.
 Styles apply to open panels and built-in tools without restarting them, including

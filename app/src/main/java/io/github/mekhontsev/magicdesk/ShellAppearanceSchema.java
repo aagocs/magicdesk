@@ -45,16 +45,19 @@ final class ShellAppearanceSchema {
                             .put("maxLengthDp", number(true, 64, 4096)).put("sideGapDp", number(true, 0, 96))
                             .put("edgeGapDp", number(true, 0, 96)).put("paddingDp", number(true, 0, 16))
                             .put("thicknessDp", new JSONObject().put("oneOf", new JSONArray().put(type("integer").put("const", 0)).put(number(true, 40, 160))))
-                            .put("radiusDp", number(true, 0, 32)).put("opacity", number(false, .15, 1)).put("reserveSpace", type("boolean"))))
+                            .put("radiusDp", number(true, 0, 32))
+                            .put("backdrop", backdrop().put("description", "Panel override; omit to inherit the global backdrop."))
+                            .put("reserveSpace", type("boolean"))))
                     .put("components", type("array").put("items", component).put("minItems", 1).put("maxItems", 24)))
                     .put("required", new JSONArray().put("id").put("components"));
             return object(new JSONObject()
-                    .put("version", type("integer").put("const", 3))
+                    .put("version", type("integer").put("const", 4))
                     .put("preset", strings("dark", "light", "contrast"))
                     .put("colors", object(colors))
                     .put("typography", object(new JSONObject().put("font", enumeration(ShellAppearance.Font.values()))
                             .put("scale", number(false, .8, 1.3))))
                     .put("shape", object(new JSONObject().put("radiusScale", number(false, 0, 2)).put("borderDp", number(false, 0, 3))))
+                    .put("backdrop", backdrop().put("description", "Global shell backdrop; defaults to opaque with no blur."))
                     .put("composition", object(new JSONObject()
                             .put("panels", type("array").put("items", panel).put("minItems", 1).put("maxItems", 4)
                                     .put("description", "Ordered native panels. Panel IDs and non-spacer component types are unique across the shell."))
@@ -79,6 +82,10 @@ final class ShellAppearanceSchema {
     }
 
     private static JSONObject type(String value) throws JSONException { return new JSONObject().put("type", value); }
+    private static JSONObject backdrop() throws JSONException {
+        return object(new JSONObject().put("opacity", number(false, .15, 1).put("default", 1))
+                .put("blurRadiusDp", number(true, 0, 64).put("default", 0)));
+    }
     private static JSONObject assetPath(boolean empty) throws JSONException {
         return type("string").put("maxLength", 160).put("pattern",
                 "^(?:[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)" + (empty ? "?" : "") + "$");

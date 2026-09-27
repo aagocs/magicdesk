@@ -10,6 +10,7 @@ device validation on that release is still pending.
 | Subsystem | Baseline and prerequisites |
 | --- | --- |
 | MCP and ordinary built-in UI | API 34; explicit client grants for automation. Network MCP additionally needs Android's local-network runtime permission on API 37+. Loopback is independent. UI startup does not require Desktop provisioning. |
+| Native panel background blur (optional) | API 34; public `Window.setBackgroundBlurRadius`, with system-controlled availability. Disabled or unsupported blur retains the configured translucent fill. No hidden APIs, shell access, captures or new window ownership. |
 | Built-in CLI | API 34; an inherited MagicDesk shell channel. Each command retains its own prerequisites; MCP enablement and installed Termux are not required. |
 | Script dialogs and notifications | API 34; MCP content grant or inherited CLI channel. Background dialog placement requires the shared privileged launcher; notifications require Android notification permission/channel access. No Desktop or Termux prerequisite. |
 | Files, shell commands and transfers | API 34 plus authorized privileged service for shell-backed operations. |

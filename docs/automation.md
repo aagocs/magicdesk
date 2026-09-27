@@ -14,8 +14,9 @@ availability, service prerequisites and client grants are independent checks.
 See [Runtime API levels](runtime-api-levels.md) for the validation boundary.
 
 Native [appearance](appearance.md) has shared schema, validation, read/apply,
-preview/confirm/cancel, preset and reset operations. Version 3 describes 1-4
-native panels on any edge. Optional `workspaceKey` selects a stable workspace
+preview/confirm/cancel, preset and reset operations. Version 4 describes 1-4
+native panels on any edge and shared background opacity and blur, with optional
+per-panel overrides. Optional `workspaceKey` selects a stable workspace
 identity, not a display ID or live residency ID; omission selects global defaults.
 Workspace documents are sparse patches over global defaults, with whole-array
 replacement. Resetting a workspace removes its override. Read results include

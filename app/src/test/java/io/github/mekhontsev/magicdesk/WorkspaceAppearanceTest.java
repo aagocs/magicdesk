@@ -37,16 +37,33 @@ public final class WorkspaceAppearanceTest {
         assertEquals(store.current().typography().font(), actual.typography().font());
     }
 
+    @Test public void sparseWorkspaceBackdropsInheritGlobalChangesAndSurviveRestore() throws Exception {
+        var global = ShellAppearance.defaults().withBackdrop(new ShellAppearance.Backdrop(.6f, 24));
+        var store = WorkspaceAppearance.defaults().apply(global).apply(WORK, "{\"backdrop\":{\"opacity\":0.5}}");
+        assertEquals(new ShellAppearance.Backdrop(.5f, 24), store.current(WORK).backdrop());
+        assertEquals(global.backdrop(), store.current(OTHER).panelBackdrop("main"));
+        assertEquals(store.current(WORK).backdrop(), store.current(WORK).panelBackdrop("main"));
+        var changed = store.apply(global.withBackdrop(new ShellAppearance.Backdrop(.8f, 32)));
+        assertEquals(new ShellAppearance.Backdrop(.5f, 32), changed.current(WORK).panelBackdrop("main"));
+        var saved = new JSONObject(changed.savedOverrides()).getJSONObject(WORK).getJSONObject("backdrop");
+        assertEquals(1, saved.length());
+        assertFalse(saved.has("blurRadiusDp"));
+        var restored = WorkspaceAppearance.restore(changed.savedGlobal(), changed.savedOverrides());
+        assertEquals(changed.current(), restored.current());
+        assertEquals(changed.current(WORK), restored.current(WORK));
+        assertNull(restored.current(WORK).composition().panel("main").style().backdrop());
+    }
+
     @Test public void panelsAreReplacedByStablePanelIdentityNotArrayIndexes() throws Exception {
         var store = WorkspaceAppearance.defaults().apply(WORK, """
                 {"composition":{"panels":[{"id":"left","edge":"left",
-                  "style":{"opacity":0.5},"components":[{"type":"start"}]}]}}
+                  "style":{"backdrop":{"opacity":0.5}},"components":[{"type":"start"}]}]}}
                 """);
         var panels = store.current(WORK).composition().panels();
         assertEquals(1, panels.size());
         assertEquals("left", panels.get(0).id());
         assertEquals(ShellPanel.Edge.LEFT, panels.get(0).edge());
-        assertEquals(.5f, panels.get(0).style().opacity(), 0);
+        assertEquals(.5f, panels.get(0).style().backdrop().opacity(), 0);
         assertEquals(1, panels.get(0).components().size());
         assertNull(store.current(WORK).composition().panel("main"));
     }

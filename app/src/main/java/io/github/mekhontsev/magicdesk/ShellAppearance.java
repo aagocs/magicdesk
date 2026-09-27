@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /** Immutable, density-independent appearance. It owns no window or workspace state. */
-public record ShellAppearance(Palette palette, Typography typography, Shape shape,
+public record ShellAppearance(Palette palette, Typography typography, Shape shape, Backdrop backdrop,
         ShellComposition composition, ShellMotion motion,
         Feedback feedback, ShellResources resources) {
     public record Feedback(UiColor normal, UiColor hover, UiColor pressed,
@@ -35,49 +35,63 @@ public record ShellAppearance(Palette palette, Typography typography, Shape shap
     public record Shape(float radiusScale, float borderDp) {
         public Shape { range(radiusScale, 0, 2, "radius scale"); range(borderDp, 0, 3, "border"); }
     }
+    public record Backdrop(float opacity, int blurRadiusDp) {
+        public Backdrop {
+            range(opacity, .15f, 1, "opacity");
+            range(blurRadiusDp, 0, 64, "blur radius");
+        }
+        public static Backdrop defaults() { return new Backdrop(1, 0); }
+    }
     public enum Width { FILL, CONTENT }
     public enum Alignment { START, CENTER, END }
+    /** A null backdrop inherits the appearance's global backdrop. */
     public record PanelStyle(Width length, Alignment alignment, int maxLengthDp, int sideGapDp,
-            int edgeGapDp, int thicknessDp, int paddingDp, int radiusDp, float opacity, boolean reserveSpace) {
+            int edgeGapDp, int thicknessDp, int paddingDp, int radiusDp, Backdrop backdrop, boolean reserveSpace) {
         public PanelStyle {
             Objects.requireNonNull(length); Objects.requireNonNull(alignment);
             range(maxLengthDp, 64, 4096, "maximum length");
             range(sideGapDp, 0, 96, "side gap"); range(edgeGapDp, 0, 96, "edge gap");
             if (thicknessDp != 0) range(thicknessDp, 40, 160, "panel thickness");
             range(paddingDp, 0, 16, "padding"); range(radiusDp, 0, 32, "radius");
-            range(opacity, .15f, 1, "opacity");
         }
         public static PanelStyle defaults() {
-            return new PanelStyle(Width.FILL, Alignment.CENTER, 4096, 0, 0, 0, 8, 0, 1, true);
+            return new PanelStyle(Width.FILL, Alignment.CENTER, 4096, 0, 0, 0, 8, 0, null, true);
         }
         public static PanelStyle floating() {
-            return new PanelStyle(Width.CONTENT, Alignment.CENTER, 1100, 12, 12, 0, 8, 8, .88f, true);
+            return new PanelStyle(Width.CONTENT, Alignment.CENTER, 1100, 12, 12, 0, 8, 8, new Backdrop(.88f, 0), true);
         }
     }
     public ShellAppearance {
         Objects.requireNonNull(palette); Objects.requireNonNull(typography);
-        Objects.requireNonNull(shape);
+        Objects.requireNonNull(shape); Objects.requireNonNull(backdrop);
         Objects.requireNonNull(composition); Objects.requireNonNull(motion);
         Objects.requireNonNull(feedback); Objects.requireNonNull(resources);
     }
+    public Backdrop panelBackdrop(String id) {
+        var panel = composition.panel(id);
+        return panel == null || panel.style().backdrop() == null ? backdrop : panel.style().backdrop();
+    }
     public ShellAppearance withComposition(ShellComposition value) {
-        return new ShellAppearance(palette, typography, shape, value, motion, feedback, resources);
+        return new ShellAppearance(palette, typography, shape, backdrop, value, motion, feedback, resources);
     }
     public ShellAppearance withStyle(ShellAppearance value) {
-        return new ShellAppearance(value.palette, value.typography, value.shape,
+        return new ShellAppearance(value.palette, value.typography, value.shape, backdrop,
                 composition, motion, value.feedback, resources);
     }
     public ShellAppearance withPalette(Palette value) {
-        return new ShellAppearance(value, typography, shape, composition, motion, feedback, resources);
+        return new ShellAppearance(value, typography, shape, backdrop, composition, motion, feedback, resources);
     }
     public ShellAppearance withTypography(Typography value) {
-        return new ShellAppearance(palette, value, shape, composition, motion, feedback, resources);
+        return new ShellAppearance(palette, value, shape, backdrop, composition, motion, feedback, resources);
     }
     public ShellAppearance withShape(Shape value) {
-        return new ShellAppearance(palette, typography, value, composition, motion, feedback, resources);
+        return new ShellAppearance(palette, typography, value, backdrop, composition, motion, feedback, resources);
+    }
+    public ShellAppearance withBackdrop(Backdrop value) {
+        return new ShellAppearance(palette, typography, shape, value, composition, motion, feedback, resources);
     }
     public ShellAppearance withResources(ShellResources value) {
-        return new ShellAppearance(palette, typography, shape, composition, motion, feedback, value);
+        return new ShellAppearance(palette, typography, shape, backdrop, composition, motion, feedback, value);
     }
     public static ShellAppearance defaults() { return preset("dark"); }
     public static ShellAppearance preset(String name) {
@@ -93,7 +107,7 @@ public record ShellAppearance(Palette palette, Typography typography, Shape shap
         final EnumMap<UiColor, Integer> colors = new EnumMap<>(UiColor.class);
         for (UiColor role : UiColor.values()) colors.put(role, values[role.ordinal()]);
         return new ShellAppearance(new Palette(colors), new Typography(Font.SANS, 1),
-                new Shape(1, 1), ShellComposition.defaults(), ShellMotion.defaults(),
+                new Shape(1, 1), Backdrop.defaults(), ShellComposition.defaults(), ShellMotion.defaults(),
                 Feedback.defaults(), ShellResources.defaults());
     }
     static void range(float value, float min, float max, String name) {

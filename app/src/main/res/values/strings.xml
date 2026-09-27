@@ -1060,6 +1060,9 @@
     <string name="appearance_global">Global defaults</string>
     <string name="appearance_workspace">Current workspace</string>
     <string name="appearance_inherit">Use global defaults</string>
+    <string name="appearance_backdrop">Common background</string>
+    <string name="appearance_blur_radius">Blur radius (dp)</string>
+    <string name="appearance_inherit_backdrop">Use common background</string>
     <string name="appearance_panels">Panels</string>
     <string name="appearance_panel">Panel</string>
     <string name="appearance_add_panel">Add panel</string>
