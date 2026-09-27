@@ -73,10 +73,6 @@ final class FileManagerView {
         void onRecursiveSearchRequested();
     }
 
-    private static final int COLOR_BACKGROUND = Color.rgb(9, 13, 20);
-    private static final int COLOR_SURFACE = Color.rgb(20, 27, 38);
-    private static final int COLOR_TEXT = Color.rgb(232, 238, 245);
-    private static final int COLOR_MUTED = Color.rgb(157, 170, 184);
 
     private final Context mContext;
     private final Listener mListener;
@@ -124,7 +120,7 @@ final class FileManagerView {
         mLayoutMode = initialLayoutMode;
         mRoot = new LinearLayout(context);
         mRoot.setOrientation(LinearLayout.VERTICAL);
-        mRoot.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(mRoot, UiColor.BACKGROUND);
         final int horizontalPadding = dp(10);
         final int verticalPadding = dp(8);
         mRoot.setPadding(
@@ -164,10 +160,10 @@ final class FileManagerView {
         mPath = new EditText(context);
         mPath.setSingleLine(true);
         mPath.setHint(R.string.file_manager_path_hint);
-        mPath.setTextColor(COLOR_TEXT);
-        mPath.setHintTextColor(COLOR_MUTED);
+        UiAppearance.text(mPath, UiColor.TEXT);
+        UiAppearance.hint(mPath, UiColor.MUTED);
         mPath.setSelectAllOnFocus(false);
-        mPath.setBackgroundColor(COLOR_SURFACE);
+        UiAppearance.background(mPath, UiColor.SURFACE);
         mPath.setPadding(dp(10), 0, dp(10), 0);
         mPath.setOnEditorActionListener((view, actionId, event) -> {
             navigateFromAddress();
@@ -195,9 +191,9 @@ final class FileManagerView {
         mFilter = new EditText(context);
         mFilter.setSingleLine(true);
         mFilter.setHint(R.string.file_manager_filter_hint);
-        mFilter.setTextColor(COLOR_TEXT);
-        mFilter.setHintTextColor(COLOR_MUTED);
-        mFilter.setBackgroundColor(COLOR_SURFACE);
+        UiAppearance.text(mFilter, UiColor.TEXT);
+        UiAppearance.hint(mFilter, UiColor.MUTED);
+        UiAppearance.background(mFilter, UiColor.SURFACE);
         mFilter.setPadding(dp(10), 0, dp(10), 0);
         mFilter.addTextChangedListener(new TextWatcher() {
             @Override
@@ -291,7 +287,7 @@ final class FileManagerView {
 
         mHidden = new CheckBox(context);
         mHidden.setText(R.string.file_manager_show_hidden);
-        mHidden.setTextColor(COLOR_TEXT);
+        UiAppearance.text(mHidden, UiColor.TEXT);
         mHidden.setOnCheckedChangeListener((button, checked) ->
                 listener.onShowHiddenChanged(checked));
         commands.addView(mHidden, wrapWrap());
@@ -357,9 +353,9 @@ final class FileManagerView {
         browser.setOrientation(LinearLayout.VERTICAL);
         final FrameLayout listFrame = new FrameLayout(context);
         mList = new ListView(context);
-        mList.setDivider(new ColorDrawable(Color.rgb(38, 48, 61)));
+        mList.setDivider(new DesktopUiFactory(mContext).rounded(UiColor.HOVER, 0, UiColor.TRANSPARENT));
         mList.setDividerHeight(1);
-        mList.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(mList, UiColor.BACKGROUND);
         mAdapter = new ShellFileAdapter(
                 context,
                 listener::onItemClick,
@@ -378,7 +374,7 @@ final class FileManagerView {
         mGrid.setStretchMode(GridView.STRETCH_COLUMN_WIDTH);
         mGrid.setPadding(dp(4), dp(4), dp(4), dp(4));
         mGrid.setClipToPadding(false);
-        mGrid.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(mGrid, UiColor.BACKGROUND);
         mGrid.setAdapter(mAdapter);
         installBackgroundContextTarget(mList, listener);
         installBackgroundContextTarget(mGrid, listener);
@@ -394,7 +390,7 @@ final class FileManagerView {
         listFrame.addView(mList, matchMatch());
         listFrame.addView(mGrid, matchMatch());
         mEmpty = new TextView(context);
-        mEmpty.setTextColor(COLOR_MUTED);
+        UiAppearance.text(mEmpty, UiColor.MUTED);
         mEmpty.setTextSize(16f);
         mEmpty.setGravity(Gravity.CENTER);
         mEmpty.setVisibility(View.GONE);
@@ -410,7 +406,7 @@ final class FileManagerView {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         mStatus = new TextView(context);
-        mStatus.setTextColor(COLOR_MUTED);
+        UiAppearance.text(mStatus, UiColor.MUTED);
         mStatus.setTextSize(12f);
         mStatus.setGravity(Gravity.CENTER_VERTICAL);
         mStatus.setSingleLine(true);
@@ -524,7 +520,7 @@ final class FileManagerView {
         if (mSaveBar == null) {
             mSaveBar = horizontal();
             mSaveName = new TextView(mContext);
-            mSaveName.setTextColor(COLOR_TEXT);
+            UiAppearance.text(mSaveName, UiColor.TEXT);
             mSaveName.setSingleLine(true);
             mSaveName.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
             mSaveBar.addView(mSaveName, new LinearLayout.LayoutParams(0, dp(42), 1));
@@ -676,7 +672,7 @@ final class FileManagerView {
         final Button button = new Button(mContext);
         button.setText(text);
         button.setContentDescription(description);
-        button.setTextColor(COLOR_TEXT);
+        UiAppearance.text(button, UiColor.TEXT);
         button.setTextSize(13f);
         button.setAllCaps(false);
         button.setMinWidth(0);
@@ -684,7 +680,7 @@ final class FileManagerView {
         button.setMinHeight(0);
         button.setMinimumHeight(0);
         button.setPadding(dp(10), 0, dp(10), 0);
-        button.setBackgroundColor(COLOR_SURFACE);
+        UiAppearance.background(button, UiColor.SURFACE);
         button.setOnClickListener(listener);
         return button;
     }
@@ -695,15 +691,10 @@ final class FileManagerView {
             final View.OnClickListener listener) {
         final ImageButton button = new ImageButton(mContext);
         button.setImageResource(drawable);
-        button.setImageTintList(new ColorStateList(
-                new int[][]{
-                    new int[]{-android.R.attr.state_enabled},
-                    new int[0]
-                },
-                new int[]{COLOR_MUTED, COLOR_TEXT}));
+        UiAppearance.imageStates(button, UiColor.TEXT);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
-        button.setBackgroundColor(COLOR_SURFACE);
+        UiAppearance.background(button, UiColor.SURFACE);
         button.setContentDescription(mContext.getString(description));
         button.setTooltipText(mContext.getString(description));
         button.setOnClickListener(listener);
@@ -711,13 +702,7 @@ final class FileManagerView {
     }
 
     private Spinner spinner(final String[] items) {
-        final Spinner spinner = new Spinner(mContext);
-        final ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                mContext,
-                android.R.layout.simple_spinner_dropdown_item,
-                items);
-        spinner.setAdapter(adapter);
-        return spinner;
+        return new DesktopUiFactory(mContext).spinner(items);
     }
 
     private LinearLayout horizontal() {

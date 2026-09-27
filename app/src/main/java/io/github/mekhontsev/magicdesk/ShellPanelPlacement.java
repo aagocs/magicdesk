@@ -41,6 +41,25 @@ sealed interface ShellPanelPlacement {
         }
     }
 
+    /** Follows a live shell surface, including when its width or alignment changes. */
+    record AboveSurface(String owner, int width, int height, boolean endAligned, int inset, int gap)
+            implements ShellPanelPlacement {
+        public AboveSurface {
+            Objects.requireNonNull(owner);
+            if (width < 1 || height < 1 || inset < 0 || gap < 0) throw new IllegalArgumentException("Invalid panel anchor");
+        }
+        @Override public ShellSurface.Placement resolve(ShellLayout.Snapshot layout) {
+            final var surface = layout.surfaces().get(owner);
+            if (surface == null || !surface.request().mapped()) throw new IllegalStateException("Panel owner is not mapped");
+            final var bounds = surface.content();
+            final int offset = Math.min(inset, bounds.width() / 2);
+            final int x = endAligned ? bounds.right() - offset : bounds.left() + offset;
+            return new Popup(new ShellBounds(x, bounds.top(), x, bounds.top()), width, height,
+                    endAligned ? Popup.Direction.BEFORE : Popup.Direction.AFTER, Popup.Direction.BEFORE,
+                    0, gap, 0, false).resolve(layout);
+        }
+    }
+
     /** Anchor is in scope coordinates; direction selects which side each axis grows toward. */
     record Popup(ShellBounds anchor, int width, int height, Direction horizontal,
             Direction vertical, int gapX, int gapY, int margin, boolean flip)

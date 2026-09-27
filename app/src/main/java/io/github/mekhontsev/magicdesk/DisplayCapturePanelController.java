@@ -63,7 +63,7 @@ final class DisplayCapturePanelController {
         addBitrate(parent, spacing);
 
         mStatus = new TextView(mActivity);
-        mStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mStatus, UiColor.MUTED);
         mStatus.setTextSize(13);
         final LinearLayout.LayoutParams statusParams =
                 new LinearLayout.LayoutParams(
@@ -87,7 +87,7 @@ final class DisplayCapturePanelController {
 
         mResetAction = mUi.smallButton(
                 R.string.action_reset,
-                DesktopUiFactory.COLOR_PANEL_ALT);
+                UiColor.SURFACE);
         mResetAction.setOnClickListener(view -> resetSettings());
         header.addView(mResetAction, new LinearLayout.LayoutParams(
                 dp(88), dp(STEP_BUTTON_SIZE_DP)));
@@ -104,14 +104,14 @@ final class DisplayCapturePanelController {
 
         mScreenshotAction = mUi.actionButton(
                 R.string.action_screenshot,
-                DesktopUiFactory.COLOR_CYAN);
+                UiColor.ACCENT);
         mScreenshotAction.setOnClickListener(view ->
                 mActivity.captureDesktopScreenshot());
         addGridButton(actions, mScreenshotAction, 2);
 
         mRecordAction = mUi.actionButton(
                 R.string.action_record_screen,
-                DesktopUiFactory.COLOR_RED);
+                UiColor.DANGER);
         mRecordAction.setOnClickListener(view ->
                 mActivity.toggleDesktopRecording());
         addGridButton(actions, mRecordAction, 2);
@@ -132,13 +132,13 @@ final class DisplayCapturePanelController {
 
         final TextView label = new TextView(mActivity);
         label.setText(R.string.recording_resolution);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(14);
         header.addView(label, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         mOutputSize = new TextView(mActivity);
-        mOutputSize.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mOutputSize, UiColor.MUTED);
         mOutputSize.setTextSize(13);
         mOutputSize.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         header.addView(mOutputSize, new LinearLayout.LayoutParams(
@@ -158,7 +158,7 @@ final class DisplayCapturePanelController {
                     mActivity.getString(
                             R.string.recording_scale_value,
                             Integer.valueOf(scale)),
-                    DesktopUiFactory.COLOR_PANEL_ALT);
+                    UiColor.SURFACE);
             button.setOnClickListener(view -> setScale(scale));
             mScaleButtons.put(Integer.valueOf(scale), button);
             addGridButton(scales, button, SCALE_OPTIONS.length);
@@ -173,7 +173,7 @@ final class DisplayCapturePanelController {
             final int spacing) {
         final TextView label = new TextView(mActivity);
         label.setText(R.string.recording_audio);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(14);
         final LinearLayout.LayoutParams labelParams =
                 new LinearLayout.LayoutParams(
@@ -206,7 +206,7 @@ final class DisplayCapturePanelController {
             final int textResId,
             final RecordingAudioMode mode) {
         final Button button = mUi.actionButton(
-                textResId, DesktopUiFactory.COLOR_PANEL_ALT);
+                textResId, UiColor.SURFACE);
         button.setOnClickListener(view -> setAudioMode(mode));
         mAudioModeButtons.put(mode, button);
         addGridButton(grid, button, 3);
@@ -221,13 +221,13 @@ final class DisplayCapturePanelController {
 
         final TextView label = new TextView(mActivity);
         label.setText(R.string.recording_bitrate);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(14);
         header.addView(label, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         mBitrateValue = new TextView(mActivity);
-        mBitrateValue.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mBitrateValue, UiColor.TEXT);
         mBitrateValue.setTextSize(14);
         mBitrateValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         header.addView(mBitrateValue, new LinearLayout.LayoutParams(
@@ -250,6 +250,7 @@ final class DisplayCapturePanelController {
         adjustment.addView(mBitrateDecrease, stepButtonParams());
 
         mBitrateSlider = new SeekBar(mActivity);
+        UiAppearance.progress(mBitrateSlider, UiColor.ACCENT);
         mBitrateSlider.setMin(DisplayRecordingSettings.MIN_BITRATE_MBPS);
         mBitrateSlider.setMax(DisplayRecordingSettings.MAX_BITRATE_MBPS);
         mBitrateSlider.setKeyProgressIncrement(1);
@@ -322,22 +323,22 @@ final class DisplayCapturePanelController {
             final boolean selected = entry.getKey() == mSettings.audioMode;
             entry.getValue().setAlpha(selected ? 1f : 0.72f);
             entry.getValue().setBackground(mUi.rounded(
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     dp(10),
                     selected
-                            ? DesktopUiFactory.COLOR_CYAN
-                            : DesktopUiFactory.COLOR_PANEL_ALT));
+                            ? UiColor.ACCENT
+                            : UiColor.SURFACE));
         }
         for (final Map.Entry<Integer, Button> entry
                 : mScaleButtons.entrySet()) {
             final boolean selected = entry.getKey().intValue()
                     == mSettings.scalePercent;
             entry.getValue().setBackground(mUi.rounded(
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     dp(10),
                     selected
-                            ? DesktopUiFactory.COLOR_CYAN
-                            : DesktopUiFactory.COLOR_PANEL_ALT));
+                            ? UiColor.ACCENT
+                            : UiColor.SURFACE));
         }
         if (mBitrateSlider != null
                 && mBitrateSlider.getProgress() != mSettings.bitrateMbps) {
@@ -437,7 +438,7 @@ final class DisplayCapturePanelController {
             final String text,
             final int descriptionResId) {
         final Button button = mUi.smallButton(
-                text, DesktopUiFactory.COLOR_PANEL_ALT);
+                text, UiColor.SURFACE);
         button.setTextSize(16);
         button.setContentDescription(mActivity.getString(descriptionResId));
         button.setTooltipText(mActivity.getString(descriptionResId));

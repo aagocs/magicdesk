@@ -54,10 +54,6 @@ final class ShellFileAdapter extends BaseAdapter {
                 DesktopApplicationShortcut shortcut);
     }
 
-    private static final int COLOR_BACKGROUND = Color.rgb(9, 13, 20);
-    private static final int COLOR_ACTIVE = Color.rgb(31, 44, 58);
-    private static final int COLOR_TEXT = Color.rgb(232, 238, 245);
-    private static final int COLOR_MUTED = Color.rgb(157, 170, 184);
     private final Context mContext;
     private final ClickListener mClickListener;
     private final SelectionListener mListener;
@@ -289,8 +285,8 @@ final class ShellFileAdapter extends BaseAdapter {
             item.checkbox.setOnCheckedChangeListener((button, checked) ->
                     mListener.onSelectionChanged(item.file, checked));
         }
-        item.root.setBackgroundColor(
-                selected ? COLOR_ACTIVE : COLOR_BACKGROUND);
+        UiAppearance.background(item.root,
+                selected ? UiColor.HOVER : UiColor.BACKGROUND);
     }
 
     private boolean handleFolderDrag(
@@ -302,18 +298,18 @@ final class ShellFileAdapter extends BaseAdapter {
             case DragEvent.ACTION_DRAG_STARTED:
                 return event.getClipDescription() != null;
             case DragEvent.ACTION_DRAG_ENTERED:
-                item.root.setBackgroundColor(COLOR_ACTIVE);
+                UiAppearance.background(item.root, UiColor.HOVER);
                 return true;
             case DragEvent.ACTION_DRAG_EXITED:
             case DragEvent.ACTION_DRAG_ENDED:
-                item.root.setBackgroundColor(
+                UiAppearance.background(item.root,
                         mSelected.contains(folder.absolutePath)
-                                ? COLOR_ACTIVE : COLOR_BACKGROUND);
+                                ? UiColor.HOVER : UiColor.BACKGROUND);
                 return true;
             case DragEvent.ACTION_DROP:
-                item.root.setBackgroundColor(
+                UiAppearance.background(item.root,
                         mSelected.contains(folder.absolutePath)
-                                ? COLOR_ACTIVE : COLOR_BACKGROUND);
+                                ? UiColor.HOVER : UiColor.BACKGROUND);
                 return mDropListener.onDrop(event, destinationPath);
             default:
                 return true;
@@ -333,7 +329,7 @@ final class ShellFileAdapter extends BaseAdapter {
                                 || !payload.absolutePaths.contains(
                                         file.absolutePath));
             case DragEvent.ACTION_DRAG_ENTERED:
-                item.root.setBackgroundColor(COLOR_ACTIVE);
+                UiAppearance.background(item.root, UiColor.HOVER);
                 return true;
             case DragEvent.ACTION_DRAG_EXITED:
             case DragEvent.ACTION_DRAG_ENDED:
@@ -373,11 +369,11 @@ final class ShellFileAdapter extends BaseAdapter {
         labels.setOrientation(LinearLayout.VERTICAL);
         labels.setGravity(Gravity.CENTER_VERTICAL);
         final TextView name = new TextView(mContext);
-        name.setTextColor(COLOR_TEXT);
+        UiAppearance.text(name, UiColor.TEXT);
         name.setTextSize(15f);
         name.setSingleLine(true);
         final TextView details = new TextView(mContext);
-        details.setTextColor(COLOR_MUTED);
+        UiAppearance.text(details, UiColor.MUTED);
         details.setTextSize(11f);
         details.setSingleLine(true);
         labels.addView(name, new LinearLayout.LayoutParams(
@@ -412,7 +408,7 @@ final class ShellFileAdapter extends BaseAdapter {
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(64)));
 
         final TextView name = new TextView(mContext);
-        name.setTextColor(COLOR_TEXT);
+        UiAppearance.text(name, UiColor.TEXT);
         name.setTextSize(13f);
         name.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         name.setMaxLines(2);

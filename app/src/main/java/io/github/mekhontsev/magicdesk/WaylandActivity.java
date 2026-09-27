@@ -55,10 +55,10 @@ public final class WaylandActivity extends Activity implements WaylandSessions.L
         DesktopUiFactory ui = new DesktopUiFactory(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(DesktopUiFactory.COLOR_BACKGROUND);
+        UiAppearance.background(root, UiColor.BACKGROUND);
         SystemBarInsets.addToPadding(root, true, this);
         status = new TextView(this);
-        status.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(status, UiColor.MUTED);
         status.setPadding(ui.dp(12), ui.dp(6), ui.dp(12), ui.dp(6));
         root.addView(status);
         surface = new HostedSurfaceView(this);

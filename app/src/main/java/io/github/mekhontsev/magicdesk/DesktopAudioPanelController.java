@@ -68,7 +68,7 @@ final class DesktopAudioPanelController {
         mUi.addControlSection(parent, R.string.audio_section_title, spacing);
 
         mRouteStatus = new TextView(mActivity);
-        mRouteStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mRouteStatus, UiColor.MUTED);
         mRouteStatus.setTextSize(13);
         parent.addView(mRouteStatus, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -82,6 +82,7 @@ final class DesktopAudioPanelController {
         row.addView(mMute, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         mVolume = new SeekBar(mActivity);
+        UiAppearance.progress(mVolume, UiColor.ACCENT);
         mVolume.setContentDescription(mActivity.getString(R.string.audio_volume));
         mVolume.setEnabled(mAudioManager != null);
         mVolume.setSplitTrack(false);
@@ -116,14 +117,14 @@ final class DesktopAudioPanelController {
                 });
         row.addView(mVolume, new LinearLayout.LayoutParams(0, dp(48), 1));
         mVolumeValue = new TextView(mActivity);
-        mVolumeValue.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mVolumeValue, UiColor.MUTED);
         mVolumeValue.setTextSize(12);
         mVolumeValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         row.addView(mVolumeValue, new LinearLayout.LayoutParams(dp(60), dp(48)));
         parent.addView(row);
 
         final Button soundSettings = mUi.menuItem(
-                R.string.audio_sound_settings, DesktopUiFactory.COLOR_TEXT);
+                R.string.audio_sound_settings, UiColor.TEXT);
         soundSettings.setTextSize(13);
         soundSettings.setOnClickListener(view -> {
             mActivity.hideAllPanels();

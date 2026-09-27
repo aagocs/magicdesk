@@ -35,9 +35,9 @@ final class DesktopItemViewFactory {
         final LinearLayout item = iconContainer();
         if (selected) {
             item.setBackground(mUi.rounded(
-                    0x661F2C3A,
+                    UiColor.SURFACE,
                     dp(8),
-                    DesktopUiFactory.COLOR_CYAN));
+                    UiColor.ACCENT));
         }
         final ImageView icon = new ImageView(mActivity);
         icon.setScaleType(file.thumbnail == null
@@ -61,9 +61,9 @@ final class DesktopItemViewFactory {
         } else if (file.thumbnail != null) {
             icon.setImageBitmap(file.thumbnail);
             icon.setBackground(mUi.rounded(
-                    0x66111827,
+                    UiColor.PANEL,
                     dp(6),
-                    0x99E5E7EB));
+                    UiColor.MUTED));
             icon.setClipToOutline(true);
             icon.setPadding(dp(1), dp(1), dp(1), dp(1));
         } else {
@@ -110,7 +110,7 @@ final class DesktopItemViewFactory {
             final CharSequence text) {
         final TextView label = new TextView(mActivity);
         label.setText(text);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.DESKTOP_TEXT);
         label.setTextSize(mActivity.isCompactDesktopPreview() ? 10 : 12);
         label.setGravity(Gravity.CENTER);
         label.setMaxLines(2);

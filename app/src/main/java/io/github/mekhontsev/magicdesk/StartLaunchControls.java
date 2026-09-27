@@ -37,7 +37,7 @@ final class StartLaunchControls {
         mView = new LinearLayout(activity);
         mView.setGravity(android.view.Gravity.CENTER_VERTICAL);
         mView.addView(mDisplay.view(), new LinearLayout.LayoutParams(0, ui.dp(52), 1));
-        final Button mode = ui.actionButton(mMode.label, DesktopUiFactory.COLOR_PANEL_ALT);
+        final Button mode = ui.actionButton(mMode.label, UiColor.SURFACE);
         mModeButton = mode;
         mode.setTextSize(12);
         mode.setMinWidth(0);
@@ -64,8 +64,9 @@ final class StartLaunchControls {
         modeParams.setMarginStart(ui.dp(4));
         mView.addView(mode, modeParams);
         mNew = new CheckBox(activity);
+        UiAppearance.button(mNew, UiColor.ACCENT);
         mNew.setText(R.string.start_new_window);
-        mNew.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mNew, UiColor.TEXT);
         mNew.setTextSize(12);
         mNew.setMaxLines(2);
         mView.addView(mNew, new LinearLayout.LayoutParams(ui.dp(90), ui.dp(52)));

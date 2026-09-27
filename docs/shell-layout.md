@@ -79,6 +79,13 @@ bounds to Android rectangles and updates existing desktop views and taskbar host
 Window placement, shell panels, popup limits and the icon-grid viewport consume the
 same result rather than independently subtracting a taskbar height.
 
+Native [appearance](appearance.md) supplies density-independent taskbar constraints.
+`TaskbarGeometry` resolves content width, alignment and gaps before the shared
+placement pass. The chrome host receives full rectangles, including the output
+used for edge reveal. Translucent backgrounds do not reduce icon opacity, and
+empty outer gaps do not become an input surface. A floating panel's optional
+reservation includes its bottom gap.
+
 Start, overview, notifications and quick controls submit measured sizes and
 `ShellPanelPlacement` intents. Popup placement resolves anchors, edge flipping and
 clamping centrally. An owned popup follows its parent's resolved position; it

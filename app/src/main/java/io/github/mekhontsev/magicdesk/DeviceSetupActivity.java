@@ -22,9 +22,6 @@ public final class DeviceSetupActivity extends Activity {
     private static final String TAG = "MagicDeskSetup";
     private static final String EXTRA_MANUAL = "manual_setup";
     private static final int REQUEST_NOTIFICATIONS = 1;
-    private static final int COLOR_CYAN = DesktopUiFactory.COLOR_CYAN;
-    private static final int COLOR_RED = DesktopUiFactory.COLOR_RED;
-    private static final int COLOR_AMBER = DesktopUiFactory.COLOR_AMBER;
 
     private DeviceSetupView mSetupView;
     private boolean mManual;
@@ -238,7 +235,7 @@ public final class DeviceSetupActivity extends Activity {
 
         if (audit.shellState.backend.usesRoot() && !audit.shellReady) {
             mSetupView.summary().setText(audit.shellState.error);
-            mSetupView.summary().setTextColor(COLOR_AMBER);
+            UiAppearance.text(mSetupView.summary(), UiColor.ATTENTION);
             mSetupView.primaryAction().setText(R.string.setup_action_allow_root);
             mSetupView.primaryAction().setOnClickListener(view -> requestShellPermission());
             setCloseAction();
@@ -248,7 +245,7 @@ public final class DeviceSetupActivity extends Activity {
             mSetupView.summary().setText(audit.shellState.installed
                     ? R.string.setup_status_shizuku_stopped
                     : R.string.setup_status_shizuku_not_installed);
-            mSetupView.summary().setTextColor(COLOR_AMBER);
+            UiAppearance.text(mSetupView.summary(), UiColor.ATTENTION);
             mSetupView.primaryAction().setText(audit.shellState.installed
                     ? R.string.setup_action_open_shizuku
                     : R.string.setup_action_get_shizuku);
@@ -259,7 +256,7 @@ public final class DeviceSetupActivity extends Activity {
         }
         if (!audit.shellState.permissionGranted) {
             mSetupView.summary().setText(R.string.setup_status_shizuku_permission);
-            mSetupView.summary().setTextColor(COLOR_AMBER);
+            UiAppearance.text(mSetupView.summary(), UiColor.ATTENTION);
             mSetupView.primaryAction().setText(R.string.setup_action_allow_shizuku);
             mSetupView.primaryAction().setOnClickListener(
                     view -> requestShellPermission());
@@ -270,7 +267,7 @@ public final class DeviceSetupActivity extends Activity {
             mSetupView.summary().setText(getString(
                     R.string.setup_status_shell_failed,
                     audit.runtimeError));
-            mSetupView.summary().setTextColor(COLOR_RED);
+            UiAppearance.text(mSetupView.summary(), UiColor.DANGER);
             mSetupView.primaryAction().setText(R.string.setup_action_recheck);
             mSetupView.primaryAction().setOnClickListener(view -> requestShellPermission());
             setCloseAction();
@@ -278,7 +275,7 @@ public final class DeviceSetupActivity extends Activity {
         }
         if (!audit.compatibleDevice) {
             mSetupView.summary().setText(R.string.setup_status_unsupported);
-            mSetupView.summary().setTextColor(COLOR_RED);
+            UiAppearance.text(mSetupView.summary(), UiColor.DANGER);
             mSetupView.primaryAction().setText(R.string.setup_action_recheck);
             mSetupView.primaryAction().setOnClickListener(view -> runAudit());
             setCloseAction();
@@ -286,7 +283,7 @@ public final class DeviceSetupActivity extends Activity {
         }
         if (audit.rebootRequired) {
             mSetupView.summary().setText(R.string.setup_status_reboot_required);
-            mSetupView.summary().setTextColor(COLOR_AMBER);
+            UiAppearance.text(mSetupView.summary(), UiColor.ATTENTION);
             mSetupView.primaryAction().setText(R.string.setup_action_reboot_now);
             mSetupView.primaryAction().setOnClickListener(view -> confirmReboot());
             mSetupView.secondaryAction().setText(R.string.setup_action_later);
@@ -296,7 +293,7 @@ public final class DeviceSetupActivity extends Activity {
         if (!audit.configurationReady && audit.shellReady) {
             mSetupView.summary().setText(
                     R.string.setup_status_configuration_required);
-            mSetupView.summary().setTextColor(COLOR_AMBER);
+            UiAppearance.text(mSetupView.summary(), UiColor.ATTENTION);
             mSetupView.primaryAction().setText(
                     R.string.setup_action_configure);
             mSetupView.primaryAction().setOnClickListener(
@@ -305,7 +302,7 @@ public final class DeviceSetupActivity extends Activity {
             return;
         }
         mSetupView.summary().setText(R.string.setup_status_ready);
-        mSetupView.summary().setTextColor(COLOR_CYAN);
+        UiAppearance.text(mSetupView.summary(), UiColor.ACCENT);
         mSetupView.primaryAction().setText(mManual
                 ? R.string.setup_action_done : R.string.setup_action_continue);
         mSetupView.primaryAction().setOnClickListener(view -> startMagicDesk());
@@ -323,7 +320,7 @@ public final class DeviceSetupActivity extends Activity {
         if (mSetupView.displayTargetValue() != null) {
             mSetupView.displayTargetValue().setText(displayTargetLabel(
                     mSessionProfile.displayTarget));
-            mSetupView.displayTargetValue().setTextColor(COLOR_CYAN);
+            UiAppearance.text(mSetupView.displayTargetValue(), UiColor.ACCENT);
         }
     }
 
@@ -517,7 +514,7 @@ public final class DeviceSetupActivity extends Activity {
         }
         if (statusResId != 0) {
             mSetupView.summary().setText(statusResId);
-            mSetupView.summary().setTextColor(COLOR_CYAN);
+            UiAppearance.text(mSetupView.summary(), UiColor.ACCENT);
         }
         mSetupView.primaryAction().setEnabled(!busy);
         mSetupView.diagnosticsAction().setEnabled(!busy);
@@ -528,7 +525,7 @@ public final class DeviceSetupActivity extends Activity {
     private void setStatusValue(
             final TextView view, final String text, final boolean ready) {
         view.setText(text);
-        view.setTextColor(ready ? COLOR_CYAN : COLOR_AMBER);
+        UiAppearance.text(view, ready ? UiColor.ACCENT : UiColor.ATTENTION);
     }
 
     private void launchMagicDesk() {

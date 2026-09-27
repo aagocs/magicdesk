@@ -5,6 +5,8 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -30,9 +32,11 @@ public final class DesktopChromeActivity extends Activity {
     private WindowManager mWindowManager;
     private TaskbarPanel mTaskbarPanel;
     private boolean mTaskbarPanelAdded;
-    private int mTaskbarPanelHeight;
-    private int mTaskbarHeight = 1;
-    private int mSurfaceHeight = 1;
+    private final Rect mAppliedPanelBounds = new Rect();
+    private final Rect mTaskbarBounds = new Rect();
+    private final Rect mSurfaceBounds = new Rect();
+    private final Rect mOutputBounds = new Rect();
+    private GradientDrawable mPanelBackground;
     private int mDisplayId = Display.INVALID_DISPLAY;
     private boolean mPresented = true;
     private boolean mEdgeHidden;
@@ -136,10 +140,10 @@ public final class DesktopChromeActivity extends Activity {
 
     void attachTaskbar(
             final View taskbar,
-            final int taskbarHeight,
-            final int surfaceHeight) {
-        mTaskbarHeight = Math.max(1, taskbarHeight);
-        mSurfaceHeight = Math.max(mTaskbarHeight, surfaceHeight);
+            final Rect taskbarBounds, final Rect surfaceBounds, final Rect outputBounds) {
+        mTaskbarBounds.set(taskbarBounds);
+        mSurfaceBounds.set(surfaceBounds);
+        mOutputBounds.set(outputBounds);
         if (mRoot == null || taskbar == null) {
             applyPresentation();
             return;
@@ -157,13 +161,16 @@ public final class DesktopChromeActivity extends Activity {
         }
         if (mTaskbarPanel == null) {
             mTaskbarPanel = new TaskbarPanel();
+            mPanelBackground = UiAppearance.taskbarPaint(taskbar.getResources().getDisplayMetrics().density);
+            mTaskbarPanel.setBackground(mPanelBackground);
+            mTaskbarPanel.setClipToOutline(true);
             mTaskbarPanel.setImportantForAccessibility(
                     View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         }
         mTaskbar = taskbar;
         mTaskbarPanel.addView(taskbar, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                mTaskbarHeight,
+                mTaskbarBounds.height(),
                 Gravity.TOP));
         applyPresentation();
     }
@@ -196,15 +203,16 @@ public final class DesktopChromeActivity extends Activity {
         if (mTaskbarPanel != null) {
             // The hidden edge keeps receiving input without painting over
             // fullscreen content. Window alpha and touchability stay unchanged.
-            mTaskbarPanel.setBackgroundColor(resolvePanelBackgroundColor(
-                    mPresented, mEdgeHidden));
+            mPanelBackground.setAlpha(TaskbarGeometry.paintAlpha(mPresented, mEdgeHidden));
         }
         if (mTaskbar != null) {
             mTaskbar.setAlpha(mPresented && !mEdgeHidden ? 1f : 0f);
             mTaskbar.setVisibility(mPresented ? View.VISIBLE : View.INVISIBLE);
         }
-        updateTaskbarPanel(resolvePanelHeight(
-                mPresented, mEdgeHidden, mEdgeHeight, mSurfaceHeight));
+        final ShellBounds output = new ShellBounds(mOutputBounds.left, mOutputBounds.top, mOutputBounds.right, mOutputBounds.bottom);
+        final ShellBounds surface = new ShellBounds(mSurfaceBounds.left, mSurfaceBounds.top, mSurfaceBounds.right, mSurfaceBounds.bottom);
+        final ShellBounds bounds = TaskbarGeometry.presented(output, surface, mPresented, mEdgeHidden, mEdgeHeight);
+        updateTaskbarPanel(new Rect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()));
     }
 
     private void updateTaskbarLayout() {
@@ -218,36 +226,17 @@ public final class DesktopChromeActivity extends Activity {
         final FrameLayout.LayoutParams params =
                 (FrameLayout.LayoutParams) current;
         if (params.width != FrameLayout.LayoutParams.MATCH_PARENT
-                || params.height != mTaskbarHeight
+                || params.height != mTaskbarBounds.height()
                 || params.gravity != Gravity.TOP) {
             params.width = FrameLayout.LayoutParams.MATCH_PARENT;
-            params.height = mTaskbarHeight;
+            params.height = mTaskbarBounds.height();
             params.gravity = Gravity.TOP;
             mTaskbar.setLayoutParams(params);
         }
     }
 
-    static int resolvePanelHeight(
-            final boolean presented,
-            final boolean edgeHidden,
-            final int edgeHeight,
-            final int surfaceHeight) {
-        if (!presented) {
-            return 0;
-        }
-        return edgeHidden
-                ? Math.max(1, edgeHeight)
-                : Math.max(1, surfaceHeight);
-    }
-
-    static int resolvePanelBackgroundColor(
-            final boolean presented, final boolean edgeHidden) {
-        return presented && !edgeHidden
-                ? DesktopUiFactory.COLOR_PANEL : Color.TRANSPARENT;
-    }
-
-    private void updateTaskbarPanel(final int height) {
-        if (height == 0) {
+    private void updateTaskbarPanel(final Rect bounds) {
+        if (bounds.isEmpty()) {
             removeTaskbarPanel();
             return;
         }
@@ -256,30 +245,32 @@ public final class DesktopChromeActivity extends Activity {
                 || mRoot.getWindowToken() == null
                 || mTaskbarPanel == null
                 || (mTaskbarPanelAdded
-                        && mTaskbarPanelHeight == height)) {
+                        && mAppliedPanelBounds.equals(bounds))) {
             return;
         }
-        final WindowManager.LayoutParams params = createPanelParams(height);
+        final WindowManager.LayoutParams params = createPanelParams(bounds);
         if (mTaskbarPanelAdded) {
             mWindowManager.updateViewLayout(mTaskbarPanel, params);
         } else {
             mWindowManager.addView(mTaskbarPanel, params);
             mTaskbarPanelAdded = true;
         }
-        mTaskbarPanelHeight = height;
+        mAppliedPanelBounds.set(bounds);
     }
 
-    private WindowManager.LayoutParams createPanelParams(final int height) {
+    private WindowManager.LayoutParams createPanelParams(final Rect bounds) {
         final WindowManager.LayoutParams params =
                 new WindowManager.LayoutParams(
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        height,
+                        bounds.width(),
+                        bounds.height(),
                         WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                                 | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                                 | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
                         PixelFormat.TRANSLUCENT);
-        params.gravity = Gravity.LEFT | Gravity.BOTTOM;
+        params.gravity = Gravity.LEFT | Gravity.TOP;
+        params.x = bounds.left;
+        params.y = bounds.top;
         params.token = mRoot.getWindowToken();
         // DesktopLayoutController already provides physical display geometry.
         // Applying bars or IME insets again would move this attached window
@@ -297,7 +288,7 @@ public final class DesktopChromeActivity extends Activity {
             mWindowManager.removeViewImmediate(mTaskbarPanel);
         }
         mTaskbarPanelAdded = false;
-        mTaskbarPanelHeight = 0;
+        mAppliedPanelBounds.setEmpty();
     }
 
     private final class TaskbarPanel extends FrameLayout {

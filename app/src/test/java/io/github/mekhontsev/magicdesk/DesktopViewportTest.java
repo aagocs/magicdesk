@@ -44,7 +44,7 @@ public final class DesktopViewportTest {
 
     private static int taskbarTop(final DesktopViewport viewport, final int height) {
         final DesktopShellLayout layout = new DesktopShellLayout();
-        layout.update(viewport, height, false);
+        ShellLayoutTestSupport.update(layout, viewport, height, false);
         return layout.taskbar().content().top();
     }
 

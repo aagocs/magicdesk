@@ -961,9 +961,9 @@ final class DesktopWorkspaceController {
                 final View moveLayer = new View(mActivity);
                 moveLayer.setClickable(true);
                 moveLayer.setBackground(mUi.rounded(
-                        0x11000000,
+                        UiColor.TRANSPARENT,
                         mUi.dp(4),
-                        DesktopUiFactory.COLOR_CYAN));
+                        UiColor.ACCENT));
                 enableDrag(moveLayer, entry.itemId, null, false);
                 frame.addView(moveLayer, new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,

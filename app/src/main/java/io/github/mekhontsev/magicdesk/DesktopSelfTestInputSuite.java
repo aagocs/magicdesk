@@ -1296,9 +1296,9 @@ final class DesktopSelfTestInputSuite {
                             + ", sample=" + x + "," + y
                             + ", color="
                             + DesktopTransitionSurfaceProbe.formatColor(color);
-                    if (colorsMatch(DesktopUiFactory.COLOR_PANEL, color)
+                    if (colorsMatch(UiAppearance.color(UiColor.PANEL), color)
                             || colorsMatch(
-                                    DesktopUiFactory.COLOR_PANEL_ALT,
+                                    UiAppearance.color(UiColor.SURFACE),
                                     color)) {
                         return lastDetail;
                     }
@@ -1940,8 +1940,8 @@ final class DesktopSelfTestInputSuite {
         final int x = bounds.left + Math.min(
                 bounds.width() - 1, geometry.scaleFrom160Dpi(6));
         final int color = awaitDisplayColor(
-                captureSource, x, bounds.centerY(), DesktopUiFactory.COLOR_PANEL,
-                actual -> colorsMatch(DesktopUiFactory.COLOR_PANEL, actual));
+                captureSource, x, bounds.centerY(), UiAppearance.color(UiColor.PANEL),
+                actual -> colorsMatch(UiAppearance.color(UiColor.PANEL), actual));
         return "panel-rendered-before-commit="
                 + DesktopTransitionSurfaceProbe.formatColor(color);
     }

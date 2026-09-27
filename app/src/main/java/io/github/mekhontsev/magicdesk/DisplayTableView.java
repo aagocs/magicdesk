@@ -58,8 +58,7 @@ final class DisplayTableView {
         mCreationDialog = new DisplayCreationDialog(activity, ui, actions);
         mRows = new RadioGroup(activity);
         mRows.setOrientation(LinearLayout.VERTICAL);
-        final GradientDrawable divider = new GradientDrawable();
-        divider.setColor(DesktopUiFactory.COLOR_MUTED);
+        final GradientDrawable divider = mUi.rounded(UiColor.MUTED, 0, UiColor.TRANSPARENT);
         divider.setSize(1, dp(1));
         mRows.setDividerDrawable(divider);
         mRows.setShowDividers(LinearLayout.SHOW_DIVIDER_BEGINNING | LinearLayout.SHOW_DIVIDER_MIDDLE);
@@ -150,10 +149,8 @@ final class DisplayTableView {
         final RadioButton row = new RadioButton(mActivity);
         row.setId(View.generateViewId());
         row.setTextSize(14);
-        row.setTextColor(DesktopUiFactory.COLOR_TEXT);
-        row.setButtonTintList(new ColorStateList(
-                new int[][] {new int[] {android.R.attr.state_checked}, new int[0]},
-                new int[] {DesktopUiFactory.COLOR_CYAN, DesktopUiFactory.COLOR_MUTED}));
+        UiAppearance.text(row, UiColor.TEXT);
+        UiAppearance.button(row, UiColor.ACCENT);
         row.setPadding(dp(8), dp(8), dp(8), dp(8));
         row.setCompoundDrawablePadding(dp(8));
         row.setMinHeight(dp(64));
@@ -185,7 +182,7 @@ final class DisplayTableView {
         if (MagicDeskRuntime.inputDisplayId() == display.id) {
             label.append("  |  ").append(mActivity.getString(R.string.display_input_active));
         }
-        label.setSpan(new ForegroundColorSpan(DesktopUiFactory.COLOR_MUTED), titleEnd, label.length(),
+        label.setSpan(new AppearanceTextSpan(UiColor.MUTED), titleEnd, label.length(),
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         label.setSpan(new RelativeSizeSpan(12f / 14f), titleEnd, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return label;
@@ -234,12 +231,12 @@ final class DisplayTableView {
 
     private void separator(LinearLayout parent) {
         final View separator = new View(mActivity);
-        separator.setBackgroundColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.background(separator, UiColor.MUTED);
         parent.addView(separator, new LinearLayout.LayoutParams(-1, dp(1)));
     }
 
     private Button button(GridLayout toolbar, int icon, int label) {
-        final Button button = mUi.controlAction(label, icon, DesktopUiFactory.COLOR_TEXT);
+        final Button button = mUi.controlAction(label, icon, UiColor.TEXT);
         button.setEnabled(false);
         final GridLayout.LayoutParams params = new GridLayout.LayoutParams();
         params.width = 0;

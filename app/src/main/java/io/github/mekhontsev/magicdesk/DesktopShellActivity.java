@@ -1,7 +1,7 @@
 package io.github.mekhontsev.magicdesk;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_BACKGROUND;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL;
+import static io.github.mekhontsev.magicdesk.UiColor.BACKGROUND;
+import static io.github.mekhontsev.magicdesk.UiColor.PANEL;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -267,6 +267,14 @@ public abstract class DesktopShellActivity extends Activity
                     @Override
                     public int taskbarHeight() {
                         return getTaskbarHeight();
+                    }
+
+                    @Override public int taskbarPreferredWidth() {
+                        return mTaskbarController == null ? 0 : mTaskbarController.preferredWidth();
+                    }
+
+                    @Override public int taskbarMinimumWidth() {
+                        return mTaskbarController == null ? 0 : mTaskbarController.minimumWidth();
                     }
 
                     @Override
@@ -974,7 +982,7 @@ public abstract class DesktopShellActivity extends Activity
         mDesktopPanelWindowController.shellScope().listen(mShellObservation);
         mShellPresentation.listen(mShellObservation);
         mShellTasks.catalog.listen(mShellObservation);
-        root.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(root, BACKGROUND);
 
         final FrameLayout desktopViewport = new FrameLayout(this);
 
@@ -983,7 +991,7 @@ public abstract class DesktopShellActivity extends Activity
         // matrix fixed prevents transient system bars from recropping it when
         // the HOME window loses focus to a freeform task.
         wallpaper.setScaleType(ImageView.ScaleType.MATRIX);
-        wallpaper.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(wallpaper, BACKGROUND);
         root.addView(wallpaper, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
@@ -999,13 +1007,13 @@ public abstract class DesktopShellActivity extends Activity
         // tasks. Cover its reserved viewport inset so desktop wallpaper does
         // not reduce the contrast of the system icons.
         final View statusBarBackdrop = new View(this);
-        statusBarBackdrop.setBackgroundColor(COLOR_PANEL);
+        UiAppearance.background(statusBarBackdrop, PANEL);
         statusBarBackdrop.setImportantForAccessibility(
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         root.addView(statusBarBackdrop, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, 0));
         final View navigationBarBackdrop = new View(this);
-        navigationBarBackdrop.setBackgroundColor(COLOR_PANEL);
+        UiAppearance.background(navigationBarBackdrop, PANEL);
         navigationBarBackdrop.setImportantForAccessibility(
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         final FrameLayout.LayoutParams navigationBackdropParams =
@@ -1934,7 +1942,13 @@ public abstract class DesktopShellActivity extends Activity
     }
 
     int getTaskbarHeight() {
-        return desktopDp(TASKBAR_HEIGHT_DP, COMPACT_TASKBAR_HEIGHT_DP);
+        final int padding = AppearanceStore.current().taskbar().paddingDp();
+        return desktopDp(TASKBAR_HEIGHT_DP - 16 + padding * 2,
+                COMPACT_TASKBAR_HEIGHT_DP - 8 + 2 * (padding / 2));
+    }
+
+    void onTaskbarContentChanged() {
+        if (mDesktopLayout != null) mDesktopLayout.refreshShellLayout();
     }
 
     void setTaskbarAutoHide(final boolean enabled, final Runnable completion) {

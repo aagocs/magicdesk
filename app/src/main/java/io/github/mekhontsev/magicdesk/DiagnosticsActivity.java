@@ -38,12 +38,6 @@ public final class DiagnosticsActivity extends Activity {
             "io.github.mekhontsev.magicdesk.extra.SELF_TEST_EXECUTION_POLICY";
     static final String EXTRA_SELF_TEST_RUN_ID =
             "io.github.mekhontsev.magicdesk.extra.SELF_TEST_RUN_ID";
-    private static final int COLOR_BACKGROUND = 0xFF090D14;
-    private static final int COLOR_PANEL_ALT = 0xFF172033;
-    private static final int COLOR_TEXT = 0xFFE5E7EB;
-    private static final int COLOR_MUTED = 0xFF94A3B8;
-    private static final int COLOR_CYAN = 0xFF22D3EE;
-    private static final int COLOR_AMBER = 0xFFF59E0B;
 
     private static final String EXTRA_GUARD_RUN_ID = "magicdesk_self_test_guard_run_id";
     private static final String EXTRA_RESULT_RUN_ID = "magicdesk_self_test_result_run_id";
@@ -288,19 +282,19 @@ public final class DiagnosticsActivity extends Activity {
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(18), dp(16), dp(18), dp(16));
         SystemBarInsets.addToPadding(page, true);
-        page.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(page, UiColor.BACKGROUND);
 
         final LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
         final TextView title = new TextView(this);
         title.setText(R.string.diagnostics_title);
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, UiColor.TEXT);
         title.setTextSize(22);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(title, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        mClose = createButton(R.string.action_close, COLOR_MUTED);
+        mClose = createButton(R.string.action_close, UiColor.MUTED);
         mClose.setOnClickListener(view -> finish());
         header.addView(mClose, new LinearLayout.LayoutParams(
                 dp(92), dp(46)));
@@ -308,7 +302,7 @@ public final class DiagnosticsActivity extends Activity {
 
         final TextView description = new TextView(this);
         description.setText(R.string.diagnostics_description);
-        description.setTextColor(COLOR_MUTED);
+        UiAppearance.text(description, UiColor.MUTED);
         description.setTextSize(13);
         final LinearLayout.LayoutParams descriptionParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -317,7 +311,7 @@ public final class DiagnosticsActivity extends Activity {
         page.addView(description, descriptionParams);
 
         mStatus = new TextView(this);
-        mStatus.setTextColor(COLOR_CYAN);
+        UiAppearance.text(mStatus, UiColor.ACCENT);
         mStatus.setTextSize(14);
         mStatus.setTypeface(Typeface.DEFAULT_BOLD);
         page.addView(mStatus);
@@ -325,12 +319,12 @@ public final class DiagnosticsActivity extends Activity {
         final ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         mReportView = new TextView(this);
-        mReportView.setTextColor(COLOR_TEXT);
+        UiAppearance.text(mReportView, UiColor.TEXT);
         mReportView.setTextSize(11);
         mReportView.setTypeface(Typeface.MONOSPACE);
         mReportView.setTextIsSelectable(true);
         mReportView.setPadding(dp(12), dp(10), dp(12), dp(10));
-        mReportView.setBackground(rounded(COLOR_PANEL_ALT, dp(6), COLOR_PANEL_ALT));
+        mReportView.setBackground(rounded(UiColor.SURFACE, dp(6), UiColor.SURFACE));
         scroll.addView(mReportView, new ScrollView.LayoutParams(
                 ScrollView.LayoutParams.MATCH_PARENT,
                 ScrollView.LayoutParams.WRAP_CONTENT));
@@ -341,20 +335,20 @@ public final class DiagnosticsActivity extends Activity {
 
         final LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
-        mRefresh = createButton(R.string.diagnostics_refresh, COLOR_CYAN);
+        mRefresh = createButton(R.string.diagnostics_refresh, UiColor.ACCENT);
         mRefresh.setOnClickListener(view -> refreshReport());
         actions.addView(mRefresh, weightedButtonParams(0));
-        mCopy = createButton(R.string.diagnostics_copy, COLOR_CYAN);
+        mCopy = createButton(R.string.diagnostics_copy, UiColor.ACCENT);
         mCopy.setOnClickListener(view -> copyReport());
         actions.addView(mCopy, weightedButtonParams(dp(8)));
-        mShare = createButton(R.string.diagnostics_share, COLOR_AMBER);
+        mShare = createButton(R.string.diagnostics_share, UiColor.ATTENTION);
         mShare.setOnClickListener(view -> shareReport());
         actions.addView(mShare, weightedButtonParams(dp(8)));
         page.addView(actions, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
 
         mSelfTest = createButton(
-                R.string.diagnostics_self_test, COLOR_AMBER);
+                R.string.diagnostics_self_test, UiColor.ATTENTION);
         mSelfTest.setOnClickListener(view -> {
             final DesktopSelfTestRunState.Snapshot state = DesktopSelfTestRunState.snapshot();
             if (state.active()) {
@@ -370,7 +364,7 @@ public final class DiagnosticsActivity extends Activity {
         page.addView(mSelfTest, selfTestParams);
 
         mOnboarding = createButton(
-                R.string.diagnostics_onboarding, COLOR_CYAN);
+                R.string.diagnostics_onboarding, UiColor.ACCENT);
         mOnboarding.setOnClickListener(view -> startActivity(
                 CompatibilityOnboardingActivity.createIntent(this)));
         final LinearLayout.LayoutParams onboardingParams =
@@ -380,7 +374,7 @@ public final class DiagnosticsActivity extends Activity {
         page.addView(mOnboarding, onboardingParams);
 
         mVendorProbe = createButton(
-                R.string.diagnostics_vendor_probe, COLOR_MUTED);
+                R.string.diagnostics_vendor_probe, UiColor.MUTED);
         mVendorProbe.setOnClickListener(view -> confirmVendorProbe());
         final LinearLayout.LayoutParams vendorProbeParams =
                 new LinearLayout.LayoutParams(
@@ -635,25 +629,17 @@ public final class DiagnosticsActivity extends Activity {
         button.setAlpha(enabled ? 1f : 0.4f);
     }
 
-    private Button createButton(final int textResId, final int accentColor) {
-        final Button button = new Button(this);
-        button.setText(textResId);
-        button.setAllCaps(false);
-        button.setSingleLine(true);
-        button.setTextColor(Color.WHITE);
+    private Button createButton(final int textResId, final UiColor accentColor) {
+        final Button button = new DesktopUiFactory(this).actionButton(textResId, accentColor);
         button.setTextSize(12);
         button.setPadding(dp(6), dp(4), dp(6), dp(4));
-        button.setBackground(rounded(COLOR_PANEL_ALT, dp(6), accentColor));
+        button.setBackground(rounded(UiColor.SURFACE, dp(6), accentColor));
         return button;
     }
 
     private GradientDrawable rounded(
-            final int color, final int radius, final int strokeColor) {
-        final GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(radius);
-        drawable.setStroke(dp(1), strokeColor);
-        return drawable;
+            final UiColor color, final int radius, final UiColor strokeColor) {
+        return new DesktopUiFactory(this).rounded(color, radius, strokeColor);
     }
 
     private int dp(final int value) {

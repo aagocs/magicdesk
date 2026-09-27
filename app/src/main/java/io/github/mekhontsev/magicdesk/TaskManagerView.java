@@ -38,7 +38,7 @@ final class TaskManagerView {
     TaskManagerView(Activity activity, Runnable refresh, TaskManagerActions actions) {
         this.activity = activity; this.actions = actions;
         root = new LinearLayout(activity); root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(DesktopUiFactory.COLOR_BACKGROUND);
+        UiAppearance.background(root, UiColor.BACKGROUND);
         root.setPadding(dp(12), dp(8), dp(12), dp(8));
         SystemBarInsets.addToPadding(root);
 
@@ -51,11 +51,11 @@ final class TaskManagerView {
         header.addView(button(R.drawable.ic_file_refresh, R.string.action_refresh, v -> refresh.run()), square(44));
         root.addView(header);
         status = text(12, true); status.setPadding(0, dp(6), 0, dp(6)); root.addView(status);
-        warning = text(12, false); warning.setMaxLines(2); warning.setTextColor(0xFFFFC857); root.addView(warning);
+        warning = text(12, false); warning.setMaxLines(2); UiAppearance.text(warning, UiColor.ATTENTION); root.addView(warning);
 
         search = new EditText(activity);
         search.setTextSize(14); search.setSingleLine(true); search.setHint(R.string.task_manager_search);
-        search.setTextColor(DesktopUiFactory.COLOR_TEXT); search.setHintTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(search, UiColor.TEXT); UiAppearance.hint(search, UiColor.MUTED);
         root.addView(search, new LinearLayout.LayoutParams(-1, dp(44)));
 
         final LinearLayout options = horizontal();
@@ -73,12 +73,13 @@ final class TaskManagerView {
         filter.setVisibility(View.GONE); sort.setVisibility(View.GONE);
         root.addView(options);
 
-        final View divider = new View(activity); divider.setBackgroundColor(DesktopUiFactory.COLOR_MUTED);
+        final View divider = new View(activity); UiAppearance.background(divider, UiColor.MUTED);
         root.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
         empty = text(14, true); empty.setText(R.string.task_manager_empty); empty.setGravity(Gravity.CENTER);
         root.addView(empty, new LinearLayout.LayoutParams(-1, dp(64)));
         list = new ListView(activity); list.setAdapter(adapter); list.setEmptyView(empty);
-        list.setDivider(new ColorDrawable(0xFF39424D)); list.setDividerHeight(dp(1));
+        list.setDivider(UiAppearance.paint(activity.getResources().getDisplayMetrics().density,
+                UiColor.HOVER, 0, UiColor.TRANSPARENT)); list.setDividerHeight(dp(1));
         root.addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
         tabs.setOnCheckedChangeListener((group, id) -> {
             processes = id == processTab.getId();
@@ -212,7 +213,7 @@ final class TaskManagerView {
             final LinearLayout identity = new LinearLayout(activity); identity.setOrientation(LinearLayout.VERTICAL);
             identity.setPadding(dp(4), dp(6), dp(6), dp(6));
             title.setSingleLine(true); title.setEllipsize(TextUtils.TruncateAt.END);
-            detail.setTextColor(DesktopUiFactory.COLOR_MUTED); detail.setMaxLines(2); detail.setEllipsize(TextUtils.TruncateAt.END);
+            UiAppearance.text(detail, UiColor.MUTED); detail.setMaxLines(2); detail.setEllipsize(TextUtils.TruncateAt.END);
             identity.addView(title); identity.addView(detail);
             root.addView(identity, new LinearLayout.LayoutParams(0, -2, 1));
             metrics.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
@@ -224,7 +225,7 @@ final class TaskManagerView {
     private RadioButton tab(int label) {
         final RadioButton button = new RadioButton(activity);
         button.setId(View.generateViewId()); button.setText(label); button.setTextSize(14);
-        button.setTextColor(DesktopUiFactory.COLOR_TEXT); return button;
+        UiAppearance.text(button, UiColor.TEXT); return button;
     }
     private Spinner spinner(String[] values) {
         final Spinner spinner = new Spinner(activity);
@@ -237,13 +238,13 @@ final class TaskManagerView {
     }
     private TextView text(int size, boolean single) {
         final TextView text = new TextView(activity); text.setTextSize(size);
-        text.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(text, UiColor.TEXT);
         if (single) { text.setSingleLine(true); text.setEllipsize(TextUtils.TruncateAt.END); }
         return text;
     }
     private ImageButton button(int icon, int label, View.OnClickListener click) {
         final ImageButton button = new ImageButton(activity); button.setImageResource(icon);
-        button.setImageTintList(android.content.res.ColorStateList.valueOf(DesktopUiFactory.COLOR_TEXT));
+        UiAppearance.imageStates(button, UiColor.TEXT);
         button.setBackgroundColor(Color.TRANSPARENT); button.setPadding(dp(8), dp(8), dp(8), dp(8));
         button.setContentDescription(activity.getString(label)); button.setTooltipText(button.getContentDescription());
         button.setFocusable(false); button.setOnClickListener(click); return button;

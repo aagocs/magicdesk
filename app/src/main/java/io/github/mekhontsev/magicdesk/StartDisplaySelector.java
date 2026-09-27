@@ -31,7 +31,7 @@ final class StartDisplaySelector {
                 mSelectedLabel = activity.getIntent().getStringExtra("start.display_name") + " [" + id + "]";
             }
         }
-        mButton = ui.actionButton(R.string.start_current_display, DesktopUiFactory.COLOR_PANEL_ALT);
+        mButton = ui.actionButton(R.string.start_current_display, UiColor.SURFACE);
         mButton.setTextSize(13);
         mButton.setSingleLine(true);
         mButton.setEllipsize(TextUtils.TruncateAt.MIDDLE);
@@ -40,7 +40,7 @@ final class StartDisplaySelector {
         mButton.setPadding(ui.dp(8), 0, ui.dp(8), 0);
         final var icon = activity.getDrawable(R.drawable.ic_arrow_down);
         if (icon != null) {
-            icon.setTint(DesktopUiFactory.COLOR_TEXT);
+            UiAppearance.compound(mButton, UiColor.TEXT);
             icon.setBounds(0, 0, ui.dp(16), ui.dp(16));
             mButton.setCompoundDrawablesRelative(null, null, icon, null);
             mButton.setCompoundDrawablePadding(ui.dp(4));

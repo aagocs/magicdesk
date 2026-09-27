@@ -627,6 +627,11 @@ final class DesktopPanelWindowController {
         }
     }
 
+    ShellPanelPlacement aboveTaskbar(int width, int height, boolean endAligned, int inset, int gap) {
+        return new ShellPanelPlacement.AboveSurface(mLayout.taskbar().request().id(),
+                width, height, endAligned, inset, gap);
+    }
+
     boolean hasVisiblePanel() {
         return (mChildAdded && mChildPanel != null)
                 || (mVisibleAdded && mVisiblePanel != null);

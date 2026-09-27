@@ -32,14 +32,14 @@ public final class ShellPanelPlacementTest {
 
     @Test public void popupPreservesNonzeroScopeOrigin() {
         final DesktopShellLayout layout = new DesktopShellLayout();
-        layout.update(new DesktopViewport(100, 200, 1100, 900, 0, 0, 0, 0), 50, false);
+        ShellLayoutTestSupport.update(layout, new DesktopViewport(100, 200, 1100, 900, 0, 0, 0, 0), 50, false);
         assertEquals(new ShellBounds(118, 218, 418, 418), place(layout,
                 ShellPanelPlacement.atPointer(110, 210, 300, 200, 8)));
     }
 
     @Test public void tinyOutputRetainsNonemptyBoundedPopup() {
         final DesktopShellLayout layout = new DesktopShellLayout();
-        layout.update(new DesktopViewport(0, 0, 1, 1, 0, 0, 0, 0), 64, false);
+        ShellLayoutTestSupport.update(layout, new DesktopViewport(0, 0, 1, 1, 0, 0, 0, 0), 64, false);
         assertEquals(new ShellBounds(0, 0, 1, 1), place(layout,
                 ShellPanelPlacement.atPointer(5, 6, 400, 200, 8)));
     }
@@ -67,9 +67,26 @@ public final class ShellPanelPlacementTest {
         assertThrows(IllegalStateException.class, () -> popup.resolve(layout.snapshot()));
     }
 
+    @Test public void taskbarPanelsFollowFloatingAndOverlayGeometry() {
+        final var layout = new DesktopShellLayout();
+        final var viewport = new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0);
+        final var style = ShellAppearance.Taskbar.floating();
+        layout.update(viewport, TaskbarGeometry.resolve(style, 1, 1920, 1080, 64, 900, 500), false);
+        final var start = new ShellPanelPlacement.AboveSurface(layout.taskbar().request().id(), 560, 620, false, 16, 0);
+        final var end = new ShellPanelPlacement.AboveSurface(layout.taskbar().request().id(), 300, 200, true, 8, 8);
+        assertEquals(new ShellBounds(526, 384, 1086, 1004), place(layout, start));
+        assertEquals(new ShellBounds(1102, 796, 1402, 996), place(layout, end));
+        final var overlay = new ShellAppearance.Taskbar(style.width(), ShellAppearance.Alignment.END,
+                style.maxWidthDp(), 12, 12, 8, 8, 1, false);
+        layout.update(viewport, TaskbarGeometry.resolve(overlay, 1, 1920, 1080, 64, 900, 500), false);
+        assertEquals(1080, layout.snapshot().workArea().bottom());
+        assertEquals(new ShellBounds(1024, 384, 1584, 1004), place(layout, start));
+        assertEquals(new ShellBounds(1600, 796, 1900, 996), place(layout, end));
+    }
+
     private static DesktopShellLayout desktop() {
         final DesktopShellLayout layout = new DesktopShellLayout();
-        layout.update(new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0), 64, true);
+        ShellLayoutTestSupport.update(layout, new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0), 64, true);
         return layout;
     }
 

@@ -28,6 +28,7 @@ final class DesktopTaskbarHost {
     private final BoundsListener mBoundsListener;
     private final Rect mTaskbarBounds = new Rect();
     private final Rect mSurfaceBounds = new Rect();
+    private final Rect mOutputBounds = new Rect();
     private final Rect mAppliedBounds = new Rect();
 
     private View mTaskbar;
@@ -51,7 +52,7 @@ final class DesktopTaskbarHost {
     boolean attachTaskbar(
             final View taskbar,
             final Rect taskbarBounds,
-            final Rect surfaceBounds) {
+            final Rect surfaceBounds, final Rect outputBounds) {
         if (mReleased || taskbar == null
                 || taskbarBounds == null || taskbarBounds.isEmpty()
                 || surfaceBounds == null || surfaceBounds.isEmpty()
@@ -61,6 +62,7 @@ final class DesktopTaskbarHost {
         mTaskbar = taskbar;
         mTaskbarBounds.set(taskbarBounds);
         mSurfaceBounds.set(surfaceBounds);
+        mOutputBounds.set(outputBounds);
         final DesktopChromeActivity activity;
         synchronized (REGISTRY_LOCK) {
             HOSTS.put(Integer.valueOf(mDisplayId), this);
@@ -73,17 +75,18 @@ final class DesktopTaskbarHost {
 
     void updateBounds(
             final Rect taskbarBounds,
-            final Rect surfaceBounds) {
+            final Rect surfaceBounds, final Rect outputBounds) {
         if (mReleased
                 || taskbarBounds == null || taskbarBounds.isEmpty()
                 || surfaceBounds == null || surfaceBounds.isEmpty()
                 || !surfaceBounds.contains(taskbarBounds)
                 || (mTaskbarBounds.equals(taskbarBounds)
-                        && mSurfaceBounds.equals(surfaceBounds))) {
+                        && mSurfaceBounds.equals(surfaceBounds) && mOutputBounds.equals(outputBounds))) {
             return;
         }
         mTaskbarBounds.set(taskbarBounds);
         mSurfaceBounds.set(surfaceBounds);
+        mOutputBounds.set(outputBounds);
         apply(currentActivity());
         updateAppliedBounds();
     }
@@ -204,8 +207,7 @@ final class DesktopTaskbarHost {
         }
         activity.attachTaskbar(
                 mTaskbar,
-                mTaskbarBounds.height(),
-                mSurfaceBounds.height());
+                mTaskbarBounds, mSurfaceBounds, mOutputBounds);
         activity.setPresentation(mPresented, mEdgeHidden, mEdgeHeight);
     }
 

@@ -26,7 +26,7 @@ final class McpAccessPolicy {
             "get_self_test", "wait_for_state",
             "query_intent_handlers", "list_android_actions", "list_app_actions",
             "search_app_functions", "get_recording_status", "begin_trace", "end_trace",
-            "app.update_status", "graphics.list", "inspect_workspace");
+            "app.update_status", "graphics.list", "inspect_workspace", "appearance.get");
     private final Set<Permission> mPermissions;
 
     McpAccessPolicy(final Set<String> names) {
@@ -69,7 +69,8 @@ final class McpAccessPolicy {
                     "clipboard.open", "clipboard.share", "list_notifications",
                     "get_intent_result", "get_activity_history" -> Permission.CONTENT;
             case "ui.inspect", "ui.wait", "ui.read_text", "graphics.inspect_window" -> Permission.CONTENT;
-            case "graphics.open_window", "graphics.set_workspace", "graphics.set_scale", "start_desktop", "close_desktop", "create_display", "remove_display",
+            case "appearance.apply", "appearance.preset", "appearance.reset",
+                    "graphics.open_window", "graphics.set_workspace", "graphics.set_scale", "start_desktop", "close_desktop", "create_display", "remove_display",
                     "graphics.close_window", "graphics.detach_viewer", "set_task_state",
                     "select_display_viewer",
                     "control_display", "move_task",

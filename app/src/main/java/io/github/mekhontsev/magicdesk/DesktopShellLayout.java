@@ -8,25 +8,24 @@ final class DesktopShellLayout {
     private final ShellLayoutScope mScope = new ShellLayoutScope();
     private ShellLayoutScope.Binding mTaskbar = mScope.bind();
     private DesktopViewport mViewport;
-    private int mTaskbarHeight;
+    private TaskbarGeometry mGeometry;
     private boolean mAutoHide;
 
-    void update(final DesktopViewport viewport, final int requestedHeight, final boolean autoHide) {
-        final int height = Math.max(1, Math.min(requestedHeight, viewport.contentHeight()));
-        if (viewport.equals(mViewport) && height == mTaskbarHeight && autoHide == mAutoHide) {
+    void update(final DesktopViewport viewport, final TaskbarGeometry geometry, final boolean autoHide) {
+        if (viewport.equals(mViewport) && geometry.equals(mGeometry) && autoHide == mAutoHide) {
             return;
         }
         final ShellSurface taskbar = new ShellSurface(TASKBAR, true, ShellSurface.Layer.TOP,
                 ShellSurface.Keyboard.NONE,
                 new ShellSurface.Placement(ShellSurface.Reference.CONTENT,
-                        ShellSurface.LEFT | ShellSurface.RIGHT | ShellSurface.BOTTOM,
-                        0, height, ShellSurface.Margins.NONE),
-                new ShellSurface.Margins(0, 0, 0, viewport.insetBottom()),
+                        geometry.anchors(), geometry.width(), geometry.height(), geometry.margins()),
+                new ShellSurface.Margins(0, 0, 0, geometry.extendNavigation() ? viewport.insetBottom() : 0),
                 ShellSurface.Input.PAINT,
-                List.of(ShellReservation.exclusive(ShellReservation.Edge.BOTTOM, height, !autoHide)));
+                geometry.reserveSpace() ? List.of(ShellReservation.exclusive(
+                        ShellReservation.Edge.BOTTOM, geometry.height(), !autoHide)) : List.of());
         mTaskbar.commit(viewport.outputGeometry(), viewport.contentGeometry(), List.of(taskbar));
         mViewport = viewport;
-        mTaskbarHeight = height;
+        mGeometry = geometry;
         mAutoHide = autoHide;
     }
 

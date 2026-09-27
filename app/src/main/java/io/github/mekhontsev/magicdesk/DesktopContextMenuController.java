@@ -200,40 +200,40 @@ final class DesktopContextMenuController {
         prepareMenuTitle(mActivity.getString(R.string.action_start));
         addAction(
                 R.string.section_apps,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> mActivity.showStartSection(
                         StartMenuController.MENU_APPS, false));
         addAction(
                 R.string.file_manager_title,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openFiles());
         addAction(
                 R.string.console_title,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openConsole());
 if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity)) {
             addAction(
                     R.string.console_termux_title,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.openTermuxConsole());
         }
         addAction(
                 R.string.task_manager_title,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openTaskManager());
         addAction(
                 R.string.settings_title,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openSettings());
         addAction(
                 R.string.action_close_desktop,
-                DesktopUiFactory.COLOR_AMBER,
+                UiColor.ATTENTION,
                 true,
                 view -> mActivity.closeDesktop());
         positionAndShow(x, y);
@@ -249,18 +249,18 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
         final TaskRepository.TaskEntry activeTask = mActivity.interactionActiveTask();
         mRetainOwnerPanel = false;
         prepareMenuTitle(mActivity.getString(R.string.context_taskbar));
-        addAction(R.string.action_back_to_application, DesktopUiFactory.COLOR_PANEL_ALT,
+        addAction(R.string.action_back_to_application, UiColor.SURFACE,
                 activeTask != null, view -> mActivity.backToTask(activeTask));
-        addAction(R.string.display_switch_menu, DesktopUiFactory.COLOR_PANEL_ALT,
+        addAction(R.string.display_switch_menu, UiColor.SURFACE,
                 ShellAccess.isReady(), view -> DisplaySwitchController.show(mActivity));
         addAction(
                 R.string.action_show_desktop,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> mActivity.toggleDesktopWorkspace());
         addAction(
                 R.string.task_manager_title,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openTaskManager());
         final MagicDeskSettings.Values settings = MagicDeskSettings.load();
@@ -270,7 +270,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                 settings.keyboardOnAppDisplay, mActivity::setKeyboardOnAppDisplay);
         addAction(
                 R.string.action_settings,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openSettings());
         // Do not force focus for pointer-opened menus: after dismissal Android can
@@ -313,54 +313,54 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
 
         addAction(
                 R.string.action_new_file,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> mActivity.createDesktopFile(false));
         addAction(
                 R.string.action_new_folder,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> mActivity.createDesktopFile(true));
         addAction(
                 R.string.action_new_terminal_application,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> mActivity.createCommandApplication());
         final boolean hasClipboardContent =
                 FileClipboardInterop.canPaste(mActivity);
         addAction(
                 R.string.file_manager_paste,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 hasClipboardContent,
                 view -> mActivity.pasteDesktopFiles());
         addAction(
                 R.string.action_open_clipboard_content,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 hasClipboardContent,
                 view -> mActivity.openClipboardContent());
         addAction(
                 R.string.action_share_clipboard_content,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 hasClipboardContent,
                 view -> mActivity.shareClipboardContent());
         addAction(
                 R.string.action_add_widget,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.addDesktopWidget());
         addAction(
                 R.string.action_choose_wallpaper,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.chooseDesktopWallpaper());
         addAction(
                 R.string.action_use_default_wallpaper,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 mActivity.isUsingCustomDesktopWallpaper(),
                 view -> mActivity.useDefaultDesktopWallpaper());
         addAction(
                 R.string.action_refresh,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> {
                     mActivity.renderApps();
@@ -368,17 +368,17 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                 });
         addAction(
                 R.string.action_open_tasks,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.showTaskOverview());
         addAction(
                 R.string.action_open_desktop_folder,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openDesktopFolder());
         addAction(
                 R.string.section_tools,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.showStartSection(
                         StartMenuController.MENU_TOOLS, false));
@@ -568,40 +568,40 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                 ? mActivity.getString(R.string.widget_default_name)
                 : target.widgetLabel);
         addAction(R.string.action_widget_move,
-                DesktopUiFactory.COLOR_CYAN, true,
+                UiColor.ACCENT, true,
                 view -> mActivity.beginDesktopWidgetMove(
                         target.appWidgetId));
         addAction(R.string.action_widget_wider,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 (target.widgetResizeMode
                         & AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0,
                 view -> mActivity.resizeDesktopWidget(
                         target.appWidgetId, 1, 0));
         addAction(R.string.action_widget_narrower,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 (target.widgetResizeMode
                         & AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0,
                 view -> mActivity.resizeDesktopWidget(
                         target.appWidgetId, -1, 0));
         addAction(R.string.action_widget_taller,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 (target.widgetResizeMode
                         & AppWidgetProviderInfo.RESIZE_VERTICAL) != 0,
                 view -> mActivity.resizeDesktopWidget(
                         target.appWidgetId, 0, 1));
         addAction(R.string.action_widget_shorter,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 (target.widgetResizeMode
                         & AppWidgetProviderInfo.RESIZE_VERTICAL) != 0,
                 view -> mActivity.resizeDesktopWidget(
                         target.appWidgetId, 0, -1));
         addAction(R.string.action_widget_configure,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 target.widgetConfigurable,
                 view -> mActivity.configureDesktopWidget(
                         target.appWidgetId));
         addAction(R.string.action_delete,
-                DesktopUiFactory.COLOR_RED, true,
+                UiColor.DANGER, true,
                 view -> mActivity.removeDesktopWidget(
                         target.appWidgetId));
         positionAndShow(x, y);
@@ -690,7 +690,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                 state.task == null
                         ? R.string.action_open
                         : R.string.action_switch_to,
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 true,
                 view -> {
                     if (state.task == null) {
@@ -713,19 +713,19 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                     .contains(state.app.packageName);
             addAction(
                     pinned ? R.string.action_unpin : R.string.action_pin,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.togglePinned(state.app));
         }
         if (state.desktopFile != null) {
             addAction(
                     R.string.action_rename,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.renameDesktopFile(state.desktopFile));
             addAction(
                     R.string.action_delete,
-                    DesktopUiFactory.COLOR_RED,
+                    UiColor.DANGER,
                     true,
                     view -> mActivity.confirmDeleteDesktopFile(
                             state.desktopFile));
@@ -736,14 +736,14 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                     desktopShortcut
                             ? R.string.action_remove_from_desktop
                             : R.string.action_add_to_desktop,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.toggleDesktopShortcut(state.app));
         }
         if (state.hasWidgets) {
             addAction(
                     R.string.action_app_widgets,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.addDesktopWidgets(
                             state.app.packageName));
@@ -751,25 +751,25 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
         if (!BuildConfig.APPLICATION_ID.equals(state.app.packageName)) {
             addAction(
                     R.string.action_app_presentation_settings,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.openApplicationSettings(
                             state.app.identity));
         }
         addAction(
                 R.string.action_app_info,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> mActivity.openAppInfo(state.app));
         addAction(
                 R.string.action_close_window,
-                DesktopUiFactory.COLOR_AMBER,
+                UiColor.ATTENTION,
                 state.task != null,
                 view -> mActivity.closeTask(state.app, state.task));
         final var forceClose = BuiltInWindowRegistry.forceCloseAction(state.task);
         addAction(
                 forceClose == null ? R.string.action_force_stop : forceClose.label(),
-                DesktopUiFactory.COLOR_RED,
+                UiColor.DANGER,
                 forceClose != null
                         || (ShellAccess.isReady() && !BuildConfig.APPLICATION_ID.equals(state.app.packageName)),
                 view -> mActivity.confirmForceStop(state.app, state.task));
@@ -789,7 +789,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
             addAction(
                     shortcut.label,
                     shortcut.icon,
-                    DesktopUiFactory.COLOR_CYAN,
+                    UiColor.ACCENT,
                     true,
                     view -> {
                         if (state.destination == null) {
@@ -817,7 +817,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
             addAction(
                     shortcut.label,
                     shortcut.icon,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> mActivity.addDesktopShortcut(
                             state.app, shortcut));
@@ -835,21 +835,21 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
         final boolean windowControl = ShellAccess.isReady()
                 && (state.destination == null || DesktopRuntimeBridge.hasWorkspace(state.destination.displayId()));
         if (state.task != null && windowControl) {
-            addAction(R.string.action_restore_window, DesktopUiFactory.COLOR_PANEL_ALT,
+            addAction(R.string.action_restore_window, UiColor.SURFACE,
                     true, view -> mActivity.arrangeTask(state.task, DesktopTaskController.SHORTCUT_RESTORE));
             addSubmenuAction(R.string.action_arrange_window, view -> showArrangeMenu(state));
         }
         if (state.app.canFloat && windowControl) {
             addAction(
                     R.string.action_open_floating,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     true,
                     view -> launchApp(state, DesktopLaunchPresentation.forMode(DesktopLaunchMode.WINDOWED)));
             if (BuiltInDesktopAppCatalog.supportsMultipleWindows(
                     state.app.launchTarget)) {
                 addAction(
                         R.string.action_new_window,
-                        DesktopUiFactory.COLOR_PANEL_ALT,
+                        UiColor.SURFACE,
                         true,
                         view -> launchApp(state, DesktopLaunchPresentation.forMode(DesktopLaunchMode.WINDOWED)
                                 .withInstancePolicy(DesktopTaskInstancePolicy.CREATE_NEW)));
@@ -857,7 +857,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
         }
         addAction(
                 R.string.action_open_fullscreen,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 view -> {
                     if (state.task == null) {
@@ -873,7 +873,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                     otherDisplayId == 0
                             ? R.string.action_send_to_phone
                             : R.string.action_send_to_external_display,
-                    DesktopUiFactory.COLOR_PANEL_ALT,
+                    UiColor.SURFACE,
                     ShellAccess.isReady(),
                     view -> mActivity.moveTaskToOtherDisplay(
                             state.app, state.task));
@@ -967,7 +967,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                     mActivity.getString(task.isFreeform()
                             ? R.string.badge_window
                             : R.string.badge_fullscreen)));
-            taskInfo.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(taskInfo, UiColor.MUTED);
             taskInfo.setTextSize(12);
             taskInfo.setPadding(dp(10), 0, dp(10), dp(4));
             final LinearLayout.LayoutParams taskInfoParams =
@@ -1017,7 +1017,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
 
     private Button addAction(
             final int textResId,
-            final int color,
+            final UiColor color,
             final boolean enabled,
             final View.OnClickListener listener) {
         final Button button = addAction(
@@ -1039,7 +1039,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
     private Button addAction(
             final String text,
             final Drawable icon,
-            final int color,
+            final UiColor color,
             final boolean enabled,
             final View.OnClickListener listener) {
         return addMenuItem(
@@ -1069,7 +1069,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
     private Button addMenuItem(
             final String text,
             final Drawable icon,
-            final int color,
+            final UiColor color,
             final boolean enabled,
             final boolean dismissBeforeAction,
             final boolean submenu,
@@ -1120,7 +1120,7 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
         final Button button = addMenuItem(
                 mActivity.getString(textResId),
                 null,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 true,
                 false,
                 true,

@@ -93,7 +93,7 @@ public final class DisplayViewerActivity extends Activity implements SurfaceHold
         SystemBarInsets.addToPadding(root);
         mToolbar = new LinearLayout(this);
         mToolbar.setGravity(Gravity.CENTER_VERTICAL);
-        mToolbar.setBackgroundColor(DesktopUiFactory.COLOR_BACKGROUND);
+        UiAppearance.background(mToolbar, UiColor.BACKGROUND);
         mPrevious = action(R.drawable.ic_file_back, R.string.display_previous,
                 () -> DisplayPresentations.previous(mSession));
         mSourceButton = new Button(this);

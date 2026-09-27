@@ -129,15 +129,15 @@ final class StartMenuContent {
         menu.setPadding(dp(14), dp(14), dp(14), dp(12));
         if (mScope == StartMenuScope.DESKTOP) {
             menu.setBackground(mUi.rounded(
-                    DesktopUiFactory.COLOR_PANEL, dp(18),
-                    DesktopUiFactory.COLOR_CYAN));
+                    UiColor.PANEL, dp(18),
+                    UiColor.ACCENT));
         }
         mSearch = new EditText(mActivity);
         final int searchHint = mScope == StartMenuScope.APPLICATIONS
                 ? R.string.search_phone_apps_hint : R.string.search_apps_hint;
         mSearch.setHint(searchHint);
-        mSearch.setHintTextColor(DesktopUiFactory.COLOR_MUTED);
-        mSearch.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.hint(mSearch, UiColor.MUTED);
+        UiAppearance.text(mSearch, UiColor.TEXT);
         mSearch.setTextSize(14);
         mSearch.setSingleLine(true);
         mSearch.setShowSoftInputOnFocus(false);
@@ -149,9 +149,9 @@ final class StartMenuContent {
         });
         mSearch.setPadding(dp(12), dp(8), dp(12), dp(8));
         mSearch.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 dp(8),
-                DesktopUiFactory.COLOR_PANEL_ALT));
+                UiColor.SURFACE));
         mSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(
@@ -411,7 +411,7 @@ final class StartMenuContent {
             final TextView status = new TextView(mActivity);
             status.setText(android.error().isEmpty()
                     ? mActivity.getString(R.string.apps_loading) : android.error());
-            status.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(status, UiColor.MUTED);
             status.setTextSize(14);
             status.setGravity(Gravity.CENTER);
             mBody.addView(status, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -432,7 +432,7 @@ final class StartMenuContent {
             empty.setText(recentError.isEmpty() ? mActivity.getString(mMode == MENU_RECENT
                     ? R.string.recent_apps_empty
                     : R.string.status_no_apps) : recentError);
-            empty.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(empty, UiColor.MUTED);
             empty.setTextSize(14);
             empty.setGravity(Gravity.CENTER);
             mBody.addView(empty, new LinearLayout.LayoutParams(
@@ -472,8 +472,8 @@ final class StartMenuContent {
         final Button button = mUi.actionButton(
                 textResId,
                 tabSelected(mode)
-                        ? DesktopUiFactory.COLOR_CYAN
-                        : DesktopUiFactory.COLOR_PANEL_ALT);
+                        ? UiColor.ACCENT
+                        : UiColor.SURFACE);
         button.setTextSize(11);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
@@ -547,16 +547,7 @@ final class StartMenuContent {
     }
 
     private StateListDrawable entryBackground(final int radius) {
-        final StateListDrawable background = new StateListDrawable();
-        for (final int state : new int[] {android.R.attr.state_selected, android.R.attr.state_focused}) {
-            background.addState(new int[] {state}, mUi.rounded(
-                    DesktopUiFactory.COLOR_PANEL_ALT, dp(radius), DesktopUiFactory.COLOR_AMBER));
-        }
-        background.addState(new int[] {android.R.attr.state_pressed}, mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_FOCUS, dp(radius), DesktopUiFactory.COLOR_PANEL_FOCUS));
-        background.addState(new int[0], mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT, dp(radius), DesktopUiFactory.COLOR_PANEL_ALT));
-        return background;
+        return mUi.flatButtonBackground(dp(radius));
     }
 
     private View createAppTile(final StartMenuEntry application) {
@@ -587,7 +578,7 @@ final class StartMenuContent {
         final TextView label = new TextView(mActivity);
         label.setText(application.label);
         tile.setContentDescription(application.label + ", " + application.detail);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(11);
         label.setGravity(Gravity.CENTER);
         label.setMaxLines(1);
@@ -617,7 +608,7 @@ final class StartMenuContent {
 
         final Button previous = mUi.actionButton(
                 R.string.action_previous,
-                DesktopUiFactory.COLOR_PANEL_ALT);
+                UiColor.SURFACE);
         previous.setEnabled(mPage > 0);
         previous.setOnClickListener(view -> {
             if (mPage > 0) {
@@ -636,7 +627,7 @@ final class StartMenuContent {
                 R.string.page_status,
                 Integer.valueOf(mPage + 1),
                 Integer.valueOf(pageCount)));
-        page.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(page, UiColor.MUTED);
         page.setTextSize(13);
         page.setGravity(Gravity.CENTER);
         pager.addView(page, new LinearLayout.LayoutParams(
@@ -644,7 +635,7 @@ final class StartMenuContent {
 
         final Button next = mUi.actionButton(
                 R.string.action_next,
-                DesktopUiFactory.COLOR_PANEL_ALT);
+                UiColor.SURFACE);
         next.setEnabled(mPage + 1 < pageCount);
         next.setOnClickListener(view -> {
             if (mPage + 1 < pageCount) {
@@ -667,7 +658,7 @@ final class StartMenuContent {
         if (matches.isEmpty()) {
             final TextView empty = new TextView(mActivity);
             empty.setText(R.string.search_no_results);
-            empty.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(empty, UiColor.MUTED);
             empty.setTextSize(14);
             empty.setGravity(Gravity.CENTER);
             mBody.addView(empty, new LinearLayout.LayoutParams(
@@ -785,13 +776,13 @@ final class StartMenuContent {
         labels.setPadding(dp(10), 0, 0, 0);
         final TextView name = new TextView(mActivity);
         name.setText(result.label);
-        name.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(name, UiColor.TEXT);
         name.setTextSize(14);
         name.setSingleLine(true);
         name.setEllipsize(TextUtils.TruncateAt.END);
         final TextView detail = new TextView(mActivity);
         detail.setText(result.detail);
-        detail.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(detail, UiColor.MUTED);
         detail.setTextSize(10);
         detail.setSingleLine(true);
         detail.setEllipsize(TextUtils.TruncateAt.MIDDLE);
@@ -834,11 +825,11 @@ final class StartMenuContent {
     private void bindIcon(final ImageView icon, final StartMenuEntry entry) {
         icon.setTag(entry);
         if (entry.app != null) { icon.setImageDrawable(entry.app.icon); }
-        else if (entry.builtIn != null) { icon.setImageResource(searchIcon(entry)); }
+        else if (entry.builtIn != null) { icon.setImageDrawable(UiAppearance.symbol(mActivity, searchIcon(entry), UiColor.TEXT)); }
         else if (entry.desktopApplication != null) {
             icon.setImageDrawable(DesktopApplicationIconResolver.resolve(
                     mActivity, entry.desktopApplication.shortcut));
-        } else { icon.setImageResource(searchIcon(entry)); }
+        } else { icon.setImageDrawable(UiAppearance.symbol(mActivity, searchIcon(entry), UiColor.TEXT)); }
     }
 
     private void refreshIcons(View view) {

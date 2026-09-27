@@ -20,9 +20,9 @@ final class TouchpadHelpContent {
         scroll.setFillViewport(true);
         scroll.setClickable(true);
         scroll.setBackground(ui.rounded(
-                DesktopUiFactory.COLOR_PANEL,
+                UiColor.PANEL,
                 ui.dp(8),
-                DesktopUiFactory.COLOR_PANEL_ALT));
+                UiColor.SURFACE));
 
         final LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -65,7 +65,7 @@ final class TouchpadHelpContent {
             final int topMargin) {
         final TextView title = new TextView(context);
         title.setText(titleResId);
-        title.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(title, UiColor.TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -89,7 +89,7 @@ final class TouchpadHelpContent {
 
         final TextView keys = new TextView(context);
         keys.setText(keysResId);
-        keys.setTextColor(DesktopUiFactory.COLOR_CYAN);
+        UiAppearance.text(keys, UiColor.ACCENT);
         keys.setTextSize(14);
         keys.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         row.addView(keys, new LinearLayout.LayoutParams(
@@ -98,7 +98,7 @@ final class TouchpadHelpContent {
 
         final TextView action = new TextView(context);
         action.setText(actionResId);
-        action.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(action, UiColor.TEXT);
         action.setTextSize(14);
         row.addView(action, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));

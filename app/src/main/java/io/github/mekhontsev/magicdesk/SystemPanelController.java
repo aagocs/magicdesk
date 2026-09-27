@@ -2,7 +2,7 @@ package io.github.mekhontsev.magicdesk;
 
 import android.graphics.Rect;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_TEXT;
+import static io.github.mekhontsev.magicdesk.UiColor.TEXT;
 
 import android.graphics.Typeface;
 import android.view.Gravity;
@@ -72,8 +72,7 @@ final class SystemPanelController {
         final int height = Math.min(maxHeight, mPanel.getMeasuredHeight());
         if (!panels.show(
                 mPanel,
-                ShellPanelPlacement.anchored(width, height,
-                        ShellSurface.RIGHT | ShellSurface.BOTTOM, 0, 0, dp(8), dp(8)),
+                panels.aboveTaskbar(width, height, true, dp(8), dp(8)),
                 false,
                 mActivity.getString(R.string.section_quick_controls))) {
             mActivity.setErrorStatus(
@@ -92,7 +91,7 @@ final class SystemPanelController {
 
         final TextView title = new TextView(mActivity);
         title.setText(R.string.section_quick_controls);
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, TEXT);
         title.setTextSize(16);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setAccessibilityHeading(true);

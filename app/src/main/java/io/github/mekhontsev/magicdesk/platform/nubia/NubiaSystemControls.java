@@ -1,5 +1,8 @@
 package io.github.mekhontsev.magicdesk.platform.nubia;
 
+import io.github.mekhontsev.magicdesk.UiColor;
+import io.github.mekhontsev.magicdesk.UiAppearance;
+
 import io.github.mekhontsev.magicdesk.DesktopShellActivity;
 import io.github.mekhontsev.magicdesk.DesktopUiFactory;
 import io.github.mekhontsev.magicdesk.PlatformSystemControls;
@@ -57,7 +60,7 @@ final class NubiaSystemControls implements PlatformSystemControls {
         mUi.addControlSection(parent, R.string.hardware_power_section, spacing);
 
         mBatteryStatus = new TextView(mActivity);
-        mBatteryStatus.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mBatteryStatus, UiColor.TEXT);
         mBatteryStatus.setTextSize(14);
         parent.addView(
                 mBatteryStatus,
@@ -68,7 +71,7 @@ final class NubiaSystemControls implements PlatformSystemControls {
 
         mChargeSeparationSwitch = new Switch(mActivity);
         mChargeSeparationSwitch.setText(R.string.charge_separation_label);
-        mChargeSeparationSwitch.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mChargeSeparationSwitch, UiColor.TEXT);
         mChargeSeparationSwitch.setTextSize(14);
         mChargeSeparationSwitch.setOnCheckedChangeListener(
                 (button, checked) -> {

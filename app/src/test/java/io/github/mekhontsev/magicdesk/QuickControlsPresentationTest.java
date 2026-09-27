@@ -170,12 +170,20 @@ public final class QuickControlsPresentationTest {
                     int left, top, width, height;
                     boolean requested;
                     boolean isRequested(Panel panel) { return requested; }
+                    ShellPanelPlacement aboveTaskbar(int w, int h, boolean end, int inset, int gap) {
+                        return new ShellPanelPlacement.AboveSurface("taskbar", w, h, end, inset, gap);
+                    }
                     boolean show(Panel panel, ShellPanelPlacement placement, boolean focus, String title) {
                         Rect area = activity.getDesktopPanelAreaBounds();
-                        ShellBounds bounds = new ShellBounds(area.left, area.top, area.right, area.bottom);
+                        ShellBounds bounds = new ShellBounds(area.left, area.top, area.right, area.bottom + activity.bar);
                         ShellLayout layout = new ShellLayout();
-                        layout.commit(bounds, bounds, List.of());
-                        layout.commit(bounds, bounds, List.of(new ShellSurface("panel", true,
+                        final var taskbar = new ShellSurface("taskbar", true, ShellSurface.Layer.TOP,
+                                ShellSurface.Keyboard.NONE, new ShellSurface.Placement(ShellSurface.Reference.CONTENT,
+                                ShellSurface.LEFT | ShellSurface.RIGHT | ShellSurface.BOTTOM, 0, activity.bar,
+                                ShellSurface.Margins.NONE), ShellSurface.Margins.NONE, ShellSurface.Input.CONTENT,
+                                List.of(ShellReservation.exclusive(ShellReservation.Edge.BOTTOM, activity.bar, true)));
+                        layout.commit(bounds, bounds, List.of(taskbar));
+                        layout.commit(bounds, bounds, List.of(taskbar, new ShellSurface("panel", true,
                                 ShellSurface.Layer.OVERLAY, ShellSurface.Keyboard.NONE,
                                 placement.resolve(layout.snapshot()), ShellSurface.Margins.NONE,
                                 ShellSurface.Input.CONTENT, List.of())));

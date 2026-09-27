@@ -32,14 +32,14 @@ public final class GraphicalSessionsActivity extends Activity {
         ui = new DesktopUiFactory(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(DesktopUiFactory.COLOR_BACKGROUND);
+        UiAppearance.background(root, UiColor.BACKGROUND);
         SystemBarInsets.addToPadding(root, true);
         root.addView(createSessionControls());
         status = new TextView(this);
-        status.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(status, UiColor.MUTED);
         status.setPadding(ui.dp(12), ui.dp(6), ui.dp(12), ui.dp(6));
         root.addView(status);
-        shellWorkspace = ui.menuItem(R.string.graphics_shell_workspace, DesktopUiFactory.COLOR_TEXT);
+        shellWorkspace = ui.menuItem(R.string.graphics_shell_workspace, UiColor.TEXT);
         shellWorkspace.setOnClickListener(view -> chooseShellWorkspace());
         root.addView(shellWorkspace);
         GraphicalShells.listen(listener);
@@ -50,7 +50,7 @@ public final class GraphicalSessionsActivity extends Activity {
     private LinearLayout createSessionControls() {
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        sessions = ui.menuItem(R.string.graphics_sessions, DesktopUiFactory.COLOR_TEXT);
+        sessions = ui.menuItem(R.string.graphics_sessions, UiColor.TEXT);
         sessions.setSingleLine(true);
         sessions.setEllipsize(android.text.TextUtils.TruncateAt.END);
         sessions.setOnClickListener(v -> chooseSession());

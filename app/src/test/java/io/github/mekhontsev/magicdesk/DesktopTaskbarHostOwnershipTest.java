@@ -10,14 +10,14 @@ public final class DesktopTaskbarHostOwnershipTest {
                 static final Map<Integer, Fixture> HOSTS = new HashMap<>();
                 static final Map<Integer, DesktopChromeActivity> ACTIVITIES = new HashMap<>();
                 final int mDisplayId = 4;
-                final Rect mTaskbarBounds = new Rect(), mSurfaceBounds = new Rect(), mAppliedBounds = new Rect();
+                final Rect mTaskbarBounds = new Rect(), mSurfaceBounds = new Rect(), mAppliedBounds = new Rect(), mOutputBounds = new Rect();
                 Object mTaskbar = new Object(), mEdgeInputListener;
                 boolean mReleased, mPresented = true, mEdgeHidden;
                 int mEdgeHeight = 1;
                 static final class Rect { void setEmpty() {} int height() { return 64; } }
                 static final class DesktopChromeActivity {
                     int attached, detached;
-                    void attachTaskbar(Object view, int height, int surfaceHeight) { attached++; }
+                    void attachTaskbar(Object view, Rect content, Rect paint, Rect output) { attached++; }
                     void detachTaskbar() { detached++; }
                     void setPresentation(boolean shown, boolean edge, int height) {}
                 }

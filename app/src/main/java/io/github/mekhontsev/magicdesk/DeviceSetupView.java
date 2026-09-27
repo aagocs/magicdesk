@@ -39,7 +39,7 @@ final class DeviceSetupView {
 
     View create() {
         final FrameLayout root = new FrameLayout(mActivity);
-        root.setBackgroundColor(DesktopUiFactory.COLOR_BACKGROUND);
+        UiAppearance.background(root, UiColor.BACKGROUND);
 
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -54,7 +54,7 @@ final class DeviceSetupView {
 
         mTitle = new TextView(mActivity);
         mTitle.setText(R.string.setup_title);
-        mTitle.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mTitle, UiColor.TEXT);
         mTitle.setTextSize(24);
         mTitle.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(mTitle);
@@ -63,14 +63,14 @@ final class DeviceSetupView {
 
         mSummary = new TextView(mActivity);
         mSummary.setText(R.string.setup_status_checking);
-        mSummary.setTextColor(DesktopUiFactory.COLOR_CYAN);
+        UiAppearance.text(mSummary, UiColor.ACCENT);
         mSummary.setTextSize(16);
         mSummary.setTypeface(Typeface.DEFAULT_BOLD);
         mSummary.setPadding(dp(12), dp(10), dp(12), dp(10));
         mSummary.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 dp(6),
-                DesktopUiFactory.COLOR_PANEL_ALT));
+                UiColor.SURFACE));
         final LinearLayout.LayoutParams summaryParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -80,7 +80,7 @@ final class DeviceSetupView {
 
         mDetails = new LinearLayout(mActivity);
         mDetails.setOrientation(LinearLayout.VERTICAL);
-        mDetails.setBackgroundColor(DesktopUiFactory.COLOR_PANEL);
+        UiAppearance.background(mDetails, UiColor.PANEL);
         mDisplayTargetValue =
                 addStatusRow(mDetails, R.string.setup_item_display_target);
         makeProfileValueInteractive(
@@ -96,13 +96,13 @@ final class DeviceSetupView {
 
         final TextView buildLabel = new TextView(mActivity);
         buildLabel.setText(R.string.setup_build_label);
-        buildLabel.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(buildLabel, UiColor.MUTED);
         buildLabel.setTextSize(12);
         buildLabel.setPadding(dp(12), dp(12), dp(12), 0);
         mDetails.addView(buildLabel);
 
         mBuildValue = new TextView(mActivity);
-        mBuildValue.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mBuildValue, UiColor.MUTED);
         mBuildValue.setTextSize(11);
         mBuildValue.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         mBuildValue.setSingleLine(true);
@@ -118,12 +118,12 @@ final class DeviceSetupView {
         actions.setPadding(0, dp(12), 0, 0);
 
         mPrimaryAction = createActionButton(
-                DesktopUiFactory.COLOR_CYAN);
+                UiColor.ACCENT);
         actions.addView(mPrimaryAction, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
 
         mDiagnosticsAction = createActionButton(
-                DesktopUiFactory.COLOR_CYAN);
+                UiColor.ACCENT);
         mDiagnosticsAction.setText(R.string.action_diagnostics);
         mDiagnosticsAction.setOnClickListener(view ->
                 mActivity.startActivity(
@@ -136,7 +136,7 @@ final class DeviceSetupView {
 
         mRestoreNote = new TextView(mActivity);
         mRestoreNote.setText(R.string.setup_restore_uninstall_note);
-        mRestoreNote.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mRestoreNote, UiColor.MUTED);
         mRestoreNote.setTextSize(13);
         final LinearLayout.LayoutParams restoreNoteParams =
                 new LinearLayout.LayoutParams(
@@ -148,11 +148,11 @@ final class DeviceSetupView {
         mSecondaryRow = new LinearLayout(mActivity);
         mSecondaryRow.setOrientation(LinearLayout.HORIZONTAL);
         mSecondaryAction = createActionButton(
-                DesktopUiFactory.COLOR_MUTED);
+                UiColor.MUTED);
         mSecondaryRow.addView(mSecondaryAction,
                 new LinearLayout.LayoutParams(0, dp(48), 1));
         mRestoreAction = createActionButton(
-                DesktopUiFactory.COLOR_AMBER);
+                UiColor.ATTENTION);
         final LinearLayout.LayoutParams restoreParams =
                 new LinearLayout.LayoutParams(0, dp(48), 1);
         restoreParams.setMargins(dp(8), 0, 0, 0);
@@ -282,14 +282,14 @@ final class DeviceSetupView {
 
         final TextView label = new TextView(mActivity);
         label.setText(labelResId);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(14);
         row.addView(label, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         final TextView value = new TextView(mActivity);
         value.setText(R.string.setup_value_checking);
-        value.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(value, UiColor.MUTED);
         value.setTextSize(13);
         value.setGravity(Gravity.END);
         value.setMaxLines(2);
@@ -300,16 +300,16 @@ final class DeviceSetupView {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
         final View divider = new View(mActivity);
-        divider.setBackgroundColor(DesktopUiFactory.COLOR_PANEL_ALT);
+        UiAppearance.background(divider, UiColor.SURFACE);
         parent.addView(divider, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
         return value;
     }
 
-    private Button createActionButton(final int accentColor) {
+    private Button createActionButton(final UiColor accentColor) {
         final Button button = new Button(mActivity);
         button.setAllCaps(false);
-        button.setTextColor(Color.WHITE);
+        UiAppearance.textStates(button, UiColor.TEXT);
         button.setSingleLine(true);
         button.setEllipsize(TextUtils.TruncateAt.END);
         button.setTextSize(14);
@@ -318,7 +318,7 @@ final class DeviceSetupView {
         button.setPadding(dp(8), dp(6), dp(8), dp(6));
         button.setGravity(Gravity.CENTER);
         button.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 dp(6),
                 accentColor));
         return button;
@@ -331,9 +331,9 @@ final class DeviceSetupView {
         value.setFocusable(true);
         value.setPadding(dp(8), dp(4), dp(8), dp(4));
         value.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 dp(5),
-                DesktopUiFactory.COLOR_PANEL_ALT));
+                UiColor.SURFACE));
         value.setOnClickListener(listener);
     }
 

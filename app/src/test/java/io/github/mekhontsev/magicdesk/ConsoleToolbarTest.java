@@ -16,12 +16,12 @@ public final class ConsoleToolbarTest {
                     view.updateStatus(view.mBackend,view.mSnapshot,view.mTerminalStatus,view.mTerminalFailed);
                     check(view.mShellStatus.visibility == View.GONE, "persistent shell label");
                     check(view.mSessions.tooltip.equals("Sessions\\nShell UID 2000"), "missing shell UID");
-                    check(view.mSessions.tint == Console.COLOR_TEXT, "shell marked as root");
+                    check(view.mSessions.tint == UiColor.TEXT, "shell marked as root");
                     view.mSnapshot = new Snapshot(true, 0, "");
                     view.updateStatus(view.mBackend,view.mSnapshot,view.mTerminalStatus,view.mTerminalFailed);
                     check(view.mShellStatus.visibility == View.GONE, "persistent root label");
                     check(view.mSessions.tooltip.equals("Sessions\\nRoot UID 0"), "missing root UID");
-                    check(view.mSessions.tint == Console.COLOR_AMBER, "root not distinguished");
+                    check(view.mSessions.tint == UiColor.ATTENTION, "root not distinguished");
                     check(view.mSessions.tooltip.equals(view.mSessions.description), "inaccessible identity");
                 }
                 """);
@@ -40,7 +40,7 @@ public final class ConsoleToolbarTest {
                     view.mTerminalFailed = true;
                     view.updateStatus(view.mBackend,view.mSnapshot,view.mTerminalStatus,view.mTerminalFailed);
                     check(view.mShellStatus.text.equals("Access denied"), "failure hidden");
-                    check(view.mShellStatus.color == Console.COLOR_AMBER, "failure not distinguished");
+                    check(view.mShellStatus.color == UiColor.ATTENTION, "failure not distinguished");
                     view.mTerminalFailed = false;
                     view.mTerminalStatus = "";
                     view.mBackend = DesktopExecBackend.SHELL;
@@ -61,6 +61,11 @@ public final class ConsoleToolbarTest {
     private static String fixture() throws Exception {
         return """
                 enum DesktopExecBackend { SHELL, TERMUX }
+                enum UiColor { ATTENTION, TEXT, MUTED }
+                static class UiAppearance {
+                    static void imageStates(View view, UiColor role) { view.tint=role; }
+                    static void text(View view, UiColor role) { view.color=role; }
+                }
                 static class ShellAccess { static final int ROOT_UID = 0; static class Snapshot {
                     boolean ready; int uid; String error;
                     Snapshot(boolean ready,int uid,String error) { this.ready=ready;this.uid=uid;this.error=error; }
@@ -74,18 +79,14 @@ public final class ConsoleToolbarTest {
                 } }
                 static class View {
                     static final int VISIBLE=0, GONE=8;
-                    String text, tooltip, description; int visibility, color, tint;
+                    String text, tooltip, description; int visibility; UiColor color, tint;
                     void setText(String value) { text=value; }
-                    void setTextColor(int value) { color=value; }
                     void setVisibility(int value) { visibility=value; }
                     void setTooltipText(String value) { tooltip=value; }
                     void setContentDescription(String value) { description=value; }
-                    void setImageTintList(int value) { tint=value; }
                 }
-                static class ColorStateList { static int valueOf(int value) { return value; } }
                 static class Console {
                     final Console mActivity=this;
-                    static final int COLOR_AMBER=1, COLOR_TEXT=2, COLOR_MUTED=3;
                     View mShellStatus=new View(), mSessions=new View();
                     DesktopExecBackend mBackend;
                     Snapshot mSnapshot;

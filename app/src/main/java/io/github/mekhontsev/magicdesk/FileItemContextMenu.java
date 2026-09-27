@@ -144,55 +144,55 @@ final class FileItemContextMenu {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
         addAction(panel, ui, R.string.action_open,
-                DesktopUiFactory.COLOR_CYAN, true, dismiss, actions::open);
+                UiColor.ACCENT, true, dismiss, actions::open);
         addAction(panel, ui, R.string.file_manager_open_with,
-                DesktopUiFactory.COLOR_PANEL_ALT, !target.directory,
+                UiColor.SURFACE, !target.directory,
                 dismiss, actions::openWith);
         addAction(panel, ui, R.string.file_manager_share,
-                DesktopUiFactory.COLOR_PANEL_ALT, !target.directory,
+                UiColor.SURFACE, !target.directory,
                 dismiss, actions::share);
         addAction(panel, ui, R.string.file_manager_install_apk,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 ShellPackageInstaller.supports(
                         target.name, target.mimeType, target.directory),
                 dismiss, actions::install);
         addAction(panel, ui, R.string.file_manager_run_script,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 ShellScriptLauncher.supports(
                         target.name, target.mimeType, target.directory),
                 dismiss, actions::runScript);
         if (target.canCreateTerminalApplication) {
             addAction(panel, ui, R.string.action_add_as_terminal_application,
-                    DesktopUiFactory.COLOR_PANEL_ALT, true,
+                    UiColor.SURFACE, true,
                     dismiss, actions::createTerminalApplication);
         }
         addAction(panel, ui, R.string.file_manager_set_wallpaper,
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 DesktopWallpaperFileAction.supports(
                         target.mimeType, target.directory),
                 dismiss, actions::setWallpaper);
         if (target.canCreateDesktopShortcut) {
             addAction(panel, ui, R.string.file_manager_create_desktop_shortcut,
-                    DesktopUiFactory.COLOR_PANEL_ALT, true,
+                    UiColor.SURFACE, true,
                     dismiss, actions::createDesktopShortcut);
         }
         addAction(panel, ui, R.string.file_manager_copy,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::copy);
         addAction(panel, ui, R.string.file_manager_cut,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::cut);
         addAction(panel, ui, R.string.action_rename,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::rename);
         addAction(panel, ui, R.string.action_delete,
-                DesktopUiFactory.COLOR_RED, true,
+                UiColor.DANGER, true,
                 dismiss, actions::delete);
         addAction(panel, ui, R.string.file_manager_copy_path,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::copyPath);
         addAction(panel, ui, R.string.file_manager_properties,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::properties);
     }
 
@@ -200,7 +200,7 @@ final class FileItemContextMenu {
             final LinearLayout panel,
             final DesktopUiFactory ui,
             final int textResId,
-            final int color,
+            final UiColor color,
             final boolean enabled,
             final Runnable dismiss,
             final Runnable action) {

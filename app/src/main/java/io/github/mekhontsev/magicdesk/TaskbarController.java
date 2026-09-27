@@ -52,6 +52,8 @@ final class TaskbarController {
     private boolean mChargeSeparationEnabled;
     private final List<Integer> mTaskOrder = new ArrayList<>();
     private boolean mEdgeHidden;
+    private int mItemCount;
+    private final Runnable mAppearanceChanged = this::applyAppearance;
 
     TaskbarController(
             final DesktopShellActivity activity,
@@ -138,15 +140,12 @@ final class TaskbarController {
                 desktopDp(8, 4),
                 desktopDp(10, 4),
                 desktopDp(8, 4));
-        taskbar.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL,
-                0,
-                DesktopUiFactory.COLOR_PANEL_ALT));
 
         final Button start = mUi.actionButton(
                 R.string.action_start,
-                DesktopUiFactory.COLOR_CYAN);
+                UiColor.ACCENT);
         start.setTextSize(14);
+        start.setBackground(mUi.flatButtonBackground(desktopDp(8, 6)));
         start.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         start.setOnClickListener(view -> mActivity.toggleStartMenu());
         start.setOnLongClickListener(view -> {
@@ -221,7 +220,7 @@ final class TaskbarController {
                         LinearLayout.LayoutParams.MATCH_PARENT));
 
         mKeyboardLayout = new TextView(mActivity);
-        mKeyboardLayout.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mKeyboardLayout, UiColor.TEXT);
         mKeyboardLayout.setTextSize(
                 mActivity.isCompactDesktopPreview() ? 11 : 13);
         mKeyboardLayout.setAutoSizeTextTypeUniformWithConfiguration(
@@ -234,10 +233,7 @@ final class TaskbarController {
         mKeyboardLayout.setGravity(Gravity.CENTER);
         mKeyboardLayout.setClickable(true);
         mKeyboardLayout.setFocusable(true);
-        mKeyboardLayout.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
-                desktopDp(8, 6),
-                DesktopUiFactory.COLOR_PANEL_ALT));
+        mKeyboardLayout.setBackground(mUi.flatButtonBackground(desktopDp(8, 6)));
         mKeyboardLayout.setOnClickListener(mInputMethodMenu::toggle);
         mKeyboardLayout.setEnabled(
                 ShellAccess.isReady());
@@ -278,13 +274,14 @@ final class TaskbarController {
         addButton(taskbar, mSystemButton);
 
         mBatteryStatus = new TextView(mActivity);
-        mBatteryStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mBatteryStatus, UiColor.MUTED);
         mBatteryStatus.setTextSize(
                 mActivity.isCompactDesktopPreview() ? 10 : 12);
         mBatteryStatus.setGravity(Gravity.CENTER);
         mBatteryStatus.setSingleLine(true);
         mBatteryStatus.setClickable(true);
         mBatteryStatus.setFocusable(true);
+        mBatteryStatus.setBackground(mUi.flatButtonBackground(desktopDp(8, 6)));
         mBatteryStatus.setOnClickListener(view ->
                 mActivity.toggleSystemPanel());
         mActivity.registerAutomationUiElement(
@@ -297,15 +294,12 @@ final class TaskbarController {
         final TextClock clock = new TextClock(mActivity);
         clock.setFormat24Hour("HH:mm");
         clock.setFormat12Hour("HH:mm");
-        clock.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(clock, UiColor.TEXT);
         clock.setTextSize(mActivity.isCompactDesktopPreview() ? 12 : 16);
         clock.setGravity(Gravity.CENTER);
         clock.setClickable(true);
         clock.setFocusable(true);
-        clock.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
-                desktopDp(8, 6),
-                DesktopUiFactory.COLOR_PANEL_ALT));
+        clock.setBackground(mUi.flatButtonBackground(desktopDp(8, 6)));
         clock.setContentDescription(
                 mActivity.getString(R.string.action_calendar));
         clock.setTooltipText(mActivity.getString(R.string.action_calendar));
@@ -317,12 +311,15 @@ final class TaskbarController {
                 desktopDp(72, 50),
                 LinearLayout.LayoutParams.MATCH_PARENT));
         mTaskbar = taskbar;
+        AppearanceStore.listen(mAppearanceChanged);
+        applyAppearance();
         mActivity.registerAutomationUiElement(
                 taskbar, "taskbar", "taskbar", "Taskbar");
         return taskbar;
     }
 
     void release() {
+        AppearanceStore.unlisten(mAppearanceChanged);
         mContentRequests.close();
         mEdgeHidden = false;
         mTaskbar = null;
@@ -364,6 +361,10 @@ final class TaskbarController {
         mPins.removeAllViews();
         final List<TaskbarOverflowController.Entry> items =
                 collectTaskbarItems(apps);
+        if (mItemCount != items.size()) {
+            mItemCount = items.size();
+            mActivity.onTaskbarContentChanged();
+        }
         final int itemWidth = desktopDp(48, 36);
         final int availableWidth = mTaskViewport == null
                 ? 0 : mTaskViewport.getWidth();
@@ -376,6 +377,29 @@ final class TaskbarController {
         if (visibleCount < items.size()) {
             addOverflowButton();
         }
+    }
+
+    int minimumWidth() { return fixedWidth() + desktopDp(48, 36); }
+    int preferredWidth() { return fixedWidth() + desktopDp(48, 36) * Math.max(1, mItemCount); }
+
+    private int fixedWidth() {
+        if (mTaskbar == null) return 0;
+        int width = mTaskbar.getPaddingLeft() + mTaskbar.getPaddingRight();
+        for (int i = 0; i < mTaskbar.getChildCount(); i++) {
+            final View child = mTaskbar.getChildAt(i);
+            if (child.getVisibility() == View.GONE) continue;
+            final LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) child.getLayoutParams();
+            width += Math.max(0, params.width) + params.leftMargin + params.rightMargin;
+        }
+        return width;
+    }
+
+    private void applyAppearance() {
+        if (mTaskbar == null) return;
+        final int padding = AppearanceStore.current().taskbar().paddingDp();
+        final int px = desktopDp(padding, padding / 2);
+        mTaskbar.setPadding(px, px, px, px);
+        mActivity.onTaskbarContentChanged();
     }
 
     private List<TaskbarOverflowController.Entry> collectTaskbarItems(
@@ -527,19 +551,22 @@ final class TaskbarController {
         mPhoneScreenButton.setImageResource(phoneScreenOff
                 ? R.drawable.ic_phone_screen_on
                 : R.drawable.ic_phone_screen_off);
-        mPhoneScreenButton.setColorFilter(
+        UiAppearance.image(mPhoneScreenButton,
                 phoneScreenOff
-                        ? DesktopUiFactory.COLOR_CYAN
-                        : DesktopUiFactory.COLOR_TEXT);
+                        ? UiColor.ACCENT
+                        : UiColor.TEXT);
         mPhoneScreenButton.setContentDescription(
                 mActivity.getString(actionResId));
         mPhoneScreenButton.setTooltipText(
                 mActivity.getString(actionResId));
         mPhoneScreenButton.setEnabled(phoneScreenControl);
         mPhoneScreenButton.setAlpha(phoneScreenControl ? 1f : 0.45f);
-        mPhoneScreenButton.setVisibility(
-                visible && !mActivity.isCompactDesktopPreview()
-                        ? View.VISIBLE : View.GONE);
+        final int visibility = visible && !mActivity.isCompactDesktopPreview()
+                ? View.VISIBLE : View.GONE;
+        if (mPhoneScreenButton.getVisibility() != visibility) {
+            mPhoneScreenButton.setVisibility(visibility);
+            mActivity.onTaskbarContentChanged();
+        }
     }
 
     void updateSystemStatus(final boolean shortcutsReady) {
@@ -548,11 +575,11 @@ final class TaskbarController {
         }
         final boolean taskControl =
                 ShellAccess.isReady();
-        final int color = taskControl && shortcutsReady
-                ? DesktopUiFactory.COLOR_CYAN
+        final UiColor color = taskControl && shortcutsReady
+                ? UiColor.ACCENT
                 : (taskControl
-                        ? DesktopUiFactory.COLOR_AMBER
-                        : DesktopUiFactory.COLOR_MUTED);
+                        ? UiColor.ATTENTION
+                        : UiColor.MUTED);
         final String description = mActivity.getString(
                 R.string.system_status_description,
                 ShellAccess.statusLabel(),
@@ -560,7 +587,7 @@ final class TaskbarController {
                 mActivity.getString(shortcutsReady
                         ? R.string.state_ready
                         : R.string.state_unavailable));
-        mSystemButton.setColorFilter(color);
+        UiAppearance.image(mSystemButton, color);
         mSystemButton.setContentDescription(description);
         mSystemButton.setTooltipText(description);
     }
@@ -593,10 +620,10 @@ final class TaskbarController {
                 : mActivity.getString(
                         R.string.battery_compact,
                         Integer.valueOf(percent)));
-        mBatteryStatus.setTextColor(
+        UiAppearance.text(mBatteryStatus,
                 charging || mChargeSeparationEnabled
-                        ? DesktopUiFactory.COLOR_CYAN
-                        : DesktopUiFactory.COLOR_TEXT);
+                        ? UiColor.ACCENT
+                        : UiColor.TEXT);
         final String state = mActivity.getString(
                 charging
                         ? R.string.battery_state_charging
@@ -637,15 +664,7 @@ final class TaskbarController {
         final AppItem app = taskbarItem.app;
         final TaskRepository.TaskEntry task = taskbarItem.task;
         final FrameLayout item = new FrameLayout(mActivity);
-        final int borderColor = task == null
-                ? DesktopUiFactory.COLOR_PANEL_ALT
-                : (task.active
-                        ? DesktopUiFactory.COLOR_AMBER
-                        : DesktopUiFactory.COLOR_CYAN);
-        item.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
-                desktopDp(10, 8),
-                borderColor));
+        item.setBackground(mUi.flatButtonBackground(desktopDp(10, 8)));
         item.setClickable(true);
         item.setFocusable(true);
 
@@ -662,13 +681,13 @@ final class TaskbarController {
 
         if (task != null) {
             final View running = new View(mActivity);
-            running.setBackgroundColor(task.active
-                    ? DesktopUiFactory.COLOR_AMBER
-                    : DesktopUiFactory.COLOR_CYAN);
+            UiAppearance.background(running, task.active
+                    ? UiColor.ATTENTION
+                    : UiColor.ACCENT);
             final FrameLayout.LayoutParams runningParams =
                     new FrameLayout.LayoutParams(
-                            desktopDp(20, 14),
-                            dp(3),
+                            task.active ? desktopDp(26, 20) : desktopDp(20, 14),
+                            dp(task.active ? 3 : 2),
                             Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             runningParams.setMargins(0, 0, 0, dp(2));
             item.addView(running, runningParams);

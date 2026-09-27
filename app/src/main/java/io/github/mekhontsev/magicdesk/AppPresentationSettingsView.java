@@ -83,7 +83,7 @@ final class AppPresentationSettingsView {
         if (rows.isEmpty()) {
             final TextView empty = new TextView(mActivity);
             empty.setText(R.string.app_presentation_profiles_empty);
-            empty.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(empty, UiColor.MUTED);
             empty.setTextSize(14);
             empty.setGravity(Gravity.CENTER);
             empty.setPadding(dp(12), dp(36), dp(12), dp(36));
@@ -124,11 +124,11 @@ final class AppPresentationSettingsView {
         scaleHeader.setPadding(dp(8), dp(12), dp(8), 0);
         final TextView scaleLabel = text(
                 mActivity.getString(R.string.app_presentation_scale),
-                DesktopUiFactory.COLOR_TEXT,
+                UiColor.TEXT,
                 14);
         scaleHeader.addView(scaleLabel, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        mScaleValue = text("", DesktopUiFactory.COLOR_TEXT, 14);
+        mScaleValue = text("", UiColor.TEXT, 14);
         mScaleValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         scaleHeader.addView(mScaleValue, new LinearLayout.LayoutParams(
                 dp(74), LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -143,6 +143,7 @@ final class AppPresentationSettingsView {
         adjustment.addView(mDecrease, new LinearLayout.LayoutParams(
                 dp(42), dp(42)));
         mScaleSlider = new SeekBar(mActivity);
+        UiAppearance.progress(mScaleSlider, UiColor.ACCENT);
         mScaleSlider.setMin(AppPresentationProfile.MIN_SCALE_PERCENT);
         mScaleSlider.setMax(AppPresentationProfile.MAX_SCALE_PERCENT);
         mScaleSlider.setKeyProgressIncrement(SCALE_STEP);
@@ -269,18 +270,10 @@ final class AppPresentationSettingsView {
         final RadioButton button = new RadioButton(mActivity);
         button.setId(View.generateViewId());
         button.setText(labelResId);
-        button.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(button, UiColor.TEXT);
         button.setTextSize(14);
         button.setGravity(Gravity.CENTER);
-        button.setButtonTintList(new ColorStateList(
-                new int[][]{
-                    new int[]{android.R.attr.state_checked},
-                    new int[0]
-                },
-                new int[]{
-                    DesktopUiFactory.COLOR_CYAN,
-                    DesktopUiFactory.COLOR_MUTED
-                }));
+        UiAppearance.button(button, UiColor.ACCENT);
         return button;
     }
 
@@ -288,7 +281,7 @@ final class AppPresentationSettingsView {
             final String text,
             final int descriptionResId) {
         final Button button = mUi.actionButton(
-                text, DesktopUiFactory.COLOR_CYAN);
+                text, UiColor.ACCENT);
         button.setTextSize(18);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
@@ -307,7 +300,7 @@ final class AppPresentationSettingsView {
         row.setClickable(true);
         row.setFocusable(true);
         row.setBackground(mUi.interactiveRounded(
-                Color.TRANSPARENT, dp(6), DesktopUiFactory.COLOR_PANEL_ALT));
+                UiColor.TRANSPARENT, dp(6), UiColor.SURFACE));
         row.setOnClickListener(view ->
                 mActions.openProfile(profile.application));
         final ImageView icon = new ImageView(mActivity);
@@ -316,12 +309,12 @@ final class AppPresentationSettingsView {
         final LinearLayout labels = new LinearLayout(mActivity);
         labels.setOrientation(LinearLayout.VERTICAL);
         final TextView title = text(
-                profile.label, DesktopUiFactory.COLOR_TEXT, 14);
+                profile.label, UiColor.TEXT, 14);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
         labels.addView(title, matchWrap());
         final TextView packageLabel = text(
-                profile.application.packageName, DesktopUiFactory.COLOR_MUTED, 11);
+                profile.application.packageName, UiColor.MUTED, 11);
         packageLabel.setSingleLine(true);
         packageLabel.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         labels.addView(packageLabel, matchWrap());
@@ -334,7 +327,7 @@ final class AppPresentationSettingsView {
                 mActivity.getString(
                         R.string.app_presentation_scale_value,
                         profile.profile.scalePercent),
-                DesktopUiFactory.COLOR_CYAN,
+                UiColor.ACCENT,
                 13);
         scale.setTypeface(Typeface.DEFAULT_BOLD);
         row.addView(scale, new LinearLayout.LayoutParams(
@@ -354,13 +347,13 @@ final class AppPresentationSettingsView {
         final LinearLayout labels = new LinearLayout(mActivity);
         labels.setOrientation(LinearLayout.VERTICAL);
         final TextView title = text(
-                profile.label, DesktopUiFactory.COLOR_TEXT, 17);
+                profile.label, UiColor.TEXT, 17);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
         labels.addView(title, matchWrap());
         final TextView packageLabel = text(
-                profile.application.packageName, DesktopUiFactory.COLOR_MUTED, 12);
+                profile.application.packageName, UiColor.MUTED, 12);
         packageLabel.setSingleLine(true);
         packageLabel.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         labels.addView(packageLabel, matchWrap());
@@ -383,11 +376,11 @@ final class AppPresentationSettingsView {
         header.setMinimumHeight(dp(46));
         final ImageView icon = new ImageView(mActivity);
         icon.setImageResource(iconResId);
-        icon.setColorFilter(DesktopUiFactory.COLOR_CYAN);
+        UiAppearance.image(icon, UiColor.ACCENT);
         header.addView(icon, new LinearLayout.LayoutParams(dp(24), dp(24)));
         final TextView title = text(
                 mActivity.getString(titleResId),
-                DesktopUiFactory.COLOR_TEXT,
+                UiColor.TEXT,
                 18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         final LinearLayout.LayoutParams titleParams =
@@ -397,7 +390,7 @@ final class AppPresentationSettingsView {
         header.addView(title, titleParams);
         content.addView(header, matchWrap());
         final View divider = new View(mActivity);
-        divider.setBackgroundColor(DesktopUiFactory.COLOR_CYAN);
+        UiAppearance.background(divider, UiColor.ACCENT);
         content.addView(divider, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
         return content;
@@ -406,7 +399,7 @@ final class AppPresentationSettingsView {
     private View wrapPage(final LinearLayout content) {
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(DesktopUiFactory.COLOR_PANEL);
+        UiAppearance.background(page, UiColor.PANEL);
         page.setPadding(dp(14), dp(10), dp(14), dp(14));
         SystemBarInsets.addToPadding(page);
         final ScrollView scroll = new ScrollView(mActivity);
@@ -440,7 +433,7 @@ final class AppPresentationSettingsView {
 
     private void addDivider(final LinearLayout parent) {
         final View divider = new View(mActivity);
-        divider.setBackgroundColor(DesktopUiFactory.COLOR_PANEL_ALT);
+        UiAppearance.background(divider, UiColor.SURFACE);
         parent.addView(divider, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
     }
@@ -498,11 +491,11 @@ final class AppPresentationSettingsView {
 
     private TextView text(
             final String value,
-            final int color,
+            final UiColor color,
             final int sizeSp) {
         final TextView text = new TextView(mActivity);
         text.setText(value);
-        text.setTextColor(color);
+        UiAppearance.text(text, color);
         text.setTextSize(sizeSp);
         return text;
     }

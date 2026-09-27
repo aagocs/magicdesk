@@ -28,7 +28,7 @@ public final class DesktopShellLayoutTest {
         final DesktopShellLayout layout = layout(1920, 1080, 0, 0, 64, false);
         final ShellLayout.Snapshot before = layout.snapshot();
         final ShellBounds paint = layout.taskbar().paint();
-        layout.update(new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0), 64, true);
+        ShellLayoutTestSupport.update(layout, new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0), 64, true);
         assertEquals(before.content(), layout.snapshot().workArea());
         assertEquals(before.panelArea(), layout.snapshot().panelArea());
         assertEquals(paint, layout.taskbar().paint());
@@ -38,14 +38,14 @@ public final class DesktopShellLayoutTest {
         final DesktopShellLayout layout = layout(1920, 1080, 0, 0, 64, false);
         final DesktopViewport viewport = new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0);
         final ShellLayout.Snapshot before = layout.snapshot();
-        layout.update(viewport, 64, false);
+        ShellLayoutTestSupport.update(layout, viewport, 64, false);
         assertSame(before, layout.snapshot());
-        layout.update(viewport, 77, false);
+        ShellLayoutTestSupport.update(layout, viewport, 77, false);
         assertEquals(1003, layout.snapshot().workArea().bottom());
         layout.release();
         assertEquals(0, layout.snapshot().exclusions().size());
         assertEquals(viewport.contentGeometry(), layout.snapshot().workArea());
-        layout.update(viewport, 77, false);
+        ShellLayoutTestSupport.update(layout, viewport, 77, false);
         assertEquals(1, layout.snapshot().surfaces().size());
     }
 
@@ -57,7 +57,7 @@ public final class DesktopShellLayoutTest {
     private static DesktopShellLayout layout(final int width, final int height,
             final int top, final int bottom, final int taskbar, final boolean autoHide) {
         final DesktopShellLayout layout = new DesktopShellLayout();
-        layout.update(new DesktopViewport(0, 0, width, height, 0, top, 0, bottom), taskbar, autoHide);
+        ShellLayoutTestSupport.update(layout, new DesktopViewport(0, 0, width, height, 0, top, 0, bottom), taskbar, autoHide);
         return layout;
     }
 }

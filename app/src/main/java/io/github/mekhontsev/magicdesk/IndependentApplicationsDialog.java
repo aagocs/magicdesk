@@ -147,7 +147,7 @@ final class IndependentApplicationsDialog {
             labels.setPadding(ui.dp(12), 0, ui.dp(8), 0);
             final TextView title = new TextView(activity);
             title.setText(item.title());
-            title.setTextColor(DesktopUiFactory.COLOR_TEXT);
+            UiAppearance.text(title, UiColor.TEXT);
             title.setTextSize(16);
             title.setSingleLine(true);
             title.setEllipsize(TextUtils.TruncateAt.END);
@@ -157,7 +157,7 @@ final class IndependentApplicationsDialog {
                 final TextView detail = new TextView(activity);
                 detail.setText(hint);
                 detail.setTextSize(12);
-                detail.setTextColor(DesktopUiFactory.COLOR_MUTED);
+                UiAppearance.text(detail, UiColor.MUTED);
                 detail.setMaxLines(2);
                 detail.setEllipsize(TextUtils.TruncateAt.END);
                 labels.addView(detail);

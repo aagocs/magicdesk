@@ -1,0 +1,32 @@
+<resources>
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_colors">Colors and Text</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_contrast">Contrast</string>
+    <string name="appearance_font">Font</string>
+    <string name="appearance_sans">Sans</string>
+    <string name="appearance_serif">Serif</string>
+    <string name="appearance_mono">Mono</string>
+    <string name="appearance_text_scale">Text scale (%)</string>
+    <string name="appearance_rounding">Corner rounding (%)</string>
+    <string name="appearance_border">Border (dp)</string>
+    <string name="appearance_taskbar">Taskbar</string>
+    <string name="appearance_width">Width</string>
+    <string name="appearance_fill">Fill</string>
+    <string name="appearance_content">Content</string>
+    <string name="appearance_alignment">Alignment</string>
+    <string name="appearance_start">Left</string>
+    <string name="appearance_center">Center</string>
+    <string name="appearance_end">Right</string>
+    <string name="appearance_max_width">Maximum width (dp)</string>
+    <string name="appearance_side_gap">Side gap (dp)</string>
+    <string name="appearance_bottom_gap">Bottom gap (dp)</string>
+    <string name="appearance_padding">Padding (dp)</string>
+    <string name="appearance_radius">Corner radius (dp)</string>
+    <string name="appearance_opacity">Background opacity (%)</string>
+    <string name="appearance_reserve">Reserve space for taskbar</string>
+    <string name="appearance_import">Import</string>
+    <string name="appearance_export">Export</string>
+    <string name="appearance_reset">Reset</string>
+</resources>

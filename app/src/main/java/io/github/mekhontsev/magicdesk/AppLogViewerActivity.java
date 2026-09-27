@@ -36,11 +36,6 @@ public final class AppLogViewerActivity extends Activity
     private static final String EXTRA_LABEL =
             "io.github.mekhontsev.magicdesk.extra.LOG_LABEL";
     private static final int MAX_TRANSCRIPT_CHARS = 500_000;
-    private static final int COLOR_BACKGROUND = 0xFF090D14;
-    private static final int COLOR_PANEL = 0xFF172033;
-    private static final int COLOR_TEXT = 0xFFE5E7EB;
-    private static final int COLOR_MUTED = 0xFF94A3B8;
-    private static final int COLOR_CYAN = 0xFF22D3EE;
 
     private final ExecutorService mWorker =
             Executors.newSingleThreadExecutor(runnable -> {
@@ -142,14 +137,14 @@ public final class AppLogViewerActivity extends Activity
         final LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(10), dp(8), dp(10), dp(8));
-        page.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(page, UiColor.BACKGROUND);
         SystemBarInsets.addToPadding(page);
 
         final LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         final TextView title = new TextView(this);
         title.setText(getString(R.string.app_logs_title, mLabel));
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, UiColor.TEXT);
         title.setTextSize(17f);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         header.addView(title, new LinearLayout.LayoutParams(
@@ -170,14 +165,14 @@ public final class AppLogViewerActivity extends Activity
         page.addView(header);
 
         mStatus = new TextView(this);
-        mStatus.setTextColor(COLOR_CYAN);
+        UiAppearance.text(mStatus, UiColor.ACCENT);
         mStatus.setTextSize(12f);
         mStatus.setTypeface(Typeface.MONOSPACE);
         page.addView(mStatus, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(28)));
 
         mOutput = new EditText(this);
-        mOutput.setTextColor(COLOR_TEXT);
+        UiAppearance.text(mOutput, UiColor.TEXT);
         mOutput.setTextSize(11f);
         mOutput.setTypeface(Typeface.MONOSPACE);
         mOutput.setGravity(Gravity.TOP | Gravity.START);
@@ -186,7 +181,7 @@ public final class AppLogViewerActivity extends Activity
         mOutput.setCursorVisible(false);
         mOutput.setShowSoftInputOnFocus(false);
         mOutput.setPadding(dp(8), dp(6), dp(8), dp(6));
-        mOutput.setBackground(rounded(COLOR_PANEL, dp(6)));
+        mOutput.setBackground(rounded(UiColor.SURFACE, dp(6)));
         page.addView(mOutput, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         return page;
@@ -405,8 +400,7 @@ public final class AppLogViewerActivity extends Activity
             final View.OnClickListener listener) {
         final ImageButton button = new ImageButton(this);
         button.setImageResource(drawable);
-        button.setImageTintList(new ColorStateList(
-                new int[][]{new int[0]}, new int[]{COLOR_TEXT}));
+        UiAppearance.imageStates(button, UiColor.TEXT);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
         button.setBackgroundColor(Color.TRANSPARENT);
@@ -420,11 +414,8 @@ public final class AppLogViewerActivity extends Activity
         return new LinearLayout.LayoutParams(dp(44), dp(44));
     }
 
-    private GradientDrawable rounded(final int color, final int radius) {
-        final GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(radius);
-        return drawable;
+    private GradientDrawable rounded(final UiColor color, final int radius) {
+        return new DesktopUiFactory(this).rounded(color, radius, UiColor.TRANSPARENT);
     }
 
     private int dp(final int value) {

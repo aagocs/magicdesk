@@ -14,7 +14,7 @@ final class DesktopApplicationIconResolver {
             final DesktopApplicationShortcut shortcut) {
         if (shortcut.hasExecLaunch() && shortcut.execBackend == DesktopExecBackend.TERMUX) {
             final var bitmap = ApplicationCatalog.cachedTermuxIcon(shortcut.icon);
-            return bitmap == null ? context.getDrawable(R.drawable.ic_file_console)
+            return bitmap == null ? UiAppearance.symbol(context, R.drawable.ic_file_console, UiColor.TEXT)
                     : new android.graphics.drawable.BitmapDrawable(context.getResources(), bitmap);
         }
         final String packageName = shortcut.launchTarget != null
@@ -28,6 +28,6 @@ final class DesktopApplicationIconResolver {
                 // Freedesktop icon names do not map to Android packages.
             }
         }
-        return context.getDrawable(R.drawable.ic_file_console);
+        return UiAppearance.symbol(context, R.drawable.ic_file_console, UiColor.TEXT);
     }
 }

@@ -2,12 +2,12 @@ package io.github.mekhontsev.magicdesk;
 
 import android.graphics.Rect;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_CYAN;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_MUTED;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL_ALT;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_RED;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_TEXT;
+import static io.github.mekhontsev.magicdesk.UiColor.ACCENT;
+import static io.github.mekhontsev.magicdesk.UiColor.MUTED;
+import static io.github.mekhontsev.magicdesk.UiColor.PANEL;
+import static io.github.mekhontsev.magicdesk.UiColor.SURFACE;
+import static io.github.mekhontsev.magicdesk.UiColor.DANGER;
+import static io.github.mekhontsev.magicdesk.UiColor.TEXT;
 
 import android.app.KeyguardManager;
 import android.app.NotificationManager;
@@ -82,7 +82,7 @@ final class NotificationCenterController {
         mPanel = new LinearLayout(mActivity);
         mPanel.setOrientation(LinearLayout.VERTICAL);
         mPanel.setPadding(dp(14), dp(14), dp(14), dp(12));
-        mPanel.setBackground(mUi.rounded(COLOR_PANEL, dp(8), COLOR_CYAN));
+        mPanel.setBackground(mUi.rounded(PANEL, dp(8), ACCENT));
         mPanel.setVisibility(View.GONE);
         mPanel.setClickable(true);
         mPanel.setFocusable(true);
@@ -113,7 +113,7 @@ final class NotificationCenterController {
         mBadge.setMinWidth(dp(17));
         mBadge.setMinHeight(dp(17));
         mBadge.setPadding(dp(3), 0, dp(3), 0);
-        mBadge.setBackground(mUi.rounded(COLOR_RED, dp(9), COLOR_RED));
+        mBadge.setBackground(mUi.rounded(DANGER, dp(9), DANGER));
         mBadge.setVisibility(View.GONE);
         final FrameLayout.LayoutParams badgeParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT, dp(17),
@@ -143,8 +143,7 @@ final class NotificationCenterController {
                 Math.min(dp(420), Math.max(dp(280), areaWidth - dp(16)));
         final int height = Math.max(
                 dp(180), areaHeight - dp(16));
-        if (!panels.show(mPanel, ShellPanelPlacement.anchored(width, height,
-                ShellSurface.RIGHT | ShellSurface.TOP, 0, dp(8), dp(8), 0),
+        if (!panels.show(mPanel, panels.aboveTaskbar(width, height, true, dp(8), dp(8)),
                 false, "MagicDesk notifications")) {
             mActivity.setErrorStatus("PANEL-001", mActivity.getString(
                     R.string.status_desktop_panel_unavailable));
@@ -209,7 +208,7 @@ final class NotificationCenterController {
         if (mSnapshot.entries.isEmpty()) {
             final TextView empty = new TextView(mActivity);
             empty.setText(R.string.notifications_empty);
-            empty.setTextColor(COLOR_MUTED);
+            UiAppearance.text(empty, MUTED);
             empty.setTextSize(14);
             empty.setGravity(Gravity.CENTER);
             mPanel.addView(empty, new LinearLayout.LayoutParams(
@@ -247,14 +246,14 @@ final class NotificationCenterController {
         final TextView title = new TextView(mActivity);
         title.setText(mActivity.getString(
                 R.string.notifications_title, Integer.valueOf(count)));
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(title, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         final Button clear = mUi.smallButton(
-                R.string.action_clear_notifications, COLOR_PANEL_ALT);
+                R.string.action_clear_notifications, SURFACE);
         clear.setEnabled(hasClearableNotifications());
         clear.setOnClickListener(view -> {
             if (!DesktopNotificationListenerService.clearAllNotifications()) {
@@ -267,7 +266,7 @@ final class NotificationCenterController {
         header.addView(clear, new LinearLayout.LayoutParams(
                 dp(82), LinearLayout.LayoutParams.WRAP_CONTENT));
         final Button close =
-                mUi.smallButton(R.string.action_close, COLOR_PANEL_ALT);
+                mUi.smallButton(R.string.action_close, SURFACE);
         close.setOnClickListener(view -> mActivity.hideAllPanels());
         final LinearLayout.LayoutParams closeParams =
                 new LinearLayout.LayoutParams(
@@ -305,7 +304,7 @@ final class NotificationCenterController {
         state.setPadding(dp(16), dp(20), dp(16), dp(20));
         final TextView message = new TextView(mActivity);
         message.setText(text);
-        message.setTextColor(COLOR_MUTED);
+        UiAppearance.text(message, MUTED);
         message.setTextSize(14);
         message.setGravity(Gravity.CENTER);
         state.addView(message, new LinearLayout.LayoutParams(
@@ -313,7 +312,7 @@ final class NotificationCenterController {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         if (showSettings) {
             final Button settings = mUi.actionButton(
-                    R.string.action_notification_access, COLOR_CYAN);
+                    R.string.action_notification_access, ACCENT);
             settings.setOnClickListener(
                     view -> openNotificationAccessSettings());
             final LinearLayout.LayoutParams params =
@@ -333,11 +332,11 @@ final class NotificationCenterController {
         final LinearLayout item = new LinearLayout(mActivity);
         item.setOrientation(LinearLayout.VERTICAL);
         item.setPadding(dp(12), dp(10), dp(10), dp(10));
-        final int borderColor =
+        final UiColor borderColor =
                 entry.importance >= NotificationManager.IMPORTANCE_HIGH
-                        ? COLOR_CYAN : COLOR_PANEL_ALT;
+                        ? ACCENT : SURFACE;
         item.setBackground(
-                mUi.rounded(COLOR_PANEL_ALT, dp(8), borderColor));
+                mUi.rounded(SURFACE, dp(8), borderColor));
         item.setClickable(true);
         item.setFocusable(true);
         addItemHeader(item, entry, popup);
@@ -364,7 +363,7 @@ final class NotificationCenterController {
         header.addView(icon, new LinearLayout.LayoutParams(dp(34), dp(34)));
         final TextView app = new TextView(mActivity);
         app.setText(entry.appName);
-        app.setTextColor(COLOR_MUTED);
+        UiAppearance.text(app, MUTED);
         app.setTextSize(12);
         app.setSingleLine(true);
         app.setEllipsize(TextUtils.TruncateAt.END);
@@ -376,7 +375,7 @@ final class NotificationCenterController {
         final TextView time = new TextView(mActivity);
         time.setText(DateFormat.getTimeFormat(mActivity)
                 .format(new Date(entry.postTime)));
-        time.setTextColor(COLOR_MUTED);
+        UiAppearance.text(time, MUTED);
         time.setTextSize(11);
         time.setSingleLine(true);
         header.addView(time, new LinearLayout.LayoutParams(
@@ -414,7 +413,7 @@ final class NotificationCenterController {
         if (!TextUtils.isEmpty(entry.title)) {
             final TextView title = new TextView(mActivity);
             title.setText(entry.title);
-            title.setTextColor(COLOR_TEXT);
+            UiAppearance.text(title, TEXT);
             title.setTextSize(14);
             title.setTypeface(Typeface.DEFAULT_BOLD);
             title.setMaxLines(popup ? 1 : 2);
@@ -429,7 +428,7 @@ final class NotificationCenterController {
         if (!TextUtils.isEmpty(entry.text)) {
             final TextView text = new TextView(mActivity);
             text.setText(entry.text);
-            text.setTextColor(COLOR_TEXT);
+            UiAppearance.text(text, TEXT);
             text.setTextSize(13);
             text.setMaxLines(popup ? 2 : 5);
             text.setEllipsize(TextUtils.TruncateAt.END);
@@ -456,7 +455,7 @@ final class NotificationCenterController {
         for (int index = 0; index < count; index++) {
             final DesktopNotificationListenerService.ActionEntry action =
                     entry.actions.get(index);
-            final Button button = mUi.smallButton(action.title, COLOR_CYAN);
+            final Button button = mUi.smallButton(action.title, ACCENT);
             button.setOnClickListener(view -> invokeAction(entry, action));
             final LinearLayout.LayoutParams params =
                     new LinearLayout.LayoutParams(
@@ -523,8 +522,7 @@ final class NotificationCenterController {
                         View.MeasureSpec.AT_MOST));
         final int height = Math.max(dp(92), popup.getMeasuredHeight());
         if (!panels.showTransient(
-                popup, ShellPanelPlacement.anchored(width, height,
-                        ShellSurface.RIGHT | ShellSurface.BOTTOM, 0, 0, dp(12), dp(12)), 7000L,
+                popup, panels.aboveTaskbar(width, height, true, dp(12), dp(12)), 7000L,
                 "MagicDesk notification")) {
             Log.w(TAG, "notification popup panel unavailable");
         }

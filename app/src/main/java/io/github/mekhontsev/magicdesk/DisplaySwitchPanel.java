@@ -38,17 +38,14 @@ final class DisplaySwitchPanel implements AutoCloseable {
         final LinearLayout list = new LinearLayout(context);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(padding, padding, padding, padding);
-        final GradientDrawable background = new GradientDrawable();
-        background.setColor(DesktopUiFactory.COLOR_PANEL);
-        background.setCornerRadius(8 * density);
-        background.setStroke(Math.max(1, Math.round(density)), DesktopUiFactory.COLOR_MUTED);
+        final GradientDrawable background = ui.rounded(UiColor.PANEL, Math.round(8 * density), UiColor.MUTED);
         list.setBackground(background);
         if (pointerHost != null) {
             final LinearLayout header = new LinearLayout(context);
             header.setGravity(Gravity.CENTER_VERTICAL);
             final TextView title = new TextView(context);
             title.setText(R.string.display_switch);
-            title.setTextColor(DesktopUiFactory.COLOR_TEXT);
+            UiAppearance.text(title, UiColor.TEXT);
             title.setTextSize(16);
             header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final ImageButton close = ui.menuIconButton(
@@ -63,7 +60,7 @@ final class DisplaySwitchPanel implements AutoCloseable {
             final TextView row = new TextView(context);
             row.setText(label);
             row.setTextSize(14);
-            row.setTextColor(DesktopUiFactory.COLOR_TEXT);
+            UiAppearance.text(row, UiColor.TEXT);
             row.setPadding(padding, padding, padding, padding);
             if (pointerHost != null) {
                 final int index = rows.size();
@@ -121,12 +118,12 @@ final class DisplaySwitchPanel implements AutoCloseable {
 
     void select(int index) {
         for (int i = 0; i < rows.size(); i++) {
-            if (panels == null) rows.get(i).setBackgroundColor(
-                    i == index ? DesktopUiFactory.COLOR_CYAN : android.graphics.Color.TRANSPARENT);
+            if (panels == null) UiAppearance.background(rows.get(i),
+                    i == index ? UiColor.ACCENT : UiColor.TRANSPARENT);
             else rows.get(i).setBackground(ui.interactiveRounded(i == index
-                    ? DesktopUiFactory.COLOR_CYAN : DesktopUiFactory.COLOR_PANEL, ui.dp(4), DesktopUiFactory.COLOR_CYAN));
+                    ? UiColor.ACCENT : UiColor.PANEL, ui.dp(4), UiColor.ACCENT));
             rows.get(i).setSelected(i == index);
-            rows.get(i).setTextColor(i == index ? DesktopUiFactory.COLOR_BACKGROUND : DesktopUiFactory.COLOR_TEXT);
+            UiAppearance.text(rows.get(i), i == index ? UiColor.BACKGROUND : UiColor.TEXT);
         }
         final TextView row = rows.get(index);
         scroll.post(() -> row.requestRectangleOnScreen(

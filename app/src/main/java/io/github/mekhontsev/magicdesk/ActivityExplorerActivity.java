@@ -76,7 +76,7 @@ public final class ActivityExplorerActivity extends Activity {
         final LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
-        root.setBackgroundColor(DesktopUiFactory.COLOR_BACKGROUND);
+        UiAppearance.background(root, UiColor.BACKGROUND);
 
         final TextView title = ui.sectionTitle(
                 R.string.activity_explorer_title);
@@ -104,25 +104,25 @@ public final class ActivityExplorerActivity extends Activity {
 
         mExpectResult = new CheckBox(this);
         mExpectResult.setText(R.string.activity_explorer_expect_result);
-        mExpectResult.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(mExpectResult, UiColor.TEXT);
         root.addView(mExpectResult, matchWrap());
 
         final LinearLayout commands = new LinearLayout(this);
         commands.setGravity(Gravity.END);
         final Button history = ui.actionButton(
                 R.string.activity_explorer_history,
-                DesktopUiFactory.COLOR_PANEL_ALT);
+                UiColor.SURFACE);
         history.setOnClickListener(view -> showHistory());
         commands.addView(history, wrapWrap());
         final Button query = ui.actionButton(
                 R.string.activity_explorer_query,
-                DesktopUiFactory.COLOR_CYAN);
+                UiColor.ACCENT);
         query.setOnClickListener(view -> query());
         commands.addView(query, wrapWrap());
         root.addView(commands, matchWrap());
 
         mStatus = new TextView(this);
-        mStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mStatus, UiColor.MUTED);
         mStatus.setTextSize(13);
         root.addView(mStatus, matchWrap());
 
@@ -248,7 +248,7 @@ public final class ActivityExplorerActivity extends Activity {
                 Integer.valueOf(history.length())));
         for (int index = history.length() - 1; index >= 0; index--) {
             final TextView row = new TextView(this);
-            row.setTextColor(DesktopUiFactory.COLOR_TEXT);
+            UiAppearance.text(row, UiColor.TEXT);
             row.setTextSize(13);
             row.setText(String.valueOf(history.opt(index)));
             row.setTextIsSelectable(true);

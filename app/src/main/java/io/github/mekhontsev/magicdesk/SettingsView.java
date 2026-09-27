@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 final class SettingsView {
     interface Actions {
+        void configureAppearance();
         void setTaskbarAutoHide(boolean enabled);
 
         void setKeepDesktopAwake(boolean enabled);
@@ -125,7 +126,7 @@ final class SettingsView {
     View create() {
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(DesktopUiFactory.COLOR_PANEL);
+        UiAppearance.background(page, UiColor.PANEL);
         page.setPadding(dp(14), dp(10), dp(14), dp(14));
         SystemBarInsets.addToPadding(page);
 
@@ -134,6 +135,7 @@ final class SettingsView {
         page.addView(centered(createHeader()), new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
+        addAction(content, R.drawable.ic_quick_controls, R.string.appearance_title, mActions::configureAppearance);
         addSection(content, R.string.settings_section_desktop);
         mDesktopSettingsStatus = mUi.sectionTitle(R.string.capability_access_required);
         content.addView(mDesktopSettingsStatus);
@@ -164,7 +166,7 @@ final class SettingsView {
 
         addSection(content, R.string.settings_section_console);
         mConsoleFontSize = new TextView(mActivity);
-        mConsoleFontSize.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mConsoleFontSize, UiColor.MUTED);
         mConsoleFontSize.setTextSize(12);
         addAction(content, R.drawable.ic_font_size, R.string.settings_console_font_size,
                 mActions::configureConsoleFontSize, mConsoleFontSize);
@@ -205,13 +207,13 @@ final class SettingsView {
                 });
 
         mSystemTheme = new TextView(mActivity);
-        mSystemTheme.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mSystemTheme, UiColor.MUTED);
         mSystemTheme.setTextSize(12);
         mSystemThemeAction = addAction(content, R.drawable.ic_settings,
                 R.string.settings_system_theme, mActions::configureSystemTheme, mSystemTheme);
         final TextView themeDescription = new TextView(mActivity);
         themeDescription.setText(R.string.settings_system_theme_summary);
-        themeDescription.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(themeDescription, UiColor.MUTED);
         themeDescription.setTextSize(12);
         themeDescription.setPadding(dp(8), 0, dp(8), dp(7));
         content.addView(themeDescription);
@@ -238,7 +240,7 @@ final class SettingsView {
             });
             final TextView description = new TextView(mActivity);
             description.setText(mProjectionOption.summaryResource());
-            description.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(description, UiColor.MUTED);
             description.setTextSize(12);
             description.setPadding(dp(8), 0, dp(8), dp(7));
             content.addView(description);
@@ -253,7 +255,7 @@ final class SettingsView {
             }
         });
         mSystemDesktopModeStatus = new TextView(mActivity);
-        mSystemDesktopModeStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mSystemDesktopModeStatus, UiColor.MUTED);
         mSystemDesktopModeStatus.setTextSize(12);
         mSystemDesktopModeStatus.setPadding(dp(8), dp(7), dp(8), dp(7));
         content.addView(mSystemDesktopModeStatus, new LinearLayout.LayoutParams(
@@ -270,7 +272,7 @@ final class SettingsView {
         addAction(content, R.drawable.ic_lock,
                 R.string.settings_mcp_local_access, () -> mActions.configureMcpAccess(false));
         mMcpStatus = new TextView(mActivity);
-        mMcpStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mMcpStatus, UiColor.MUTED);
         mMcpStatus.setTextSize(12);
         mMcpStatus.setPadding(dp(8), dp(7), dp(8), dp(7));
         content.addView(mMcpStatus, new LinearLayout.LayoutParams(
@@ -294,7 +296,7 @@ final class SettingsView {
         addAction(content, R.drawable.ic_lock,
                 R.string.settings_mcp_network_access, () -> mActions.configureMcpAccess(true));
         mMcpNetworkStatus = new TextView(mActivity);
-        mMcpNetworkStatus.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mMcpNetworkStatus, UiColor.MUTED);
         mMcpNetworkStatus.setTextSize(12);
         mMcpNetworkStatus.setPadding(dp(8), dp(7), dp(8), dp(7));
         content.addView(mMcpNetworkStatus, new LinearLayout.LayoutParams(
@@ -308,7 +310,7 @@ final class SettingsView {
 
         addSection(content, R.string.settings_section_limits);
         mMaximumAccess = new TextView(mActivity);
-        mMaximumAccess.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mMaximumAccess, UiColor.MUTED);
         mMaximumAccess.setTextSize(12);
         addAction(content, R.drawable.ic_lock, R.string.settings_maximum_access,
                 mActions::configureMaximumAccess, mMaximumAccess);
@@ -325,13 +327,13 @@ final class SettingsView {
 
         addSection(content, R.string.settings_section_integrations);
         mShellBackend = new TextView(mActivity);
-        mShellBackend.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mShellBackend, UiColor.MUTED);
         mShellBackend.setTextSize(12);
         mShellBackendAction = addAction(content, R.drawable.ic_settings, R.string.settings_shell_backend,
                 mActions::configureShellBackend, mShellBackend);
         for (final IntegrationPackage integration : IntegrationPackage.values()) {
             final TextView value = new TextView(mActivity);
-            value.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(value, UiColor.MUTED);
             value.setTextSize(12);
             value.setPadding(0, dp(4), 0, 0);
             addAction(content, R.drawable.ic_file_rename, integrationLabel(integration),
@@ -493,13 +495,13 @@ final class SettingsView {
 
         final ImageView icon = new ImageView(mActivity);
         icon.setImageResource(R.drawable.ic_settings);
-        icon.setColorFilter(DesktopUiFactory.COLOR_CYAN);
+        UiAppearance.image(icon, UiColor.ACCENT);
         icon.setContentDescription(null);
         header.addView(icon, new LinearLayout.LayoutParams(dp(24), dp(24)));
 
         final TextView title = new TextView(mActivity);
         title.setText(R.string.settings_title);
-        title.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(title, UiColor.TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setGravity(Gravity.CENTER_VERTICAL);
@@ -550,7 +552,7 @@ final class SettingsView {
             final LinearLayout parent,
             final int titleResId) {
         final View divider = new View(mActivity);
-        divider.setBackgroundColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.background(divider, UiColor.MUTED);
         final LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
         dividerParams.setMargins(0, dp(20), 0, dp(10));
@@ -579,12 +581,13 @@ final class SettingsView {
 
         final TextView label = new TextView(mActivity);
         label.setText(labelResId);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(14);
         row.addView(label, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         final Switch toggle = new Switch(mActivity);
+        UiAppearance.button(toggle, UiColor.ACCENT);
         toggle.setShowText(false);
         toggle.setContentDescription(mActivity.getString(labelResId));
         final LinearLayout.LayoutParams toggleParams =
@@ -636,13 +639,13 @@ final class SettingsView {
 
         final ImageView icon = new ImageView(mActivity);
         icon.setImageResource(iconResId);
-        icon.setColorFilter(DesktopUiFactory.COLOR_CYAN);
+        UiAppearance.image(icon, UiColor.ACCENT);
         icon.setContentDescription(null);
         row.addView(icon, new LinearLayout.LayoutParams(dp(22), dp(22)));
 
         final TextView label = new TextView(mActivity);
         label.setText(labelResId);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(14);
         final LinearLayout.LayoutParams labelParams =
                 new LinearLayout.LayoutParams(
@@ -657,7 +660,7 @@ final class SettingsView {
 
         final ImageView arrow = new ImageView(mActivity);
         arrow.setImageResource(R.drawable.ic_chevron_right);
-        arrow.setColorFilter(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.image(arrow, UiColor.MUTED);
         arrow.setContentDescription(null);
         row.addView(arrow, new LinearLayout.LayoutParams(dp(18), dp(18)));
 
@@ -670,22 +673,13 @@ final class SettingsView {
 
     private void addDivider(final LinearLayout parent) {
         final View divider = new View(mActivity);
-        divider.setBackgroundColor(DesktopUiFactory.COLOR_PANEL_ALT);
+        UiAppearance.background(divider, UiColor.SURFACE);
         parent.addView(divider, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)));
     }
 
     private void applyPressedBackground(final View view) {
-        view.setBackgroundColor(Color.TRANSPARENT);
-        view.setBackgroundTintList(new ColorStateList(
-                new int[][] {
-                    new int[] {android.R.attr.state_pressed},
-                    new int[0]
-                },
-                new int[] {
-                    DesktopUiFactory.COLOR_PANEL_ALT,
-                    Color.TRANSPARENT
-                }));
+        view.setBackground(mUi.flatButtonBackground(dp(4)));
     }
 
     private int dp(final int value) {

@@ -1,5 +1,7 @@
 package io.github.mekhontsev.magicdesk;
 
+import static io.github.mekhontsev.magicdesk.UiColor.*;
+
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -17,15 +19,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public final class DesktopUiFactory {
-    static final int COLOR_BACKGROUND = 0xFF090D14;
-    static final int COLOR_PANEL = 0xFF111827;
-    public static final int COLOR_PANEL_ALT = 0xFF172033;
-    public static final int COLOR_TEXT = 0xFFE5E7EB;
-    public static final int COLOR_MUTED = 0xFF94A3B8;
-    public static final int COLOR_CYAN = 0xFF22D3EE;
-    static final int COLOR_RED = 0xFFF43F5E;
-    static final int COLOR_AMBER = 0xFFF59E0B;
-    static final int COLOR_PANEL_FOCUS = 0xFF26344A;
     private static final int MENU_ITEM_HEIGHT_DP = 48;
     private static final int MENU_MAX_WIDTH_DP = 360;
 
@@ -50,17 +43,36 @@ public final class DesktopUiFactory {
     public TextView sectionTitle(final int titleResId) {
         final TextView title = new TextView(mContext);
         title.setText(titleResId);
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         return title;
+    }
+
+    android.widget.Spinner spinner(final String[] items) {
+        final android.widget.Spinner spinner = new android.widget.Spinner(mContext);
+        UiAppearance.backgroundTint(spinner, MUTED);
+        spinner.setAdapter(new android.widget.ArrayAdapter<String>(mContext, android.R.layout.simple_spinner_dropdown_item, items) {
+            @Override public View getView(int position, View convert, android.view.ViewGroup parent) {
+                final View view = super.getView(position, convert, parent);
+                UiAppearance.text((TextView) view, TEXT);
+                return view;
+            }
+            @Override public View getDropDownView(int position, View convert, android.view.ViewGroup parent) {
+                final View view = super.getDropDownView(position, convert, parent);
+                UiAppearance.text((TextView) view, TEXT);
+                UiAppearance.background(view, PANEL);
+                return view;
+            }
+        });
+        return spinner;
     }
 
     public void addControlSection(
             final LinearLayout parent, final int titleResId, final int spacing) {
         if (parent.getChildCount() > 0) {
             final View divider = new View(mContext);
-            divider.setBackgroundColor(COLOR_PANEL_FOCUS);
+            UiAppearance.background(divider, HOVER);
             final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
             params.setMargins(0, spacing, 0, spacing);
@@ -75,44 +87,39 @@ public final class DesktopUiFactory {
         parent.addView(title, params);
     }
 
-    public Button actionButton(final int textResId, final int accentColor) {
+    public Button actionButton(final int textResId, final UiColor accentColor) {
         return actionButton(mContext.getString(textResId), accentColor);
     }
 
-    Button actionButton(final String text, final int accentColor) {
+    Button actionButton(final String text, final UiColor accentColor) {
         final Button button = new Button(mContext);
         button.setText(text);
         button.setAllCaps(false);
-        button.setTextColor(new ColorStateList(
-                new int[][] {
-                    new int[] {-android.R.attr.state_enabled},
-                    new int[0]
-                },
-                new int[] {COLOR_MUTED, Color.WHITE}));
+        UiAppearance.textStates(button, TEXT);
         button.setSingleLine(true);
         button.setEllipsize(TextUtils.TruncateAt.END);
         final StateListDrawable background = new StateListDrawable();
         background.addState(
                 new int[] {-android.R.attr.state_enabled},
-                rounded(COLOR_PANEL, dp(10), COLOR_MUTED));
+                rounded(PANEL, dp(10), MUTED));
         background.addState(
                 new int[] {android.R.attr.state_pressed},
-                rounded(COLOR_PANEL_FOCUS, dp(10), accentColor));
+                rounded(HOVER, dp(10), accentColor));
         background.addState(
                 new int[] {android.R.attr.state_focused},
-                rounded(COLOR_PANEL_FOCUS, dp(10), accentColor));
+                rounded(HOVER, dp(10), accentColor));
         background.addState(
                 new int[0],
-                rounded(COLOR_PANEL_ALT, dp(10), accentColor));
+                rounded(SURFACE, dp(10), accentColor));
         button.setBackground(background);
         return button;
     }
 
-    Button menuItem(final int textResId, final int emphasisColor) {
+    Button menuItem(final int textResId, final UiColor emphasisColor) {
         return menuItem(mContext.getString(textResId), emphasisColor);
     }
 
-    Button menuItem(final String text, final int emphasisColor) {
+    Button menuItem(final String text, final UiColor emphasisColor) {
         final Button button = new Button(mContext);
         styleMenuItem(button, text, emphasisColor);
         return button;
@@ -120,13 +127,13 @@ public final class DesktopUiFactory {
 
     android.widget.CheckBox menuCheckBox(final String text, final boolean checked) {
         final android.widget.CheckBox button = new android.widget.CheckBox(mContext);
-        styleMenuItem(button, text, COLOR_TEXT);
-        button.setButtonTintList(ColorStateList.valueOf(COLOR_TEXT));
+        styleMenuItem(button, text, TEXT);
+        UiAppearance.button(button, TEXT);
         button.setChecked(checked);
         return button;
     }
 
-    private void styleMenuItem(final Button button, final String text, final int emphasisColor) {
+    private void styleMenuItem(final Button button, final String text, final UiColor emphasisColor) {
         button.setText(text);
         button.setAllCaps(false);
         button.setTextSize(15);
@@ -141,15 +148,10 @@ public final class DesktopUiFactory {
         button.setPadding(dp(10), 0, dp(10), 0);
         button.setStateListAnimator(null);
         button.setDefaultFocusHighlightEnabled(false);
-        final int enabledColor = emphasisColor == COLOR_RED
-                || emphasisColor == COLOR_AMBER
-                ? emphasisColor : COLOR_TEXT;
-        button.setTextColor(new ColorStateList(
-                new int[][] {
-                    new int[] {-android.R.attr.state_enabled},
-                    new int[0]
-                },
-                new int[] {COLOR_MUTED, enabledColor}));
+        final UiColor enabledColor = emphasisColor == DANGER
+                || emphasisColor == ATTENTION
+                ? emphasisColor : TEXT;
+        UiAppearance.textStates(button, enabledColor);
         button.setBackground(menuItemBackground());
     }
 
@@ -158,9 +160,7 @@ public final class DesktopUiFactory {
             final int descriptionResId) {
         final ImageButton button = new ImageButton(mContext);
         button.setImageResource(drawableResId);
-        button.setImageTintList(new ColorStateList(
-                new int[][] {new int[] {-android.R.attr.state_enabled}, new int[0]},
-                new int[] {COLOR_MUTED, COLOR_TEXT}));
+        UiAppearance.imageStates(button, TEXT);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
         button.setBackground(menuItemBackground());
@@ -171,15 +171,13 @@ public final class DesktopUiFactory {
         return button;
     }
 
-    Button controlAction(final int textResId, final int iconResId, final int emphasisColor) {
+    Button controlAction(final int textResId, final int iconResId, final UiColor emphasisColor) {
         final Button button = menuItem(textResId, emphasisColor);
         button.setSingleLine(false);
         button.setMaxLines(2);
         button.setTextSize(14);
         button.setPadding(dp(8), dp(4), dp(8), dp(4));
-        button.setCompoundDrawableTintList(new ColorStateList(
-                new int[][] {new int[] {-android.R.attr.state_enabled}, new int[0]},
-                new int[] {COLOR_MUTED, emphasisColor == COLOR_RED ? COLOR_RED : COLOR_TEXT}));
+        UiAppearance.compound(button, emphasisColor == DANGER ? DANGER : TEXT);
         setControlIcon(button, iconResId);
         button.setCompoundDrawablePadding(dp(10));
         return button;
@@ -196,7 +194,7 @@ public final class DesktopUiFactory {
             final TextUtils.TruncateAt ellipsize) {
         final TextView title = new TextView(mContext);
         title.setText(text);
-        title.setTextColor(COLOR_MUTED);
+        UiAppearance.text(title, MUTED);
         title.setTextSize(13);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setGravity(Gravity.CENTER_VERTICAL);
@@ -211,7 +209,7 @@ public final class DesktopUiFactory {
     }
 
     GradientDrawable menuSurface() {
-        return rounded(COLOR_PANEL, dp(8), COLOR_PANEL_FOCUS);
+        return rounded(PANEL, dp(8), HOVER);
     }
 
     int menuItemHeight() {
@@ -227,36 +225,33 @@ public final class DesktopUiFactory {
         final StateListDrawable background = new StateListDrawable();
         background.addState(
                 new int[] {-android.R.attr.state_enabled},
-                filled(Color.TRANSPARENT, dp(6)));
+                filled(TRANSPARENT, dp(6)));
         background.addState(
                 new int[] {android.R.attr.state_pressed},
-                filled(COLOR_PANEL_FOCUS, dp(6)));
+                filled(HOVER, dp(6)));
         background.addState(
                 new int[] {android.R.attr.state_focused},
-                filled(COLOR_PANEL_FOCUS, dp(6)));
+                filled(HOVER, dp(6)));
         background.addState(
                 new int[] {android.R.attr.state_hovered},
-                filled(COLOR_PANEL_ALT, dp(6)));
+                filled(SURFACE, dp(6)));
         background.addState(
                 new int[0],
-                filled(Color.TRANSPARENT, dp(6)));
+                filled(TRANSPARENT, dp(6)));
         return background;
     }
 
-    private static GradientDrawable filled(
-            final int color,
+    private GradientDrawable filled(
+            final UiColor color,
             final int radius) {
-        final GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(radius);
-        return drawable;
+        return UiAppearance.paint(mContext.getResources().getDisplayMetrics().density, color, radius, TRANSPARENT);
     }
 
-    Button smallButton(final int textResId, final int accentColor) {
+    Button smallButton(final int textResId, final UiColor accentColor) {
         return smallButton(mContext.getString(textResId), accentColor);
     }
 
-    Button smallButton(final String text, final int accentColor) {
+    Button smallButton(final String text, final UiColor accentColor) {
         final Button button = actionButton(text, accentColor);
         button.setTextSize(11);
         button.setMinHeight(0);
@@ -271,29 +266,26 @@ public final class DesktopUiFactory {
             final boolean compact) {
         final ImageButton button = new ImageButton(mContext);
         button.setImageResource(drawableResId);
-        button.setColorFilter(COLOR_TEXT);
+        UiAppearance.image(button, TEXT);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
-        button.setBackground(rounded(
-                COLOR_PANEL_ALT,
-                desktopDp(8, 6, compact),
-                COLOR_PANEL_ALT));
+        button.setBackground(flatButtonBackground(desktopDp(8, 6, compact)));
         button.setContentDescription(mContext.getString(descriptionResId));
         button.setTooltipText(mContext.getString(descriptionResId));
         return button;
     }
 
     StateListDrawable interactiveRounded(
-            final int color,
+            final UiColor color,
             final int radius,
-            final int accentColor) {
+            final UiColor accentColor) {
         final StateListDrawable background = new StateListDrawable();
         background.addState(
                 new int[] {android.R.attr.state_pressed},
-                rounded(COLOR_PANEL_FOCUS, radius, accentColor));
+                rounded(HOVER, radius, accentColor));
         background.addState(
                 new int[] {android.R.attr.state_focused},
-                rounded(COLOR_PANEL_FOCUS, radius, accentColor));
+                rounded(HOVER, radius, accentColor));
         background.addState(
                 new int[0],
                 rounded(color, radius, accentColor));
@@ -301,13 +293,20 @@ public final class DesktopUiFactory {
     }
 
     public GradientDrawable rounded(
-            final int color,
+            final UiColor color,
             final int radius,
-            final int strokeColor) {
-        final GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(radius);
-        drawable.setStroke(dp(1), strokeColor);
-        return drawable;
+            final UiColor strokeColor) {
+        return UiAppearance.paint(mContext.getResources().getDisplayMetrics().density, color, radius, strokeColor);
+    }
+
+    StateListDrawable flatButtonBackground(final int radius) {
+        final StateListDrawable states = new StateListDrawable();
+        states.addState(new int[] {-android.R.attr.state_enabled}, filled(TRANSPARENT, radius));
+        states.addState(new int[] {android.R.attr.state_focused}, rounded(HOVER, radius, ACCENT));
+        states.addState(new int[] {android.R.attr.state_selected}, rounded(SURFACE, radius, ACCENT));
+        states.addState(new int[] {android.R.attr.state_pressed}, filled(HOVER, radius));
+        states.addState(new int[] {android.R.attr.state_hovered}, filled(SURFACE, radius));
+        states.addState(new int[0], filled(TRANSPARENT, radius));
+        return states;
     }
 }

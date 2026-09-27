@@ -113,7 +113,7 @@ public final class ShellLayoutScopeTest {
 
     @Test public void secondEdgePanelChangesStartAndWorkAreaWithoutConsumerSpecialCases() {
         final DesktopShellLayout desktop = new DesktopShellLayout();
-        desktop.update(new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0), 64, true);
+        ShellLayoutTestSupport.update(desktop, new DesktopViewport(0, 0, 1920, 1080, 0, 0, 0, 0), 64, true);
         final var start = desktop.bind();
         start.commit(List.of(new ShellSurface("start", true, ShellSurface.Layer.OVERLAY,
                 ShellSurface.Keyboard.ON_DEMAND,

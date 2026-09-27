@@ -13,6 +13,10 @@ is Android 14; managed Desktop and its self-tests require Android 15. Server
 availability, service prerequisites and client grants are independent checks.
 See [Runtime API levels](runtime-api-levels.md) for the validation boundary.
 
+Native [appearance](appearance.md) has shared `appearance.get`, `appearance.apply`,
+`appearance.preset` and `appearance.reset` operations. They use app-private state
+without Desktop or shell prerequisites; mutations require the control grant.
+
 ## Local MCP Server
 
 The MCP server is disabled by default. Enable **Local MCP automation server**

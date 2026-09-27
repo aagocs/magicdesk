@@ -1,9 +1,9 @@
 package io.github.mekhontsev.magicdesk;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_CYAN;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL_ALT;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_TEXT;
+import static io.github.mekhontsev.magicdesk.UiColor.ACCENT;
+import static io.github.mekhontsev.magicdesk.UiColor.PANEL;
+import static io.github.mekhontsev.magicdesk.UiColor.SURFACE;
+import static io.github.mekhontsev.magicdesk.UiColor.TEXT;
 
 import android.content.Context;
 import android.graphics.Rect;
@@ -38,7 +38,7 @@ final class ShortcutHelpController {
         final LinearLayout panel = new LinearLayout(mContext);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18), dp(16), dp(18), dp(16));
-        panel.setBackground(mUi.rounded(COLOR_PANEL, dp(8), COLOR_CYAN));
+        panel.setBackground(mUi.rounded(PANEL, dp(8), ACCENT));
         panel.setVisibility(View.GONE);
         panel.setClickable(true);
 
@@ -47,13 +47,13 @@ final class ShortcutHelpController {
         header.setGravity(Gravity.CENTER_VERTICAL);
         final TextView title = new TextView(mContext);
         title.setText(R.string.shortcuts_title);
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(title, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         final Button close =
-                mUi.smallButton(R.string.action_close, COLOR_PANEL_ALT);
+                mUi.smallButton(R.string.action_close, SURFACE);
         close.setOnClickListener(view -> mHidePanels.run());
         header.addView(close, new LinearLayout.LayoutParams(
                 dp(86), LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -109,14 +109,14 @@ final class ShortcutHelpController {
         row.setPadding(0, dp(7), 0, dp(7));
         final TextView keys = new TextView(mContext);
         keys.setText(keysResId);
-        keys.setTextColor(COLOR_CYAN);
+        UiAppearance.text(keys, ACCENT);
         keys.setTextSize(14);
         keys.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         row.addView(keys, new LinearLayout.LayoutParams(
                 dp(150), LinearLayout.LayoutParams.WRAP_CONTENT));
         final TextView action = new TextView(mContext);
         action.setText(actionResId);
-        action.setTextColor(COLOR_TEXT);
+        UiAppearance.text(action, TEXT);
         action.setTextSize(14);
         row.addView(action, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));

@@ -56,7 +56,7 @@ final class InputMethodMenuController {
             mContent.removeAllViews();
             final TextView loading = new TextView(mActivity);
             loading.setText(R.string.keyboard_loading);
-            loading.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(loading, UiColor.MUTED);
             loading.setPadding(dp(8, 6), dp(12, 8), dp(8, 6), dp(12, 8));
             mContent.addView(loading);
         } else populate(methods);
@@ -89,9 +89,9 @@ final class InputMethodMenuController {
         mContent.setPadding(dp(8, 6), dp(8, 6), dp(8, 6), dp(8, 6));
         mPanel.addView(mContent, new ScrollView.LayoutParams(-1, -2));
         mPanel.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL,
+                UiColor.PANEL,
                 dp(8, 6),
-                DesktopUiFactory.COLOR_CYAN));
+                UiColor.ACCENT));
         mPanel.setClickable(true);
     }
 
@@ -112,8 +112,8 @@ final class InputMethodMenuController {
             final boolean selected = id.equals(current);
             final Button button = mUi.actionButton(
                     selected ? "\u2713 " + label : label.toString(),
-                    selected ? DesktopUiFactory.COLOR_CYAN
-                            : DesktopUiFactory.COLOR_PANEL_ALT);
+                    selected ? UiColor.ACCENT
+                            : UiColor.SURFACE);
             button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
             button.setOnClickListener(view -> select(id));
             final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -135,14 +135,14 @@ final class InputMethodMenuController {
             final TextView unavailable = new TextView(mActivity);
             unavailable.setText(error == null ? mActivity.getString(R.string.state_unavailable)
                     : ShellAccess.usefulMessage(error));
-            unavailable.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(unavailable, UiColor.MUTED);
             unavailable.setPadding(dp(8, 6), dp(4, 3), dp(8, 6), dp(8, 6));
             mHardware.addView(unavailable);
             return;
         }
         for (final HardwareKeyboardLayouts.Choice choice : layouts.choices()) {
             final Button button = mUi.menuItem(choice.selected() ? "\u2713 " + choice.label() : choice.label(), choice.selected()
-                    ? DesktopUiFactory.COLOR_CYAN : DesktopUiFactory.COLOR_PANEL_ALT);
+                    ? UiColor.ACCENT : UiColor.SURFACE);
             button.setSelected(choice.selected());
             button.setTooltipText(choice.label());
             button.setOnClickListener(view -> {

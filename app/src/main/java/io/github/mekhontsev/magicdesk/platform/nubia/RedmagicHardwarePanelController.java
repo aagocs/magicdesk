@@ -1,5 +1,8 @@
 package io.github.mekhontsev.magicdesk.platform.nubia;
 
+import io.github.mekhontsev.magicdesk.UiColor;
+import io.github.mekhontsev.magicdesk.UiAppearance;
+
 import io.github.mekhontsev.magicdesk.DesktopShellActivity;
 import io.github.mekhontsev.magicdesk.DesktopUiFactory;
 import io.github.mekhontsev.magicdesk.R;
@@ -272,7 +275,7 @@ final class RedmagicHardwarePanelController
 
     private Button createModeButton(final int textResId) {
         final Button button = mUi.actionButton(
-                textResId, DesktopUiFactory.COLOR_PANEL_ALT);
+                textResId, UiColor.SURFACE);
         button.setTextSize(12);
         button.setMinHeight(0);
         button.setMinimumHeight(0);
@@ -298,6 +301,7 @@ final class RedmagicHardwarePanelController
 
     private SeekBar levelSlider(final int minimum, final int maximum) {
         final SeekBar slider = new SeekBar(mActivity);
+        UiAppearance.progress(slider, UiColor.ACCENT);
         slider.setMin(minimum);
         slider.setMax(maximum);
         slider.setKeyProgressIncrement(1);
@@ -319,7 +323,7 @@ final class RedmagicHardwarePanelController
 
     private TextView levelStatus() {
         final TextView status = new TextView(mActivity);
-        status.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(status, UiColor.MUTED);
         status.setTextSize(12);
         status.setGravity(Gravity.CENTER_VERTICAL);
         return status;
@@ -327,7 +331,7 @@ final class RedmagicHardwarePanelController
 
     private TextView statusText() {
         final TextView status = new TextView(mActivity);
-        status.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(status, UiColor.MUTED);
         status.setTextSize(13);
         return status;
     }
@@ -336,7 +340,7 @@ final class RedmagicHardwarePanelController
             final LinearLayout parent, final int textResId) {
         final TextView label = new TextView(mActivity);
         label.setText(textResId);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(13);
         final LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
@@ -416,11 +420,11 @@ final class RedmagicHardwarePanelController
         button.setEnabled(enabled);
         button.setAlpha(selected ? 1f : 0.72f);
         button.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 dp(8),
                 selected
-                        ? DesktopUiFactory.COLOR_CYAN
-                        : DesktopUiFactory.COLOR_PANEL_ALT));
+                        ? UiColor.ACCENT
+                        : UiColor.SURFACE));
     }
 
     private void setFanControlsEnabled(final boolean enabled) {

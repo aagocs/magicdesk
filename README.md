@@ -130,6 +130,11 @@ precedence. **Settings > Session** controls phone screen retention, CPU wake
 lock, adaptive brightness and a temporary system-wide light/dark theme. These
 options apply while Desktop is running and release their overrides when it ends.
 
+**Settings > Appearance** customizes MagicDesk's native interface, including a
+floating, translucent taskbar. Choose built-in color presets or import/export a
+[JSON theme](docs/appearance.md). Styles apply to open panels and built-in tools
+without restarting them, including when no Desktop is running.
+
 Close records the selected workspace and releases its surviving applications
 as independent fullscreen tasks on the same live display, leaving other
 Desktops running. If the display disappears, its tasks return to the phone.

@@ -109,7 +109,7 @@ final class FullscreenStartController implements StartMenuContent.Host {
 
         final LinearLayout content = new LinearLayout(mActivity);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setBackgroundColor(DesktopUiFactory.COLOR_PANEL);
+        UiAppearance.background(content, UiColor.PANEL);
         SystemBarInsets.addToPadding(content, true);
 
         final DesktopUiFactory ui = new DesktopUiFactory(mActivity);

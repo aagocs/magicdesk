@@ -118,7 +118,7 @@ public final class PhoneControlPanelControllerTest {
         final String button = RuntimeSourceFixture.methods("PhoneControlPanelController", "integrationButton");
         assertTrue(button.contains("setSingleLine(false)"));
         assertTrue(button.contains("setEllipsize(null)"));
-        assertTrue(button.contains("setTextColor(COLOR_CYAN)"));
+        assertTrue(button.contains("UiAppearance.text(button, ACCENT)"));
         assertTrue(button.contains("Paint.UNDERLINE_TEXT_FLAG"));
         assertFalse(button.contains("controlAction"));
         assertTrue(RuntimeSourceFixture.methods("ControlActivity", "onRequestPermissionsResult")
@@ -327,7 +327,7 @@ public final class PhoneControlPanelControllerTest {
         assertTrue(source.contains("commands.setColumnCount(2)"));
         assertFalse(source.contains("toolbarColumns"));
         assertFalse(source.contains("mMore"));
-        assertTrue(source.contains("mUi.controlAction(label, icon, DesktopUiFactory.COLOR_TEXT)"));
+        assertTrue(source.contains("mUi.controlAction(label, icon, UiColor.TEXT)"));
         final String buttons = RuntimeSourceFixture.methods("DisplayTableView", "button");
         assertTrue(buttons.contains("params.width = 0"));
         assertTrue(source.contains("GridLayout.spec(GridLayout.UNDEFINED, 1f)"));

@@ -1,9 +1,9 @@
 package io.github.mekhontsev.magicdesk;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_CYAN;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_PANEL_ALT;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_TEXT;
+import static io.github.mekhontsev.magicdesk.UiColor.ACCENT;
+import static io.github.mekhontsev.magicdesk.UiColor.PANEL;
+import static io.github.mekhontsev.magicdesk.UiColor.SURFACE;
+import static io.github.mekhontsev.magicdesk.UiColor.TEXT;
 
 import android.content.Context;
 import android.graphics.Rect;
@@ -11,7 +11,6 @@ import android.graphics.Typeface;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CalendarView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -24,7 +23,7 @@ final class CalendarPanelController {
     private final Runnable mPanelUnavailable;
 
     private LinearLayout mPanel;
-    private CalendarView mCalendarView;
+    private CalendarMonthView mCalendarView;
 
     CalendarPanelController(
             final Context context,
@@ -45,7 +44,7 @@ final class CalendarPanelController {
         final LinearLayout panel = new LinearLayout(mContext);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(14), dp(14), dp(14), dp(12));
-        panel.setBackground(mUi.rounded(COLOR_PANEL, dp(8), COLOR_CYAN));
+        panel.setBackground(mUi.rounded(PANEL, dp(8), ACCENT));
         panel.setVisibility(View.GONE);
         panel.setClickable(true);
 
@@ -54,13 +53,13 @@ final class CalendarPanelController {
         header.setGravity(Gravity.CENTER_VERTICAL);
         final TextView title = new TextView(mContext);
         title.setText(R.string.calendar_title);
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(title, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         final Button close =
-                mUi.smallButton(R.string.action_close, COLOR_PANEL_ALT);
+                mUi.smallButton(R.string.action_close, SURFACE);
         close.setOnClickListener(view -> mHidePanels.run());
         header.addView(close, new LinearLayout.LayoutParams(
                 dp(86), LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -68,8 +67,7 @@ final class CalendarPanelController {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        mCalendarView = new CalendarView(mContext);
-        mCalendarView.setDate(System.currentTimeMillis(), false, true);
+        mCalendarView = new CalendarMonthView(mContext, mUi);
         final LinearLayout.LayoutParams calendarParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT, 0, 1);
@@ -79,12 +77,11 @@ final class CalendarPanelController {
         final LinearLayout actions = new LinearLayout(mContext);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         final Button today =
-                mUi.smallButton(R.string.action_today, COLOR_PANEL_ALT);
-        today.setOnClickListener(view -> mCalendarView.setDate(
-                System.currentTimeMillis(), true, true));
+                mUi.smallButton(R.string.action_today, SURFACE);
+        today.setOnClickListener(view -> mCalendarView.today());
         actions.addView(today, new LinearLayout.LayoutParams(0, dp(42), 1));
         final Button open =
-                mUi.smallButton(R.string.action_open_calendar, COLOR_CYAN);
+                mUi.smallButton(R.string.action_open_calendar, ACCENT);
         open.setOnClickListener(view -> mOpenCalendar.run());
         final LinearLayout.LayoutParams openParams =
                 new LinearLayout.LayoutParams(0, dp(42), 1);
@@ -115,8 +112,7 @@ final class CalendarPanelController {
                 Math.max(1, areaHeight - dp(16));
         final int height = Math.min(dp(430), availableHeight);
         if (!panels.show(
-                mPanel, ShellPanelPlacement.anchored(width, height,
-                        ShellSurface.RIGHT | ShellSurface.BOTTOM, 0, 0, dp(8), 0),
+                mPanel, panels.aboveTaskbar(width, height, true, dp(8), 0),
                 false, "MagicDesk calendar")) {
             mPanelUnavailable.run();
         }

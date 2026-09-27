@@ -65,15 +65,15 @@ final class TaskbarOverflowController {
 
         final FrameLayout button = new FrameLayout(mActivity);
         button.setBackground(mUi.interactiveRounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 desktopDp(10, 8),
-                DesktopUiFactory.COLOR_CYAN));
+                UiColor.ACCENT));
         button.setClickable(true);
         button.setFocusable(true);
 
         final ImageView icon = new ImageView(mActivity);
         icon.setImageResource(R.drawable.ic_more);
-        icon.setColorFilter(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.image(icon, UiColor.TEXT);
         icon.setPadding(
                 desktopDp(9, 7),
                 desktopDp(9, 7),
@@ -85,13 +85,13 @@ final class TaskbarOverflowController {
 
         final TextView badge = new TextView(mActivity);
         badge.setText(hiddenCount > 99 ? "99+" : Integer.toString(hiddenCount));
-        badge.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(badge, UiColor.TEXT);
         badge.setTextSize(8);
         badge.setGravity(Gravity.CENTER);
         badge.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_RED,
+                UiColor.DANGER,
                 dp(8),
-                DesktopUiFactory.COLOR_RED));
+                UiColor.DANGER));
         final FrameLayout.LayoutParams badgeParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 dp(16),
@@ -182,9 +182,9 @@ final class TaskbarOverflowController {
         mPanel = new ScrollView(mActivity);
         mPanel.setFillViewport(true);
         mPanel.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL,
+                UiColor.PANEL,
                 desktopDp(8, 6),
-                DesktopUiFactory.COLOR_CYAN));
+                UiColor.ACCENT));
         mPanel.setClickable(true);
         mPanel.addView(mList, new ScrollView.LayoutParams(
                 ScrollView.LayoutParams.MATCH_PARENT,
@@ -215,11 +215,11 @@ final class TaskbarOverflowController {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(7), dp(4), dp(7), dp(4));
         row.setBackground(mUi.interactiveRounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 desktopDp(7, 5),
                 item.task != null && item.task.active
-                        ? DesktopUiFactory.COLOR_AMBER
-                        : DesktopUiFactory.COLOR_PANEL_ALT));
+                        ? UiColor.ATTENTION
+                        : UiColor.SURFACE));
         row.setClickable(true);
         row.setFocusable(true);
 
@@ -234,7 +234,7 @@ final class TaskbarOverflowController {
         labels.setPadding(dp(9), 0, 0, 0);
         final TextView name = new TextView(mActivity);
         name.setText(item.app.label);
-        name.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(name, UiColor.TEXT);
         name.setTextSize(mActivity.isCompactDesktopPreview() ? 11 : 13);
         name.setSingleLine(true);
         name.setEllipsize(TextUtils.TruncateAt.END);
@@ -247,7 +247,7 @@ final class TaskbarOverflowController {
                     mActivity.getString(item.task.isFreeform()
                             ? R.string.badge_window
                             : R.string.badge_fullscreen)));
-            state.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(state, UiColor.MUTED);
             state.setTextSize(mActivity.isCompactDesktopPreview() ? 9 : 10);
             state.setSingleLine(true);
             labels.addView(state);

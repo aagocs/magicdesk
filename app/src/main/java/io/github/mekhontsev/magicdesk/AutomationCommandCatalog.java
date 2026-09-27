@@ -11,6 +11,16 @@ final class AutomationCommandCatalog {
 
     static JSONArray create() throws JSONException {
         final JSONArray tools = new JSONArray()
+                .put(readTool("appearance.get", "Read shell appearance",
+                        "Read the persisted native shell theme document and built-in style presets. Independent of Desktop, shell access and Termux.", emptySchema()))
+                .put(actionTool("appearance.apply", "Apply shell appearance",
+                        "Validate and replace the native shell theme document, at most 32 KiB. Missing fields inherit built-in defaults. Live Views update without relaunching tools; Android captions, wallpaper, terminal protocol colors and permission settings are unaffected. Returns persisted values, not pixel-presentation acknowledgement.",
+                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 1 theme: optional preset, colors, typography, shape and taskbar. Unknown fields are rejected.")), "document")))
+                .put(actionTool("appearance.preset", "Select appearance preset",
+                        "Apply a built-in color, typography and shape preset while retaining taskbar geometry and unrelated preferences.",
+                        objectSchema(new JSONObject().put("name", enumProperty("Built-in style.", "dark", "light", "contrast")), "name")))
+                .put(actionTool("appearance.reset", "Reset shell appearance",
+                        "Restore the default native shell style and taskbar geometry. Does not reset wallpaper, widgets or other preferences.", emptySchema()))
                 .put(readTool(
                         "get_state",
                         "Get desktop state",
@@ -1412,6 +1422,13 @@ final class AutomationCommandCatalog {
             throws JSONException {
         final JSONObject properties = new JSONObject();
         switch (toolName) {
+            case "appearance.get":
+            case "appearance.apply":
+            case "appearance.preset":
+            case "appearance.reset":
+                properties.put("document", openObjectProperty("Resolved version 1 appearance document."))
+                        .put("presets", arrayProperty("Built-in style presets.", stringProperty("Preset name.")));
+                break;
             case "graphics.list":
                 properties.put("sessions", arrayProperty("Retained graphical sessions.", graphicalSessionSchema()))
                         .put("workspaces", arrayProperty("Existing Desktop workspaceId/displayId pairs.", openObjectProperty("Workspace residency.")));

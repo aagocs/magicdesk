@@ -21,6 +21,8 @@ final class DesktopLayoutController {
     interface RuntimeState {
         int displayId();
         int taskbarHeight();
+        int taskbarPreferredWidth();
+        int taskbarMinimumWidth();
         boolean taskbarAutoHide();
         void onImeVisibilityChanged(boolean visible);
         void onViewportChanged();
@@ -33,6 +35,7 @@ final class DesktopLayoutController {
     private DesktopViewport mViewport;
     private final DesktopShellLayout mShellLayout = new DesktopShellLayout();
     private final Runnable mShellChanged = this::applyShellGeometry;
+    private final Runnable mAppearanceChanged = this::refreshShellLayout;
     private ShellLayout.Snapshot mAppliedLayout;
     private View mWindowRoot;
     private View mDesktopContent;
@@ -56,6 +59,7 @@ final class DesktopLayoutController {
         updateShellLayout();
         mAppliedLayout = mShellLayout.snapshot();
         mShellLayout.listen(mShellChanged);
+        AppearanceStore.listen(mAppearanceChanged);
     }
 
     void attachDesktopViews(
@@ -97,7 +101,7 @@ final class DesktopLayoutController {
         return taskbarHost.attachTaskbar(
                 taskbar,
                 taskbarBounds(),
-                taskbarSurfaceBounds());
+                taskbarSurfaceBounds(), rect(mViewport.outputGeometry()));
     }
 
     DesktopViewport viewport() {
@@ -130,7 +134,10 @@ final class DesktopLayoutController {
     }
 
     private void updateShellLayout() {
-        mShellLayout.update(mViewport, mRuntimeState.taskbarHeight(), mRuntimeState.taskbarAutoHide());
+        mShellLayout.update(mViewport, TaskbarGeometry.resolve(AppearanceStore.current().taskbar(),
+                mActivity.getResources().getDisplayMetrics().density, mViewport.contentWidth(), mViewport.contentHeight(),
+                mRuntimeState.taskbarHeight(), mRuntimeState.taskbarPreferredWidth(), mRuntimeState.taskbarMinimumWidth()),
+                mRuntimeState.taskbarAutoHide());
     }
 
     private static Rect rect(final ShellBounds bounds) {
@@ -138,6 +145,7 @@ final class DesktopLayoutController {
     }
 
     void release() {
+        AppearanceStore.unlisten(mAppearanceChanged);
         mShellLayout.unlisten(mShellChanged);
         if (mWindowRoot != null) {
             mWindowRoot.setOnApplyWindowInsetsListener(null);
@@ -206,7 +214,7 @@ final class DesktopLayoutController {
         if (mTaskbar == null || mTaskbarHost == null || mViewport == null) {
             return;
         }
-        mTaskbarHost.updateBounds(taskbarBounds(), taskbarSurfaceBounds());
+        mTaskbarHost.updateBounds(taskbarBounds(), taskbarSurfaceBounds(), rect(mViewport.outputGeometry()));
     }
 
     private void updateSystemBarBackdrops() {

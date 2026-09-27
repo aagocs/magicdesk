@@ -41,16 +41,16 @@ public final class CompatibilityOnboardingActivity extends Activity {
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(18), dp(16), dp(18), dp(20));
         SystemBarInsets.addToPadding(page);
-        page.setBackgroundColor(0xFF090D14);
+        UiAppearance.background(page, UiColor.BACKGROUND);
         scroll.addView(page);
 
         final TextView title = text(
-                getString(R.string.onboarding_title), 22, 0xFFE5E7EB);
+                getString(R.string.onboarding_title), 22, UiColor.TEXT);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         page.addView(title);
 
         final TextView description = text(
-                getString(R.string.onboarding_description), 13, 0xFF94A3B8);
+                getString(R.string.onboarding_description), 13, UiColor.MUTED);
         final LinearLayout.LayoutParams descriptionParams = params();
         descriptionParams.setMargins(0, dp(6), 0, dp(12));
         page.addView(description, descriptionParams);
@@ -80,7 +80,7 @@ public final class CompatibilityOnboardingActivity extends Activity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
             final TextView label = text(
-                    getString(check.labelResId), 14, 0xFFE5E7EB);
+                    getString(check.labelResId), 14, UiColor.TEXT);
             row.addView(label, new LinearLayout.LayoutParams(
                     0, dp(52), 1));
             final Spinner state = spinner(stateLabels());
@@ -169,11 +169,11 @@ public final class CompatibilityOnboardingActivity extends Activity {
     private TextView text(
             final String value,
             final int size,
-            final int color) {
+            final UiColor color) {
         final TextView text = new TextView(this);
         text.setText(value);
         text.setTextSize(size);
-        text.setTextColor(color);
+        UiAppearance.text(text, color);
         return text;
     }
 

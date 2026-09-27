@@ -38,9 +38,9 @@ final class TaskOverviewController {
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(14), dp(14), dp(14), dp(12));
         panel.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL,
+                UiColor.PANEL,
                 dp(8),
-                DesktopUiFactory.COLOR_CYAN));
+                UiColor.ACCENT));
         panel.setVisibility(View.GONE);
         panel.setClickable(true);
         panel.setFocusable(true);
@@ -114,7 +114,7 @@ final class TaskOverviewController {
         title.setText(mActivity.getString(
                 R.string.open_tasks_title,
                 Integer.valueOf(tasks.size())));
-        title.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(title, UiColor.TEXT);
         title.setTextSize(18);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(title, new LinearLayout.LayoutParams(
@@ -122,7 +122,7 @@ final class TaskOverviewController {
 
         final Button showDesktop = mUi.smallButton(
                 R.string.action_show_desktop,
-                DesktopUiFactory.COLOR_PANEL_ALT);
+                UiColor.SURFACE);
         showDesktop.setOnClickListener(view ->
                 mActivity.toggleDesktopWorkspace());
         mActivity.registerAutomationUiElement(
@@ -133,7 +133,7 @@ final class TaskOverviewController {
 
         final Button close = mUi.smallButton(
                 R.string.action_close,
-                DesktopUiFactory.COLOR_PANEL_ALT);
+                UiColor.SURFACE);
         close.setOnClickListener(view -> mActivity.hideAllPanels());
         mActivity.registerAutomationUiElement(
                 close, "open_tasks.close", "button", close.getText());
@@ -149,7 +149,7 @@ final class TaskOverviewController {
         if (tasks.isEmpty()) {
             final TextView empty = new TextView(mActivity);
             empty.setText(R.string.open_tasks_empty);
-            empty.setTextColor(DesktopUiFactory.COLOR_MUTED);
+            UiAppearance.text(empty, UiColor.MUTED);
             empty.setTextSize(14);
             empty.setGravity(Gravity.CENTER);
             mPanel.addView(empty, new LinearLayout.LayoutParams(
@@ -243,13 +243,13 @@ final class TaskOverviewController {
             final boolean selected) {
         final FrameLayout tile = new FrameLayout(mActivity);
         tile.setBackground(mUi.rounded(
-                DesktopUiFactory.COLOR_PANEL_ALT,
+                UiColor.SURFACE,
                 dp(6),
                 selected
-                        ? DesktopUiFactory.COLOR_AMBER
+                        ? UiColor.ATTENTION
                         : (task.active
-                                ? DesktopUiFactory.COLOR_CYAN
-                                : DesktopUiFactory.COLOR_PANEL_ALT)));
+                                ? UiColor.ACCENT
+                                : UiColor.SURFACE)));
         tile.setClickable(true);
         tile.setFocusable(true);
         tile.setOnClickListener(view -> {
@@ -277,7 +277,7 @@ final class TaskOverviewController {
 
         final TextView label = new TextView(mActivity);
         label.setText(taskLabel);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(12);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
@@ -296,7 +296,7 @@ final class TaskOverviewController {
                 mActivity.getString(task.isFreeform()
                         ? R.string.badge_window
                         : R.string.badge_fullscreen)));
-        state.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(state, UiColor.MUTED);
         state.setTextSize(10);
         state.setGravity(Gravity.CENTER);
         content.addView(state, new LinearLayout.LayoutParams(
@@ -309,7 +309,7 @@ final class TaskOverviewController {
         final ImageButton close = new ImageButton(mActivity);
         close.setImageResource(
                 R.drawable.ic_close);
-        close.setColorFilter(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.image(close, UiColor.MUTED);
         close.setBackgroundColor(Color.TRANSPARENT);
         close.setPadding(dp(5), dp(5), dp(5), dp(5));
         close.setContentDescription(

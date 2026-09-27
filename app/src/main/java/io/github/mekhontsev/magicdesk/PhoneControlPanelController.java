@@ -1,10 +1,10 @@
 package io.github.mekhontsev.magicdesk;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_BACKGROUND;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_CYAN;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_MUTED;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_RED;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_TEXT;
+import static io.github.mekhontsev.magicdesk.UiColor.BACKGROUND;
+import static io.github.mekhontsev.magicdesk.UiColor.ACCENT;
+import static io.github.mekhontsev.magicdesk.UiColor.MUTED;
+import static io.github.mekhontsev.magicdesk.UiColor.DANGER;
+import static io.github.mekhontsev.magicdesk.UiColor.TEXT;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -126,7 +126,7 @@ final class PhoneControlPanelController {
     View createView() {
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(page, BACKGROUND);
         page.setPadding(
                 dp(18),
                 dp(16),
@@ -211,14 +211,14 @@ final class PhoneControlPanelController {
 
         final TextView title = new TextView(mActivity);
         title.setText(R.string.app_name);
-        title.setTextColor(COLOR_TEXT);
+        UiAppearance.text(title, TEXT);
         title.setTextSize(20);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         titleBlock.addView(title);
 
         final TextView subtitle = new TextView(mActivity);
         subtitle.setText(BuildConfig.VERSION_NAME);
-        subtitle.setTextColor(COLOR_MUTED);
+        UiAppearance.text(subtitle, MUTED);
         subtitle.setTextSize(13);
         titleBlock.addView(subtitle);
 
@@ -234,7 +234,7 @@ final class PhoneControlPanelController {
     }
 
     private void addStatus(final LinearLayout parent) {
-        mStatus = statusText(COLOR_TEXT, 14, true);
+        mStatus = statusText(TEXT, 14, true);
         parent.addView(mStatus, fullWidthWrapParams(0));
 
         final LinearLayout integrations = new LinearLayout(mActivity);
@@ -253,9 +253,9 @@ final class PhoneControlPanelController {
     }
 
     private Button integrationButton(final int title) {
-        final Button button = mUi.menuItem(title, COLOR_TEXT);
+        final Button button = mUi.menuItem(title, TEXT);
         button.setTextSize(14);
-        button.setTextColor(COLOR_CYAN);
+        UiAppearance.text(button, ACCENT);
         button.setPaintFlags(button.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         button.setSingleLine(false);
         button.setMaxLines(3);
@@ -266,30 +266,30 @@ final class PhoneControlPanelController {
     }
 
     private void addDesktopActions(final LinearLayout parent) {
-        mLocalApps = mUi.controlAction(R.string.section_apps, R.drawable.ic_sections, COLOR_TEXT);
+        mLocalApps = mUi.controlAction(R.string.section_apps, R.drawable.ic_sections, TEXT);
         mLocalApps.setOnClickListener(view -> mActions.openApplications(null));
         parent.addView(mLocalApps, fullWidthActionParams());
         mDisplayTable = new DisplayTableView(mActivity, mUi, mActions, parent);
         final GridLayout sessionActions = actionGrid();
 
         mConnectWirelessDisplay = mUi.controlAction(
-                R.string.action_connect_wireless_display, R.drawable.ic_cast, COLOR_TEXT);
+                R.string.action_connect_wireless_display, R.drawable.ic_cast, TEXT);
         mConnectWirelessDisplay.setOnClickListener(view -> mActions.openWirelessSettings());
         addGridAction(sessionActions, mConnectWirelessDisplay);
-        mCreateDisplay = mUi.controlAction(R.string.display_create, R.drawable.ic_add, COLOR_TEXT);
+        mCreateDisplay = mUi.controlAction(R.string.display_create, R.drawable.ic_add, TEXT);
         mCreateDisplay.setOnClickListener(view -> mDisplayTable.showCreationDialog());
         addGridAction(sessionActions, mCreateDisplay);
 
         mTouchpad = mUi.controlAction(
-                R.string.action_open_touchpad, R.drawable.ic_touchpad, COLOR_TEXT);
+                R.string.action_open_touchpad, R.drawable.ic_touchpad, TEXT);
         mTouchpad.setOnClickListener(view -> mActions.openTouchpad());
         addGridAction(sessionActions, mTouchpad);
-        mReleaseInput = mUi.controlAction(R.string.display_release_input, R.drawable.ic_close, COLOR_TEXT);
+        mReleaseInput = mUi.controlAction(R.string.display_release_input, R.drawable.ic_close, TEXT);
         mReleaseInput.setOnClickListener(view -> mActions.releaseInput());
         addGridAction(sessionActions, mReleaseInput);
 
         mPhoneScreen = mUi.controlAction(
-                R.string.action_phone_screen_off, R.drawable.ic_phone_screen_off, COLOR_TEXT);
+                R.string.action_phone_screen_off, R.drawable.ic_phone_screen_off, TEXT);
         mPhoneScreen.setOnClickListener(view -> mActions.togglePhoneScreen());
         addGridAction(sessionActions, mPhoneScreen);
 
@@ -297,7 +297,7 @@ final class PhoneControlPanelController {
     }
 
     private void addSystemActions(final LinearLayout parent) {
-        final Button exit = mUi.controlAction(R.string.action_exit, R.drawable.ic_exit, COLOR_RED);
+        final Button exit = mUi.controlAction(R.string.action_exit, R.drawable.ic_exit, DANGER);
         exit.setOnClickListener(view -> confirmExit());
         parent.addView(exit, fullWidthActionParams());
     }
@@ -329,9 +329,9 @@ final class PhoneControlPanelController {
     }
 
     private TextView statusText(
-            final int color, final int size, final boolean bold) {
+            final UiColor color, final int size, final boolean bold) {
         final TextView text = new TextView(mActivity);
-        text.setTextColor(color);
+        UiAppearance.text(text, color);
         text.setTextSize(size);
         if (bold) {
             text.setTypeface(Typeface.DEFAULT_BOLD);

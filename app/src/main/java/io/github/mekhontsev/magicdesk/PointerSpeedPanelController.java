@@ -64,12 +64,13 @@ final class PointerSpeedPanelController {
 
         final TextView label = new TextView(mActivity);
         label.setText(R.string.pointer_speed);
-        label.setTextColor(DesktopUiFactory.COLOR_TEXT);
+        UiAppearance.text(label, UiColor.TEXT);
         label.setTextSize(13);
         row.addView(label, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         mSlider = new SeekBar(mActivity);
+        UiAppearance.progress(mSlider, UiColor.ACCENT);
         mSlider.setContentDescription(mActivity.getString(R.string.pointer_speed));
         mSlider.setMin(MIN_SPEED);
         mSlider.setMax(MAX_SPEED);
@@ -100,7 +101,7 @@ final class PointerSpeedPanelController {
                     }
                 });
         mValue = new TextView(mActivity);
-        mValue.setTextColor(DesktopUiFactory.COLOR_MUTED);
+        UiAppearance.text(mValue, UiColor.MUTED);
         mValue.setTextSize(13);
         mValue.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         row.addView(mValue, new LinearLayout.LayoutParams(

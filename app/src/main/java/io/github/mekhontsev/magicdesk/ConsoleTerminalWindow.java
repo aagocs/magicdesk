@@ -13,11 +13,6 @@ import android.widget.TextView;
 
 /** Android window composition and toolbar state, independent of PTY lifecycle. */
 final class ConsoleTerminalWindow {
-    private static final int COLOR_BACKGROUND = 0xFF090D14;
-    private static final int COLOR_TEXT = 0xFFE5E7EB;
-    private static final int COLOR_MUTED = 0xFF94A3B8;
-    private static final int COLOR_CYAN = 0xFF22D3EE;
-    private static final int COLOR_AMBER = 0xFFF59E0B;
 
     private final Activity mActivity;
     private final ConsoleTerminalView mTerminalView;
@@ -50,7 +45,7 @@ final class ConsoleTerminalWindow {
         page.setPadding(dp(8), dp(6), dp(8), dp(6));
         // Edge-to-edge windows receive IME insets instead of a resized content frame.
         SystemBarInsets.addToPadding(page, true);
-        page.setBackgroundColor(COLOR_BACKGROUND);
+        UiAppearance.background(page, UiColor.BACKGROUND);
 
         mToolbar = new LinearLayout(mActivity);
         mToolbar.setOrientation(LinearLayout.HORIZONTAL);
@@ -168,12 +163,7 @@ final class ConsoleTerminalWindow {
             final View.OnClickListener listener) {
         final ImageButton button = new ImageButton(mActivity);
         button.setImageResource(drawableResId);
-        button.setImageTintList(new ColorStateList(
-                new int[][]{
-                    new int[]{-android.R.attr.state_enabled},
-                    new int[0]
-                },
-                new int[]{COLOR_MUTED, COLOR_TEXT}));
+        UiAppearance.imageStates(button, UiColor.TEXT);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
         button.setBackgroundColor(Color.TRANSPARENT);
@@ -195,10 +185,9 @@ final class ConsoleTerminalWindow {
         mProgress.setVisibility(data.progressState() == 0 ? View.INVISIBLE : View.VISIBLE);
         mProgress.setIndeterminate(data.progressState() == 3 || data.progressPercent() < 0);
         if (data.progressPercent() >= 0) { mProgress.setProgress(data.progressPercent()); }
-        final int color = data.progressState() == 2 ? 0xFFEF4444
-                : data.progressState() == 4 ? COLOR_AMBER : COLOR_CYAN;
-        mProgress.setProgressTintList(ColorStateList.valueOf(color));
-        mProgress.setIndeterminateTintList(ColorStateList.valueOf(color));
+        final UiColor color = data.progressState() == 2 ? UiColor.DANGER
+                : data.progressState() == 4 ? UiColor.ATTENTION : UiColor.ACCENT;
+        UiAppearance.progress(mProgress, color);
         mProgress.setContentDescription(mActivity.getString(R.string.console_progress, data.progressState(), data.progressPercent()));
     }
 
@@ -223,13 +212,13 @@ final class ConsoleTerminalWindow {
         final String description = mActivity.getString(R.string.terminal_sessions) + "\n" + identity;
         mSessions.setTooltipText(description);
         mSessions.setContentDescription(description);
-        mSessions.setImageTintList(ColorStateList.valueOf(root ? COLOR_AMBER : COLOR_TEXT));
+        UiAppearance.imageStates(mSessions, root ? UiColor.ATTENTION : UiColor.TEXT);
 
         final String status = unavailable ? mActivity.getString(R.string.console_shell_unavailable,
                 mSnapshot == null || mSnapshot.error.isEmpty()
                         ? mActivity.getString(R.string.state_unavailable) : mSnapshot.error) : mTerminalStatus;
         mShellStatus.setText(status);
-        mShellStatus.setTextColor(unavailable || mTerminalFailed ? COLOR_AMBER : COLOR_MUTED);
+        UiAppearance.text(mShellStatus, unavailable || mTerminalFailed ? UiColor.ATTENTION : UiColor.MUTED);
         mShellStatus.setVisibility(status.isEmpty() ? View.GONE : View.VISIBLE);
     }
 }

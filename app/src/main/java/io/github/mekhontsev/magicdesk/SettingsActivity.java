@@ -18,6 +18,7 @@ public final class SettingsActivity extends Activity
         implements SettingsView.Actions {
     private static final int LOCAL_NETWORK_PERMISSION_REQUEST = 1;
     private SettingsView mView;
+    private AppearanceSettings mAppearance;
     private boolean mSystemDesktopModeBusy;
     private final ShellAccess.StateListener mShellStateListener = state ->
             runOnUiThread(this::renderSystemDesktopMode);
@@ -39,6 +40,7 @@ public final class SettingsActivity extends Activity
                 R.mipmap.ic_launcher);
         BuiltInWindowRegistry.register(this);
         mView = new SettingsView(this, this);
+        mAppearance = new AppearanceSettings(this);
         setContentView(mView.create());
         ShellAccess.addStateListener(mShellStateListener);
         render();
@@ -56,9 +58,17 @@ public final class SettingsActivity extends Activity
 
     @Override
     protected void onDestroy() {
+        if (mAppearance != null) mAppearance.close();
         ShellAccess.removeStateListener(mShellStateListener);
         BuiltInWindowRegistry.unregister(this);
         super.onDestroy();
+    }
+
+    @Override public void configureAppearance() { mAppearance.show(); }
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        if (mAppearance != null && mAppearance.onResult(request, result, data)) return;
+        super.onActivityResult(request, result, data);
     }
 
     @Override

@@ -1051,6 +1051,12 @@ runtime integration and are not distributed through the same release path.
 
 ### Desktop UI
 
+- `ShellAppearance` separates semantic colors, typography and control shapes
+  from taskbar layout. `AppearanceStore` persists app-private defaults without
+  Desktop or privileged services; Settings, MCP and the CLI share its validator.
+  `UiAppearance` updates existing native Views and drawables. `TaskbarGeometry`
+  resolves density-independent dimensions through `DesktopShellLayout`, retaining
+  the existing focus, input and task-area owners. See [Native appearance](appearance.md).
 - `StartMenuController`, `TaskbarController`, `TaskOverviewController`, and
   `NotificationCenterController` own the persistent desktop controls.
 - `DesktopWorkspaceController` composes the fixed Android `Desktop` directory,

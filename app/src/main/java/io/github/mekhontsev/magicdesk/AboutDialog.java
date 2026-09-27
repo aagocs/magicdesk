@@ -1,7 +1,7 @@
 package io.github.mekhontsev.magicdesk;
 
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_MUTED;
-import static io.github.mekhontsev.magicdesk.DesktopUiFactory.COLOR_TEXT;
+import static io.github.mekhontsev.magicdesk.UiColor.MUTED;
+import static io.github.mekhontsev.magicdesk.UiColor.TEXT;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -50,7 +50,7 @@ final class AboutDialog {
                         Integer.valueOf(BuildConfig.VERSION_CODE)),
                 14,
                 false,
-                COLOR_MUTED);
+                MUTED);
         content.addView(version, wrapContent());
 
         final TextView author = text(
@@ -61,10 +61,10 @@ final class AboutDialog {
 
         content.addView(
                 text(activity, R.string.about_copyright, 13, false,
-                        COLOR_MUTED),
+                        MUTED),
                 wrapContent());
         final TextView license = text(
-                activity, R.string.about_license, 13, false, COLOR_MUTED);
+                activity, R.string.about_license, 13, false, MUTED);
         final LinearLayout.LayoutParams licenseParams = wrapContent();
         licenseParams.topMargin = ui.dp(8);
         content.addView(license, licenseParams);
@@ -86,7 +86,7 @@ final class AboutDialog {
             final int textResId,
             final int size,
             final boolean bold) {
-        return text(activity, textResId, size, bold, COLOR_TEXT);
+        return text(activity, textResId, size, bold, TEXT);
     }
 
     private static TextView text(
@@ -94,7 +94,7 @@ final class AboutDialog {
             final int textResId,
             final int size,
             final boolean bold,
-            final int color) {
+            final UiColor color) {
         return text(activity, activity.getString(textResId), size, bold,
                 color);
     }
@@ -104,10 +104,10 @@ final class AboutDialog {
             final CharSequence value,
             final int size,
             final boolean bold,
-            final int color) {
+            final UiColor color) {
         final TextView text = new TextView(activity);
         text.setText(value);
-        text.setTextColor(color);
+        UiAppearance.text(text, color);
         text.setTextSize(size);
         text.setGravity(Gravity.CENTER);
         if (bold) {

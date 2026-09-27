@@ -54,31 +54,31 @@ final class FileManagerBackgroundContextMenu {
         };
         FileItemContextMenu.addAction(
                 panel, ui, R.string.action_new_file,
-                DesktopUiFactory.COLOR_CYAN, true,
+                UiColor.ACCENT, true,
                 dismiss, actions::newFile);
         FileItemContextMenu.addAction(
                 panel, ui, R.string.action_new_folder,
-                DesktopUiFactory.COLOR_CYAN, true,
+                UiColor.ACCENT, true,
                 dismiss, actions::newFolder);
         FileItemContextMenu.addAction(
                 panel, ui, R.string.action_new_terminal_application,
-                DesktopUiFactory.COLOR_CYAN, true,
+                UiColor.ACCENT, true,
                 dismiss, actions::newTerminalApplication);
         FileItemContextMenu.addAction(
                 panel, ui, R.string.file_manager_import_files,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::importFiles);
         FileItemContextMenu.addAction(
                 panel, ui, R.string.file_manager_paste,
-                DesktopUiFactory.COLOR_PANEL_ALT, canPaste,
+                UiColor.SURFACE, canPaste,
                 dismiss, actions::paste);
         FileItemContextMenu.addAction(
                 panel, ui, R.string.action_refresh,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::refresh);
         FileItemContextMenu.addAction(
                 panel, ui, R.string.file_manager_console,
-                DesktopUiFactory.COLOR_PANEL_ALT, true,
+                UiColor.SURFACE, true,
                 dismiss, actions::openConsole);
 
         final int screenWidth = activity.getResources()
