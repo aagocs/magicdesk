@@ -1099,6 +1099,15 @@
     <string name="appearance_reduced_motion">Reduce motion</string>
     <string name="appearance_none">None</string>
     <string name="appearance_fade">Fade</string>
+    <string name="appearance_slide">Slide</string>
+    <string name="appearance_scale">Scale</string>
+    <string name="appearance_slide_scale">Slide and scale</string>
+    <string name="appearance_motion_distance">Slide distance (dp)</string>
+    <string name="appearance_motion_scale">Initial scale (%)</string>
+    <string name="appearance_motion_curve">Timing curve</string>
+    <string name="appearance_linear">Linear</string>
+    <string name="appearance_ease_out">Ease out</string>
+    <string name="appearance_smooth">Smooth</string>
     <string name="appearance_panel_effect">Panel appearance</string>
     <string name="appearance_taskbar_effect">Taskbar reveal</string>
     <string name="appearance_duration">Duration (ms)</string>

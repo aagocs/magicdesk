@@ -61,7 +61,6 @@ final class TaskbarController {
     private Intent mLastBatteryIntent;
     private boolean mChargeSeparationEnabled;
     private final List<Integer> mTaskOrder = new ArrayList<>();
-    private boolean mEdgeHidden;
     private int mItemCount;
     private final Runnable mAppearanceChanged = this::applyAppearance;
 
@@ -337,7 +336,6 @@ final class TaskbarController {
     void release() {
         AppearanceStore.unlisten(mAppearanceChanged);
         mContentRequests.close();
-        mEdgeHidden = false;
         mCreated = false;
         mPanels.clear();
         mComponents.clear(); mNaturalWidths.clear(); mClock = null;
@@ -356,17 +354,6 @@ final class TaskbarController {
         final DesktopTaskbarHost taskbarHost = mActivity.taskbarHost();
         if (taskbarHost != null && mCreated) {
             taskbarHost.setPresented(visible);
-        }
-    }
-
-    void setEdgeHidden(final boolean hidden) {
-        final boolean changed = hidden != mEdgeHidden;
-        if (!changed) return;
-        mEdgeHidden = hidden;
-        for (var panel : mPanels.values()) {
-            UiMotion.cancel(panel.root);
-            panel.root.setAlpha(hidden ? 0f : 1f);
-            if (!hidden) UiMotion.reveal(panel.root, false);
         }
     }
 

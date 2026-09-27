@@ -653,6 +653,8 @@ final class DesktopPanelWindowController {
                 || (mVisibleAdded && mVisiblePanel != null);
     }
 
+    View visiblePanel() { return mVisibleAdded ? mVisiblePanel : null; }
+
     Rect visibleBounds() {
         if (mChildAdded) {
             return new Rect(mChildBounds);
@@ -856,7 +858,7 @@ final class DesktopPanelWindowController {
             return false;
         }
         mVisibleAdded = true;
-        UiMotion.reveal(windowView(panel), true);
+        UiMotion.reveal(panel, true, null);
         recordPanelState(true, mVisibleTitle, mBounds);
         requestFrame(panel, mVisibleParams, mVisibleTitle);
         return true;
@@ -869,7 +871,7 @@ final class DesktopPanelWindowController {
             return false;
         }
         mChildAdded = true;
-        UiMotion.reveal(host, true);
+        UiMotion.reveal(mChildPanel, true, null);
         recordPanelState(true, mChildTitle, mChildBounds);
         requestFrame(host, mChildParams, mChildTitle);
         return true;

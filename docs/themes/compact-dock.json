@@ -10,5 +10,6 @@
     }],
     "start": { "sections": ["apps", "recent", "tools"] }
   },
-  "motion": { "panels": "fade", "taskbar": "fade", "durationMs": 160, "feedbackMs": 60 }
+  "motion": { "panels": "slide_scale", "taskbar": "slide", "durationMs": 160, "feedbackMs": 60,
+    "distanceDp": 12, "scaleFrom": 0.96 }
 }

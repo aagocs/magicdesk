@@ -105,7 +105,7 @@ final class DesktopSelfTestInputSuite {
                 "TASKBAR-002",
                 "Keep taskbar rendered before desktop input",
                 () -> waitForRenderedTaskbar(
-                        displayId, captureSource, geometry));
+                        displayId, captureSource));
         check(result, "INPUT-001", "Route input to selected display", () -> {
             DesktopSelfTestFixtureState.clearText(context);
             final int x = bounds.centerX();
@@ -1266,68 +1266,35 @@ final class DesktopSelfTestInputSuite {
 
     private static String waitForRenderedTaskbar(
             final int displayId,
-            final DisplayCaptureSource captureSource,
-            final DesktopSelfTestGeometry geometry) throws IOException {
-        final long deadline = SystemClock.uptimeMillis()
-                + STEP_TIMEOUT_MILLIS;
-        String lastDetail = "taskbar UI snapshot unavailable";
-        do {
-            DesktopSelfTestRunState.checkpoint();
-            final DesktopUiSnapshot ui =
-                    DesktopRuntimeBridge.getAutomationUiSnapshot(displayId);
-            if (ui != null && ui.available && ui.taskbarVisible
-                    && !ui.taskbarBounds.isEmpty()) {
-                final Rect taskbar = ui.taskbarBounds;
-                final int horizontalInset = Math.min(
-                        taskbar.width() - 1,
-                        geometry.scaleFrom160Dpi(2));
-                final int x = taskbar.left + Math.max(0, horizontalInset);
-                final int y = taskbar.centerY();
-                try {
-                    final String output = ShellAccess.run(
-                            DesktopTransitionSurfaceProbe
-                                    .createCaptureCommand(
-                                            captureSource, x, y));
-                    final int color = DesktopTransitionSurfaceProbe
-                            .parseReference(
-                                    captureSource, x, y, output).color;
-                    lastDetail = "bounds="
-                            + DesktopSelfTestGeometry.format(taskbar)
-                            + ", sample=" + x + "," + y
-                            + ", color="
-                            + DesktopTransitionSurfaceProbe.formatColor(color);
-                    if (colorsMatch(UiAppearance.color(UiColor.PANEL), color)
-                            || colorsMatch(
-                                    UiAppearance.color(UiColor.SURFACE),
-                                    color)) {
-                        return lastDetail;
-                    }
-                } catch (IOException error) {
-                    lastDetail = usefulMessage(error);
-                }
-            } else if (ui != null && ui.available) {
-                lastDetail = "logical-visible=" + ui.taskbarVisible
-                        + ", bounds="
-                        + DesktopSelfTestGeometry.format(ui.taskbarBounds);
-            }
-            BoundedStateAwaiter.pause(
-                    BoundedStateAwaiter.Reason.DISPLAY_STATE,
-                    POLL_MILLIS);
-        } while (SystemClock.uptimeMillis() < deadline);
-        throw new IOException("taskbar was not rendered before input: "
-                + lastDetail);
+            final DisplayCaptureSource captureSource) throws IOException {
+        waitForTaskbarVisibility(displayId, true);
+        return awaitRenderedPanel(displayId, captureSource, false);
     }
 
-    private static boolean colorsMatch(
-            final int expected,
-            final int actual) {
-        final int tolerance = 12;
-        return Math.abs(((expected >>> 16) & 0xFF)
-                        - ((actual >>> 16) & 0xFF)) <= tolerance
-                && Math.abs(((expected >>> 8) & 0xFF)
-                        - ((actual >>> 8) & 0xFF)) <= tolerance
-                && Math.abs((expected & 0xFF) - (actual & 0xFF))
-                        <= tolerance;
+    private static String awaitRenderedPanel(int displayId, DisplayCaptureSource source, boolean popup) throws IOException {
+        long deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT_MILLIS;
+        String detail = "content reference unavailable";
+        do {
+            DesktopSelfTestRunState.checkpoint();
+            var reference = DesktopRuntimeBridge.getPanelRenderReference(displayId, popup);
+            if (reference.size() >= 8) {
+                int[] x = reference.stream().mapToInt(PanelPixelReference.Point::x).toArray();
+                int[] y = reference.stream().mapToInt(PanelPixelReference.Point::y).toArray();
+                int[] actual = ShellAccess.captureDisplayPixels(source, x, y);
+                if (PanelPixelReference.matches(reference, actual)) return "rendered-content-pixels=" + reference.size();
+                for (int i = 0; i < actual.length; i++) {
+                    var expected = reference.get(i);
+                    if (!PanelPixelReference.matches(expected.color(), actual[i], 12)) {
+                        detail = "sample=" + expected.x() + "," + expected.y() + ", expected="
+                                + DesktopTransitionSurfaceProbe.formatColor(expected.color()) + ", actual="
+                                + DesktopTransitionSurfaceProbe.formatColor(actual[i]);
+                        break;
+                    }
+                }
+            } else detail = "opaque content witnesses=" + reference.size();
+            BoundedStateAwaiter.pause(BoundedStateAwaiter.Reason.DISPLAY_STATE, POLL_MILLIS);
+        } while (SystemClock.uptimeMillis() < deadline);
+        throw new IOException((popup ? "panel" : "taskbar") + " was not rendered before input: " + detail);
     }
 
     private static void runFullscreenTaskAreaLifecycleTests(
@@ -1901,7 +1868,7 @@ final class DesktopSelfTestInputSuite {
         try {
             // A created panel can still be behind the fullscreen application.
             // Check the rendered surface before releasing the Alt+Tab selection.
-            panel = verifyRenderedAltTabPanel(displayId, captureSource, geometry);
+            panel = verifyRenderedAltTabPanel(displayId, captureSource);
             inspectFullscreenModes(
                     displayId, targetTaskId, otherTaskId, "while Alt+Tab is open");
         } catch (IOException error) {
@@ -1928,22 +1895,14 @@ final class DesktopSelfTestInputSuite {
 
     private static String verifyRenderedAltTabPanel(
             final int displayId,
-            final DisplayCaptureSource captureSource,
-            final DesktopSelfTestGeometry geometry) throws IOException {
+            final DisplayCaptureSource captureSource) throws IOException {
         final DesktopUiSnapshot ui =
                 DesktopRuntimeBridge.getAutomationUiSnapshot(displayId);
         if (ui == null || !ui.available || !ui.popupVisible
                 || ui.popupBounds.isEmpty()) {
             throw new IOException("Alt+Tab panel bounds are unavailable");
         }
-        final Rect bounds = ui.popupBounds;
-        final int x = bounds.left + Math.min(
-                bounds.width() - 1, geometry.scaleFrom160Dpi(6));
-        final int color = awaitDisplayColor(
-                captureSource, x, bounds.centerY(), UiAppearance.color(UiColor.PANEL),
-                actual -> colorsMatch(UiAppearance.color(UiColor.PANEL), actual));
-        return "panel-rendered-before-commit="
-                + DesktopTransitionSurfaceProbe.formatColor(color);
+        return "panel-rendered-before-commit: " + awaitRenderedPanel(displayId, captureSource, true);
     }
 
     private static void waitForAltTabPanel(

@@ -167,12 +167,20 @@ final class AppearanceSettings implements AutoCloseable {
         mRefreshers.add(() -> reduced.setChecked(current().motion().reduced()));
         reduced.setOnCheckedChangeListener((v, checked) -> { if (!mRendering) change("motion", "reduced", checked); });
         page.addView(reduced);
-        int[] effects = {R.string.appearance_none, R.string.appearance_fade};
+        int[] effects = {R.string.appearance_none, R.string.appearance_fade, R.string.appearance_slide,
+                R.string.appearance_scale, R.string.appearance_slide_scale};
         choice(page, R.string.appearance_panel_effect, effects, () -> current().motion().panels().ordinal(),
-                v -> change("motion", "panels", v == 0 ? "none" : "fade"));
+                v -> change("motion", "panels", ShellMotion.Effect.values()[v].name().toLowerCase(java.util.Locale.ROOT)));
         choice(page, R.string.appearance_taskbar_effect, effects, () -> current().motion().taskbar().ordinal(),
-                v -> change("motion", "taskbar", v == 0 ? "none" : "fade"));
+                v -> change("motion", "taskbar", ShellMotion.Effect.values()[v].name().toLowerCase(java.util.Locale.ROOT)));
+        slider(page, R.string.appearance_motion_distance, 0, 32, () -> current().motion().distanceDp(), v -> change("motion", "distanceDp", v));
+        slider(page, R.string.appearance_motion_scale, 85, 100, () -> Math.round(current().motion().scaleFrom() * 100),
+                v -> change("motion", "scaleFrom", v / 100f));
         slider(page, R.string.appearance_duration, 0, 400, () -> current().motion().durationMs(), v -> change("motion", "durationMs", v));
+        choice(page, R.string.appearance_motion_curve,
+                new int[] {R.string.appearance_linear, R.string.appearance_ease_out, R.string.appearance_smooth},
+                () -> current().motion().curve().ordinal(),
+                v -> change("motion", "curve", ShellMotion.Curve.values()[v].name().toLowerCase(java.util.Locale.ROOT)));
         slider(page, R.string.appearance_feedback_duration, 0, 250, () -> current().motion().feedbackMs(), v -> change("motion", "feedbackMs", v));
         final LinearLayout files = new LinearLayout(mActivity);
         addCommand(files, R.string.appearance_import, R.drawable.ic_folder_open, this::importDocument);

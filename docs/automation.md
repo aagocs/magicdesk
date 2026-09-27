@@ -1557,6 +1557,12 @@ keep Diagnostics above the workspace under test. Cancellation still runs cleanup
 and preserves the previous saved result.
 
 Interactive self-tests require an awake, unlocked device and a visible target.
+Taskbar and Alt+Tab rendering checks use spatially distributed opaque content
+samples from the live native View hierarchy, compared against the composed
+display. The reference excludes translucent pixels and waits for presentation
+effects to complete; it does not assume an opaque background or available blur.
+Missing, occluded and partially covered content remains a failure. These
+on-demand visual checks do not change the theme, window state or input assertions.
 Phone and external test preparation waits for the selected workspace's registered
 HOME host and completion of the production start operation. Target selection alone
 does not admit window checks or cleanup. The wait observes existing host and

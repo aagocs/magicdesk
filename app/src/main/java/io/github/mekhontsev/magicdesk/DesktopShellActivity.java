@@ -2001,6 +2001,23 @@ public abstract class DesktopShellActivity extends Activity
                                 panel.content(), panel.paint(), panel.output())).toList());
     }
 
+    List<PanelPixelReference.Point> getPanelRenderReference(boolean popup) {
+        if (popup) return UiRenderReference.capture(mDesktopPanelWindowController == null
+                ? null : mDesktopPanelWindowController.visiblePanel());
+        if (!isTaskbarVisible() || mTaskbarHost == null) return List.of();
+        var panels = mTaskbarHost.panels();
+        if (panels.isEmpty()) return List.of();
+        var result = new java.util.ArrayList<PanelPixelReference.Point>();
+        int budget = 64 / panels.size();
+        for (var panel : panels) {
+            var points = UiRenderReference.capture(panel.view());
+            if (points.size() < 8) return List.of();
+            int count = Math.min(points.size(), budget);
+            for (int i = 0; i < count; i++) result.add(points.get(i * (points.size() - 1) / Math.max(1, count - 1)));
+        }
+        return List.copyOf(result);
+    }
+
     DesktopAutomationUiRegistry.Snapshot getAutomationUiElements(
             final String query,
             final boolean includeHidden) throws org.json.JSONException {

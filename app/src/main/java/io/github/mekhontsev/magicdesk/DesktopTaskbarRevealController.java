@@ -215,16 +215,13 @@ final class DesktopTaskbarRevealController {
         final Presentation presentation = currentPresentation();
         if (presentation == Presentation.UNAVAILABLE) {
             taskbarHost.setPresented(false);
-            taskbar.setEdgeHidden(false);
             taskbarHost.setEdgeHidden(false, 1);
             return;
         }
         taskbarHost.setPresented(true);
         if (presentation == Presentation.VISIBLE) {
-            taskbar.setEdgeHidden(false);
             taskbarHost.setEdgeHidden(false, 1);
         } else {
-            taskbar.setEdgeHidden(true);
             taskbarHost.setEdgeHidden(true, edgeThickness());
         }
     }

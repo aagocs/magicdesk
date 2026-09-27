@@ -219,10 +219,22 @@ selected workspace's sparse patch; it carries no binary assets.
 and `outline` to palette roles, including `transparent`. Native controls retain
 geometry as their state changes; defaults have no permanent idle backplate.
 
-`motion.panels` and `motion.taskbar` accept `none` or `fade`. `durationMs` is
-0-400, `feedbackMs` is 0-250, and `curve` is `linear`, `ease_out` or `smooth`.
-`reduced` disables effects, as does Android's disabled animator setting. Effects
-change presentation only; they never delay focus or submit task transactions.
+`motion.panels` and `motion.taskbar` accept `none`, `fade`, `slide`, `scale` or
+`slide_scale`. Enabled effects fade in the native content; slide and scale add
+their respective transforms. `distanceDp` is 0-32 (default 12), and `scaleFrom`
+is 0.85-1 (default 0.96). Taskbar content enters from its panel edge; popup
+content enters from below. Translation is bounded to half the content dimension.
+`durationMs` is 0-400, `feedbackMs` is 0-250, and `curve` is `linear`, `ease_out`
+or `smooth`. `reduced` disables effects, as does Android's disabled animator
+setting.
+
+Window frames, background fills, blur and shell reservations stay at their final
+geometry. Transformed content remains a child of an Android ViewGroup, which
+maps pointer events through the same matrix used for drawing. Child-menu input
+hosts and outside-dismissal regions do not move. Effects begin on layout's
+pre-draw callback, and detach, dismissal or theme replacement releases the
+animation and restores the original properties. Focus and close never wait for
+an animation; application-task transitions are separate.
 
 ## Automation
 

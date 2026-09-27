@@ -70,11 +70,11 @@ public final class ShellCompositionTest {
         assertEquals(0, ShellComponentLayout.widths(List.of(), 100).length);
     }
     @Test public void reducedAndSystemDisabledAnimationsAlwaysResolveToZero() {
-        var motion = new ShellMotion(false, ShellMotion.Effect.FADE, ShellMotion.Effect.FADE, 180, 60, ShellMotion.Curve.SMOOTH);
+        var motion = new ShellMotion(false, ShellMotion.Effect.FADE, ShellMotion.Effect.FADE, 180, 60, ShellMotion.Curve.SMOOTH, 12, .96f);
         assertEquals(180, motion.duration(motion.panels(), true));
         assertEquals(0, motion.duration(motion.panels(), false));
         assertEquals(0, motion.duration(ShellMotion.Effect.NONE, true));
-        assertEquals(0, new ShellMotion(true, motion.panels(), motion.taskbar(), 180, 60, motion.curve()).duration(motion.panels(), true));
+        assertEquals(0, new ShellMotion(true, motion.panels(), motion.taskbar(), 180, 60, motion.curve(), 12, .96f).duration(motion.panels(), true));
     }
     @Test public void componentIdentityIsUniqueAcrossPanelsAndSpacersAreRepeatable() throws Exception {
         var theme = ShellAppearanceJson.parse("""

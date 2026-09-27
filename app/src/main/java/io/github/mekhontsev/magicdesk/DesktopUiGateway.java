@@ -876,6 +876,25 @@ final class DesktopUiGateway {
                 ? DesktopUiSnapshot.UNAVAILABLE : result[0];
     }
 
+    java.util.List<PanelPixelReference.Point> getPanelRenderReference(int displayId, boolean popup) {
+        var activity = usableDesktop(displayId, false);
+        if (activity == null || activity.getCurrentDisplayId() != displayId) return java.util.List.of();
+        var request = new java.util.concurrent.FutureTask<java.util.List<PanelPixelReference.Point>>(() ->
+                isCurrentHost(activity) && activity.getCurrentDisplayId() == displayId
+                        ? activity.getPanelRenderReference(popup) : java.util.List.of());
+        if (Looper.myLooper() == Looper.getMainLooper()) request.run();
+        else mMainHandler.post(request);
+        try {
+            // EVENT_WAIT: main-thread render reference; timeout cancels an unstarted observation.
+            return request.get(2, TimeUnit.SECONDS);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return java.util.List.of();
+        } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException error) {
+            return java.util.List.of();
+        } finally { request.cancel(false); }
+    }
+
     DesktopAutomationUiRegistry.Snapshot getAutomationUiElements(
             final int displayId, final String query, final boolean includeHidden) {
         return readAutomationUi(displayId,

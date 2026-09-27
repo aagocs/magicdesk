@@ -352,6 +352,10 @@ public final class DesktopRuntimeBridge {
         return UI.getAutomationUiSnapshot(displayId);
     }
 
+    static java.util.List<PanelPixelReference.Point> getPanelRenderReference(int displayId, boolean popup) {
+        return UI.getPanelRenderReference(displayId, popup);
+    }
+
     static DesktopAutomationUiRegistry.Snapshot getAutomationUiElements(
             final int displayId,
             final String query,

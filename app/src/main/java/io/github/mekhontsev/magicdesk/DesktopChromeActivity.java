@@ -167,7 +167,7 @@ public final class DesktopChromeActivity extends Activity {
         DesktopTaskbarHost.Panel definition;
         final UiPanelWindow decoration;
         final Rect applied = new Rect();
-        boolean added, hiddenTouch;
+        boolean added, hiddenTouch, contentPresented, presentationApplied;
 
         NativePanel(DesktopTaskbarHost.Panel value) {
             super(value.view().getContext());
@@ -189,8 +189,15 @@ public final class DesktopChromeActivity extends Activity {
                 params.width = content.width(); params.height = content.height();
                 params.leftMargin = left; params.topMargin = top; view.setLayoutParams(params);
             }
-            decoration.presented(mPresented && !mEdgeHidden);
-            view.setAlpha(mPresented && !mEdgeHidden ? 1 : 0);
+            boolean visible = mPresented && !mEdgeHidden;
+            decoration.presented(visible);
+            if (!presentationApplied || visible != contentPresented) {
+                presentationApplied = true;
+                UiMotion.cancel(view);
+                view.setAlpha(visible ? 1 : 0);
+                contentPresented = visible;
+                if (visible) UiMotion.reveal(view, false, definition.edge());
+            }
             view.setVisibility(mPresented ? View.VISIBLE : View.INVISIBLE);
             var target = PanelGeometry.presented(bounds(definition.output()), bounds(surface),
                     definition.edge(), mPresented, mEdgeHidden, mEdgeHeight);

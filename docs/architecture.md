@@ -1082,7 +1082,12 @@ runtime integration and are not distributed through the same release path.
 - `ShellComposition` declares native panels at each edge, their components and Start sections.
   `ShellComponentLayout` allocates fixed and flexible slots; UI reconciliation
   retains component Views and the existing action/service owners. `ShellMotion`
-  and state feedback are presentation-only. `ShellAppearanceSchema` supplies the
+  and state feedback are presentation-only. `UiMotion` transforms child content
+  inside a fixed native panel host; Android ViewGroup dispatch maps pointer input
+  through those transforms. Frame/backdrop geometry, reservations and focus stay
+  with their existing owners. Pre-draw starts effects, and detach/theme changes
+  cancel them without retaining callbacks or delaying closure.
+  `ShellAppearanceSchema` supplies the
   machine-readable contract and validation, while `AppearanceTransaction` owns
   non-persisted preview leases shared by Settings, MCP and CLI. No theme creates
   a window manager, execution backend or service authorization.

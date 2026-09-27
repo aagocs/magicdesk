@@ -71,6 +71,7 @@ final class ShellAppearanceSchema {
                     .put("motion", object(new JSONObject().put("reduced", type("boolean"))
                             .put("panels", enumeration(ShellMotion.Effect.values())).put("taskbar", enumeration(ShellMotion.Effect.values()))
                             .put("durationMs", number(true, 0, 400)).put("feedbackMs", number(true, 0, 250))
+                            .put("distanceDp", number(true, 0, 32)).put("scaleFrom", number(false, .85, 1))
                             .put("curve", enumeration(ShellMotion.Curve.values()))))
                     .put("resources", object(new JSONObject().put("icons", object(icons))
                             .put("bundle", type("string").put("pattern", "^(?:[a-f0-9]{64})?$"))
