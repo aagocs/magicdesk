@@ -5,30 +5,39 @@ import static org.junit.Assert.*;
 
 public final class StartEntryAppearanceTest {
     @Test public void borderIndicatesOnlySelectionOrKeyboardFocus() throws Exception {
-        RuntimeSourceFixture.verify("""
-                static class android { static class R { static class attr {
+        RuntimeSourceFixture.verify("io.github.mekhontsev.magicdesk", """
+                static class android { static class animation { static class ValueAnimator {
+                    static boolean areAnimatorsEnabled() { return true; }
+                } } static class R { static class attr {
                     static final int state_selected=1, state_focused=2, state_pressed=3, state_enabled=4, state_hovered=5;
                 } } }
-                enum Role { TRANSPARENT, HOVER, SURFACE, ACCENT }
-                static final Role TRANSPARENT=Role.TRANSPARENT, HOVER=Role.HOVER, SURFACE=Role.SURFACE, ACCENT=Role.ACCENT;
-                record Background(Role fill, int radius, Role border) {}
-                Background rounded(Role fill, int radius, Role border) { return new Background(fill, radius, border); }
-                Background filled(Role fill, int radius) { return rounded(fill, radius, TRANSPARENT); }
+                static class AppearanceStore { static ShellAppearance current() { return ShellAppearance.defaults(); } }
+                static class GradientDrawable {
+                    int fill, stroke, border; float radius;
+                    void setColor(int color) { fill = color; }
+                    void setCornerRadius(float value) { radius = value; }
+                    void setStroke(int width, int color) { stroke = width; border = color; }
+                }
                 static class StateListDrawable {
-                    final Map<Integer, Background> states = new LinkedHashMap<>();
-                    void addState(int[] state, Background background) { states.put(state.length == 0 ? 0 : state[0], background); }
+                    final Map<Integer, GradientDrawable> states = new LinkedHashMap<>();
+                    void addState(int[] state, GradientDrawable background) { states.put(state.length == 0 ? 0 : state[0], background); }
+                    void setEnterFadeDuration(int ms) {} void setExitFadeDuration(int ms) {} void invalidateSelf() {}
+                    protected boolean onStateChange(int[] states) { return true; }
                 }
                 public static void verify() {
                     for (int radius : new int[] {7, 12}) {
-                        var states = new Fixture().flatButtonBackground(radius).states;
+                        var states = new UiFeedbackDrawable(1f, radius).states;
                         check(states.size() == 6, "missing interactive state");
-                        for (int state : new int[] {1, 2}) check(states.get(state).border() == ACCENT, "focus/selection lost outline");
-                        for (int state : new int[] {0, 3, 5, -4}) check(states.get(state).border() == TRANSPARENT, "permanent outline");
-                        check(states.get(0).fill() == TRANSPARENT, "idle button paints its own background");
-                        check(states.values().stream().allMatch(value -> value.radius() == radius), "state changes geometry");
+                        int accent = AppearanceStore.current().palette().color(UiColor.ACCENT);
+                        for (int state : new int[] {1, 2}) check(states.get(state).stroke == 1 && states.get(state).border == accent, "focus/selection lost outline");
+                        for (int state : new int[] {0, 3, 5, -4}) check(states.get(state).stroke == 0, "permanent outline");
+                        check(states.get(0).fill == 0, "idle button paints its own background");
+                        check(states.values().stream().allMatch(value -> value.radius == radius), "state changes geometry");
                     }
                 }
-                """ + RuntimeSourceFixture.methods("DesktopUiFactory", "flatButtonBackground"));
+                """ + RuntimeSourceFixture.nestedClass("UiFeedbackDrawable", "UiFeedbackDrawable")
+                        .replace("final class UiFeedbackDrawable", "static final class UiFeedbackDrawable"),
+                "ShellAppearance", "ShellComposition", "ShellMotion", "ShellResources", "UiColor");
     }
     @Test public void gridAndSearchShareAppearanceIndependentOfLaunchBackend() throws Exception {
         final String tile = RuntimeSourceFixture.methods("StartMenuContent", "createAppTile");

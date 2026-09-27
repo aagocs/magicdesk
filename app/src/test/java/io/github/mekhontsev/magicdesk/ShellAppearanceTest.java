@@ -26,7 +26,7 @@ public final class ShellAppearanceTest {
         assertThrows(UnsupportedOperationException.class, () -> target.palette().colors().put(UiColor.TEXT, 0));
     }
     @Test public void rejectsInvalidOrExecutableFieldsAtomically() {
-        for (String invalid : new String[] {"{\"command\":\"id\"}", "{\"version\":2}",
+        for (String invalid : new String[] {"{\"command\":\"id\"}", "{\"version\":1}",
                 "{\"colors\":{\"text\":\"#00ffffff\"}}", "{\"colors\":{\"transparent\":\"#ffffff\"}}",
                 "{\"colors\":{\"unknown\":\"#ffffff\"}}", "{\"typography\":{\"scale\":8}}",
                 "{\"typography\":{\"font\":\"/sdcard/font.ttf\"}}", "{\"taskbar\":{\"opacity\":0}}",

@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "preset": "contrast",
+  "taskbar": { "width": "content", "alignment": "end", "sideGapDp": 16, "bottomGapDp": 8 },
+  "composition": {
+    "taskbar": [ { "type": "start", "label": "Apps" }, { "type": "tasks" }, { "type": "quick_controls" } ],
+    "start": { "sections": ["apps", "recent"], "tileWidthDp": 120, "iconSizeDp": 48 }
+  },
+  "resources": { "icons": { "controls": "settings" } },
+  "motion": { "reduced": true }
+}

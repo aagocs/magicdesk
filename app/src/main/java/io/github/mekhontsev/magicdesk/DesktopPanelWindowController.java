@@ -840,6 +840,7 @@ final class DesktopPanelWindowController {
             return false;
         }
         mVisibleAdded = true;
+        UiMotion.reveal(panel, true);
         recordPanelState(true, mVisibleTitle, mBounds);
         requestFrame(panel, mVisibleParams, mVisibleTitle);
         return true;
@@ -852,6 +853,7 @@ final class DesktopPanelWindowController {
             return false;
         }
         mChildAdded = true;
+        UiMotion.reveal(host, true);
         recordPanelState(true, mChildTitle, mChildBounds);
         requestFrame(host, mChildParams, mChildTitle);
         return true;

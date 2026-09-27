@@ -6,7 +6,20 @@ import java.util.Objects;
 
 /** Immutable, density-independent appearance. It owns no window or workspace state. */
 public record ShellAppearance(Palette palette, Typography typography, Shape shape,
-        Taskbar taskbar) {
+        Taskbar taskbar, ShellComposition composition, ShellMotion motion,
+        Feedback feedback, ShellResources resources) {
+    public record Feedback(UiColor normal, UiColor hover, UiColor pressed,
+            UiColor selected, UiColor focused, UiColor disabled, UiColor outline) {
+        public Feedback {
+            Objects.requireNonNull(normal); Objects.requireNonNull(hover); Objects.requireNonNull(pressed);
+            Objects.requireNonNull(selected); Objects.requireNonNull(focused); Objects.requireNonNull(disabled);
+            Objects.requireNonNull(outline);
+        }
+        public static Feedback defaults() {
+            return new Feedback(UiColor.TRANSPARENT, UiColor.SURFACE, UiColor.HOVER,
+                    UiColor.SURFACE, UiColor.HOVER, UiColor.TRANSPARENT, UiColor.ACCENT);
+        }
+    }
     public record Palette(Map<UiColor, Integer> colors) {
         public Palette {
             colors = Map.copyOf(colors);
@@ -43,12 +56,24 @@ public record ShellAppearance(Palette palette, Typography typography, Shape shap
     public ShellAppearance {
         Objects.requireNonNull(palette); Objects.requireNonNull(typography);
         Objects.requireNonNull(shape); Objects.requireNonNull(taskbar);
+        Objects.requireNonNull(composition); Objects.requireNonNull(motion);
+        Objects.requireNonNull(feedback); Objects.requireNonNull(resources);
     }
     public ShellAppearance withTaskbar(Taskbar value) {
-        return new ShellAppearance(palette, typography, shape, value);
+        return new ShellAppearance(palette, typography, shape, value, composition, motion, feedback, resources);
     }
     public ShellAppearance withStyle(ShellAppearance value) {
-        return new ShellAppearance(value.palette, value.typography, value.shape, taskbar);
+        return new ShellAppearance(value.palette, value.typography, value.shape, taskbar,
+                composition, motion, value.feedback, resources);
+    }
+    public ShellAppearance withPalette(Palette value) {
+        return new ShellAppearance(value, typography, shape, taskbar, composition, motion, feedback, resources);
+    }
+    public ShellAppearance withTypography(Typography value) {
+        return new ShellAppearance(palette, value, shape, taskbar, composition, motion, feedback, resources);
+    }
+    public ShellAppearance withShape(Shape value) {
+        return new ShellAppearance(palette, typography, value, taskbar, composition, motion, feedback, resources);
     }
     public static ShellAppearance defaults() { return preset("dark"); }
     public static ShellAppearance preset(String name) {
@@ -64,7 +89,8 @@ public record ShellAppearance(Palette palette, Typography typography, Shape shap
         final EnumMap<UiColor, Integer> colors = new EnumMap<>(UiColor.class);
         for (UiColor role : UiColor.values()) colors.put(role, values[role.ordinal()]);
         return new ShellAppearance(new Palette(colors), new Typography(Font.SANS, 1),
-                new Shape(1, 1), Taskbar.defaults());
+                new Shape(1, 1), Taskbar.defaults(), ShellComposition.defaults(), ShellMotion.defaults(),
+                Feedback.defaults(), ShellResources.defaults());
     }
     static void range(float value, float min, float max, String name) {
         if (!Float.isFinite(value) || value < min || value > max) {

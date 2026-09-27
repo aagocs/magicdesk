@@ -78,6 +78,8 @@ final class StartMenuContent {
     private int mColumns = 3;
     private int mRows = 3;
     private boolean mPrepared, mReleased;
+    private ShellComposition.Start mAppearance = AppearanceStore.current().composition().start();
+    private final Runnable mAppearanceChanged = this::appearanceChanged;
 
     StartMenuContent(
             final Activity activity,
@@ -87,6 +89,7 @@ final class StartMenuContent {
         mHost = host;
         mScope = scope;
         mMode = scope == StartMenuScope.APPLICATIONS ? MENU_APPS : MENU_RECENT;
+        if (mAppearance.sections().stream().noneMatch(section -> sectionMode(section) == mMode)) mMode = MENU_APPS;
         mActivity = activity;
         mCatalog = ApplicationCatalog.get(activity);
         mUi = ui;
@@ -208,6 +211,7 @@ final class StartMenuContent {
         contentParams.setMargins(0, dp(10), 0, 0);
         menu.addView(mContent, contentParams);
         mPanel = menu;
+        AppearanceStore.listen(mAppearanceChanged);
         mHost.automation().register(
                 menu, "panel.start", "panel", "Start");
         return menu;
@@ -223,23 +227,16 @@ final class StartMenuContent {
         final LinearLayout tabs = new LinearLayout(mActivity);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setGravity(Gravity.CENTER_VERTICAL);
-        tabs.addView(createTab(R.string.section_recent, MENU_RECENT),
-                new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        final LinearLayout.LayoutParams appsTabParams =
-                new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        appsTabParams.setMargins(dp(5), 0, dp(5), 0);
-        tabs.addView(createTab(R.string.section_apps, MENU_APPS),
-                appsTabParams);
-        if (mHost.hasRunningSection()) {
-            tabs.addView(createTab(R.string.section_running, MENU_RUNNING),
-                    new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        }
-        if (mScope == StartMenuScope.DESKTOP) {
-            tabs.addView(createTab(R.string.section_tools, MENU_TOOLS),
-                    new LinearLayout.LayoutParams(
-                            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        for (var section : mAppearance.sections()) {
+            if (section == ShellComposition.Section.RUNNING && !mHost.hasRunningSection()) continue;
+            if (section == ShellComposition.Section.TOOLS && mScope != StartMenuScope.DESKTOP) continue;
+            int title = switch (section) {
+                case RECENT -> R.string.section_recent; case APPS -> R.string.section_apps;
+                case RUNNING -> R.string.section_running; case TOOLS -> R.string.section_tools;
+            };
+            final var params = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            params.setMargins(dp(2), 0, dp(2), 0);
+            tabs.addView(createTab(title, sectionMode(section)), params);
         }
         mContent.addView(tabs, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -269,7 +266,8 @@ final class StartMenuContent {
         mBody.addOnLayoutChangeListener((view, left, top, right, bottom,
                 oldLeft, oldTop, oldRight, oldBottom) -> {
             final float density = mActivity.getResources().getDisplayMetrics().density;
-            final int columns = StartMenuLayout.columns(Math.round((right - left) / density));
+            final int columns = StartMenuLayout.columns(Math.round((right - left) / density),
+                    mAppearance.tileWidthDp(), mAppearance.iconSizeDp());
             final int rows = StartMenuLayout.rows(Math.round((bottom - top) / density));
             if (right > left && bottom > top && (columns != mColumns || rows != mRows)) {
                 mColumns = columns;
@@ -382,11 +380,29 @@ final class StartMenuContent {
     }
 
     void release() {
+        AppearanceStore.unlisten(mAppearanceChanged);
         mReleased = true;
         mPrepared = false;
         mCatalog.unsubscribe(mCatalogListener);
         mLaunchControls.dismiss();
         mSearchController.close();
+    }
+
+    private static int sectionMode(ShellComposition.Section section) {
+        return switch (section) { case RECENT -> MENU_RECENT; case APPS -> MENU_APPS; case RUNNING -> MENU_RUNNING; case TOOLS -> MENU_TOOLS; };
+    }
+
+    private void appearanceChanged() {
+        final var next = AppearanceStore.current().composition().start();
+        if (next.equals(mAppearance)) return;
+        mAppearance = next;
+        if (next.sections().stream().noneMatch(section -> sectionMode(section) == (mMode == MENU_CAPTURE ? MENU_TOOLS : mMode))) mMode = MENU_APPS;
+        if (mPrepared) {
+            boolean focused = mSearch.hasFocus();
+            int selection = mSearch.getSelectionStart();
+            render();
+            if (focused) { mSearch.requestFocus(); mSearch.setSelection(Math.max(0, Math.min(selection, mSearch.length()))); }
+        }
     }
 
     StartDisplaySelector.Target destination() { return mLaunchControls.target(); }
@@ -439,7 +455,8 @@ final class StartMenuContent {
                     LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
             return;
         }
-        final int pageSize = getPageSize();
+        final boolean list = mAppearance.presentation() == ShellComposition.Presentation.LIST;
+        final int pageSize = list ? Math.max(1, mRows * 2) : getPageSize();
         final int pageCount = Math.max(
                 1, (menuApps.size() + pageSize - 1) / pageSize);
         if (mPage >= pageCount) {
@@ -447,6 +464,20 @@ final class StartMenuContent {
         }
         if (mPage < 0) {
             mPage = 0;
+        }
+        if (list) {
+            final LinearLayout rows = new LinearLayout(mActivity);
+            rows.setOrientation(LinearLayout.VERTICAL);
+            for (var entry : menuApps.subList(mPage * pageSize, Math.min(menuApps.size(), (mPage + 1) * pageSize))) {
+                View row = createSearchRow(entry, false);
+                row.setOnClickListener(v -> mHost.open(entry));
+                rows.addView(row, new LinearLayout.LayoutParams(-1, dp(StartMenuLayout.rowHeight(mAppearance.iconSizeDp()))));
+            }
+            final ScrollView scroll = new ScrollView(mActivity);
+            scroll.addView(rows);
+            mBody.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+            addPager(pageCount);
+            return;
         }
 
         final GridLayout grid = new GridLayout(mActivity);
@@ -573,7 +604,7 @@ final class StartMenuContent {
 
         final ImageView icon = new ImageView(mActivity);
         bindIcon(icon, application);
-        tile.addView(icon, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        tile.addView(icon, new LinearLayout.LayoutParams(dp(mAppearance.iconSizeDp()), dp(mAppearance.iconSizeDp())));
 
         final TextView label = new TextView(mActivity);
         label.setText(application.label);
@@ -679,7 +710,7 @@ final class StartMenuContent {
                             index == mSearchSelection),
                     new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
-                            dp(58)));
+                            dp(StartMenuLayout.rowHeight(mAppearance.iconSizeDp()))));
         }
         final ScrollView scroll = new ScrollView(mActivity);
         scroll.addView(list, new ScrollView.LayoutParams(
@@ -769,7 +800,7 @@ final class StartMenuContent {
 
         final ImageView icon = new ImageView(mActivity);
         bindIcon(icon, result);
-        row.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
+        row.addView(icon, new LinearLayout.LayoutParams(dp(mAppearance.iconSizeDp()), dp(mAppearance.iconSizeDp())));
 
         final LinearLayout labels = new LinearLayout(mActivity);
         labels.setOrientation(LinearLayout.VERTICAL);
@@ -825,11 +856,11 @@ final class StartMenuContent {
     private void bindIcon(final ImageView icon, final StartMenuEntry entry) {
         icon.setTag(entry);
         if (entry.app != null) { icon.setImageDrawable(entry.app.icon); }
-        else if (entry.builtIn != null) { icon.setImageDrawable(UiAppearance.symbol(mActivity, searchIcon(entry), UiColor.TEXT)); }
+        else if (entry.builtIn != null) { UiAppearance.icon(icon, searchIcon(entry), UiColor.TEXT); }
         else if (entry.desktopApplication != null) {
             icon.setImageDrawable(DesktopApplicationIconResolver.resolve(
                     mActivity, entry.desktopApplication.shortcut));
-        } else { icon.setImageDrawable(UiAppearance.symbol(mActivity, searchIcon(entry), UiColor.TEXT)); }
+        } else { UiAppearance.icon(icon, searchIcon(entry), UiColor.TEXT); }
     }
 
     private void refreshIcons(View view) {

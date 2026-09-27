@@ -1057,6 +1057,13 @@ runtime integration and are not distributed through the same release path.
   `UiAppearance` updates existing native Views and drawables. `TaskbarGeometry`
   resolves density-independent dimensions through `DesktopShellLayout`, retaining
   the existing focus, input and task-area owners. See [Native appearance](appearance.md).
+- `ShellComposition` declares native taskbar components and Start sections.
+  `ShellComponentLayout` allocates fixed and flexible slots; UI reconciliation
+  retains component Views and the existing action/service owners. `ShellMotion`
+  and state feedback are presentation-only. `ShellAppearanceSchema` supplies the
+  machine-readable contract and validation, while `AppearanceTransaction` owns
+  non-persisted preview leases shared by Settings, MCP and CLI. No theme creates
+  a window manager, execution backend or service authorization.
 - `StartMenuController`, `TaskbarController`, `TaskOverviewController`, and
   `NotificationCenterController` own the persistent desktop controls.
 - `DesktopWorkspaceController` composes the fixed Android `Desktop` directory,

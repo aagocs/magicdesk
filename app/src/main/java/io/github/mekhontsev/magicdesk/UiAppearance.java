@@ -17,14 +17,14 @@ public final class UiAppearance {
     @FunctionalInterface private interface Style { void apply(View view, ShellAppearance theme); }
     private static final WeakHashMap<Binding, Boolean> BINDINGS = new WeakHashMap<>();
     private static final WeakHashMap<Paint, Boolean> PAINTS = new WeakHashMap<>();
-    private static final WeakHashMap<android.graphics.drawable.Drawable, UiColor> SYMBOLS = new WeakHashMap<>();
+    private static final WeakHashMap<UiFeedbackDrawable, Boolean> FEEDBACK = new WeakHashMap<>();
+    private static final WeakHashMap<UiSymbolDrawable, Boolean> SYMBOLS = new WeakHashMap<>();
     private UiAppearance() {}
 
     public static int color(UiColor role) { return AppearanceStore.current().palette().color(role); }
     static android.graphics.drawable.Drawable symbol(android.content.Context context, int resource, UiColor role) {
-        final var drawable = context.getDrawable(resource).mutate();
-        synchronized (SYMBOLS) { SYMBOLS.put(drawable, role); }
-        drawable.setTint(color(role));
+        final var drawable = new UiSymbolDrawable(context.getResources(), resource, role);
+        synchronized (SYMBOLS) { SYMBOLS.put(drawable, true); }
         return drawable;
     }
     public static void text(TextView view, UiColor role) {
@@ -44,6 +44,10 @@ public final class UiAppearance {
     }
     public static void image(ImageView view, UiColor role) {
         bind(view, Property.IMAGE, (v, t) -> ((ImageView) v).setColorFilter(t.palette().color(role)));
+    }
+    static void icon(ImageView view, int resource, UiColor role) {
+        view.setImageDrawable(symbol(view.getContext(), resource, role));
+        image(view, role);
     }
     public static void imageStates(ImageView view, UiColor role) {
         bind(view, Property.IMAGE, (v, t) -> ((ImageView) v).setImageTintList(states(t, role)));
@@ -71,8 +75,9 @@ public final class UiAppearance {
             if (v instanceof android.widget.SeekBar seek) seek.setThumbTintList(tint);
         });
     }
-    static void dialog(android.app.AlertDialog dialog) {
+    static void dialog(android.app.AlertDialog dialog, android.app.Activity owner) {
         final View root = dialog.getWindow().getDecorView();
+        DialogContentInsets.bind(root, owner);
         dialog.getWindow().setBackgroundDrawable(paint(root.getResources().getDisplayMetrics().density,
                 UiColor.PANEL, 8 * root.getResources().getDisplayMetrics().density, UiColor.HOVER));
         dialogContents(root);
@@ -103,11 +108,18 @@ public final class UiAppearance {
         binding.applyTypography(AppearanceStore.current());
     }
     static void refresh() {
+        UiMotion.refresh();
+        for (var control : new ArrayList<>(FEEDBACK.keySet())) control.refresh();
         synchronized (SYMBOLS) {
-            SYMBOLS.forEach((drawable, role) -> drawable.setTint(color(role)));
+            for (var drawable : new ArrayList<>(SYMBOLS.keySet())) drawable.refresh();
         }
         for (Paint paint : new ArrayList<>(PAINTS.keySet())) paint.refresh();
         for (Binding binding : new ArrayList<>(BINDINGS.keySet())) binding.refresh();
+    }
+    static android.graphics.drawable.StateListDrawable feedback(float density, int radius) {
+        final var drawable = new UiFeedbackDrawable(density, radius);
+        FEEDBACK.put(drawable, true);
+        return drawable;
     }
     static GradientDrawable paint(float density, UiColor fill, float radiusPx, UiColor border) {
         final Paint paint = new Paint(density, fill, radiusPx, border);

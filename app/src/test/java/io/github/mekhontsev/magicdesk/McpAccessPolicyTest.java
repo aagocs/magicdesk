@@ -8,6 +8,14 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 public final class McpAccessPolicyTest {
+    @Test public void appearanceSchemaAndValidationDoNotGrantMutation() {
+        var observe = new McpAccessPolicy(Set.of());
+        for (String name : Set.of("appearance.schema", "appearance.validate", "appearance.get")) assertTrue(observe.allows(name));
+        for (String name : Set.of("appearance.preview", "appearance.confirm", "appearance.cancel", "appearance.apply")) {
+            assertFalse(observe.allows(name));
+            assertTrue(new McpAccessPolicy(Set.of("control")).allows(name));
+        }
+    }
     @Test public void externalUiContentIsNotAnUnrestrictedObservation() throws Exception {
         final McpAccessPolicy observe = new McpAccessPolicy(Set.of());
         final McpAccessPolicy input = new McpAccessPolicy(Set.of("input_tests"));

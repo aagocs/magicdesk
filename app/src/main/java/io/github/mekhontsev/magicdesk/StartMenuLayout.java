@@ -4,8 +4,12 @@ package io.github.mekhontsev.magicdesk;
 final class StartMenuLayout {
     private StartMenuLayout() { }
 
-    static int columns(final int widthDp) {
-        return Math.max(1, widthDp / 100);
+    static int columns(final int widthDp, final int tileWidthDp, final int iconSizeDp) {
+        return Math.max(1, widthDp / Math.max(tileWidthDp, iconSizeDp + 20));
+    }
+
+    static int rowHeight(final int iconSizeDp) {
+        return Math.max(58, iconSizeDp + 12);
     }
 
     static int rows(final int bodyHeightDp) {

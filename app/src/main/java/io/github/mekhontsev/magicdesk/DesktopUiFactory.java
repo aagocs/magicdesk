@@ -265,8 +265,7 @@ public final class DesktopUiFactory {
             final int descriptionResId,
             final boolean compact) {
         final ImageButton button = new ImageButton(mContext);
-        button.setImageResource(drawableResId);
-        UiAppearance.image(button, TEXT);
+        UiAppearance.icon(button, drawableResId, TEXT);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
         button.setBackground(flatButtonBackground(desktopDp(8, 6, compact)));
@@ -300,13 +299,6 @@ public final class DesktopUiFactory {
     }
 
     StateListDrawable flatButtonBackground(final int radius) {
-        final StateListDrawable states = new StateListDrawable();
-        states.addState(new int[] {-android.R.attr.state_enabled}, filled(TRANSPARENT, radius));
-        states.addState(new int[] {android.R.attr.state_focused}, rounded(HOVER, radius, ACCENT));
-        states.addState(new int[] {android.R.attr.state_selected}, rounded(SURFACE, radius, ACCENT));
-        states.addState(new int[] {android.R.attr.state_pressed}, filled(HOVER, radius));
-        states.addState(new int[] {android.R.attr.state_hovered}, filled(SURFACE, radius));
-        states.addState(new int[0], filled(TRANSPARENT, radius));
-        return states;
+        return UiAppearance.feedback(mContext.getResources().getDisplayMetrics().density, radius);
     }
 }

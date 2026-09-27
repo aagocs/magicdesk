@@ -44,6 +44,8 @@ final class MagicDeskMcpBackend implements McpBackend {
     @Override
     public JSONArray listResources() throws JSONException {
         return new JSONArray()
+                .put(resource("magicdesk://appearance/schema", "Shell configuration schema",
+                        "Authoritative JSON Schema for native shell appearance and composition"))
                 .put(resource(
                         "magicdesk://state",
                         "Desktop state",
@@ -77,6 +79,8 @@ final class MagicDeskMcpBackend implements McpBackend {
     @Override
     public String readResource(final String uri) throws JSONException {
         switch (uri) {
+            case "magicdesk://appearance/schema":
+                return ShellAppearanceSchema.document().toString(2);
             case "magicdesk://state":
                 return mCommands.stateReader().state().toString(2);
             case "magicdesk://displays":

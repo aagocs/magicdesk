@@ -12,10 +12,24 @@ final class AutomationCommandCatalog {
     static JSONArray create() throws JSONException {
         final JSONArray tools = new JSONArray()
                 .put(readTool("appearance.get", "Read shell appearance",
-                        "Read the persisted native shell theme document and built-in style presets. Independent of Desktop, shell access and Termux.", emptySchema()))
+                        "Read effective and committed native shell configuration, active preview ID and revision. Independent of Desktop, shell access and Termux.", emptySchema()))
+                .put(readTool("appearance.schema", "Read shell configuration schema",
+                        "Read the authoritative JSON Schema for native appearance, composition, symbols, feedback and motion. Does not change state.", emptySchema()))
+                .put(readTool("appearance.validate", "Validate shell configuration",
+                        "Validate and resolve a document without applying it. Reports JSON-pointer paths for invalid fields and component constraints.",
+                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 2 shell configuration; discover fields with appearance.schema.")), "document")))
+                .put(actionTool("appearance.preview", "Preview shell configuration",
+                        "Apply a temporary, non-persisted configuration. Returns an exact previewId for confirm/cancel. Only one preview can be active; process restart restores the committed configuration.",
+                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 2 shell configuration; discover fields with appearance.schema.")), "document")))
+                .put(actionTool("appearance.confirm", "Confirm shell preview",
+                        "Persist the exact active preview. Stale preview IDs are rejected.",
+                        objectSchema(new JSONObject().put("previewId", stringProperty("Exact active preview ID.")), "previewId")))
+                .put(actionTool("appearance.cancel", "Cancel shell preview",
+                        "Discard the exact preview and restore the committed configuration. Stale preview IDs cannot revert later changes.",
+                        objectSchema(new JSONObject().put("previewId", stringProperty("Exact active preview ID.")), "previewId")))
                 .put(actionTool("appearance.apply", "Apply shell appearance",
                         "Validate and replace the native shell theme document, at most 32 KiB. Missing fields inherit built-in defaults. Live Views update without relaunching tools; Android captions, wallpaper, terminal protocol colors and permission settings are unaffected. Returns persisted values, not pixel-presentation acknowledgement.",
-                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 1 theme: optional preset, colors, typography, shape and taskbar. Unknown fields are rejected.")), "document")))
+                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 2 shell configuration; discover fields with appearance.schema.")), "document")))
                 .put(actionTool("appearance.preset", "Select appearance preset",
                         "Apply a built-in color, typography and shape preset while retaining taskbar geometry and unrelated preferences.",
                         objectSchema(new JSONObject().put("name", enumProperty("Built-in style.", "dark", "light", "contrast")), "name")))
@@ -1423,11 +1437,23 @@ final class AutomationCommandCatalog {
         final JSONObject properties = new JSONObject();
         switch (toolName) {
             case "appearance.get":
+            case "appearance.preview":
+            case "appearance.confirm":
+            case "appearance.cancel":
             case "appearance.apply":
             case "appearance.preset":
             case "appearance.reset":
-                properties.put("document", openObjectProperty("Resolved version 1 appearance document."))
+                properties.put("document", openObjectProperty("Effective version 2 shell configuration."))
+                        .put("committed", openObjectProperty("Confirmed configuration, restored after preview cancellation or process restart."))
+                        .put("previewId", nullableStringProperty("Exact active preview ID, or null."))
+                        .put("revision", integerProperty("Process-local configuration revision."))
                         .put("presets", arrayProperty("Built-in style presets.", stringProperty("Preset name.")));
+                break;
+            case "appearance.schema":
+                properties.put("schema", openObjectProperty("Authoritative JSON Schema."));
+                break;
+            case "appearance.validate":
+                properties.put("document", openObjectProperty("Validated resolved document; not applied."));
                 break;
             case "graphics.list":
                 properties.put("sessions", arrayProperty("Retained graphical sessions.", graphicalSessionSchema()))

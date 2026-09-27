@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.EnumMap;
+import static io.github.mekhontsev.magicdesk.ShellComposition.Kind;
 
 final class TaskbarController {
     enum ContextArea {
@@ -39,6 +41,13 @@ final class TaskbarController {
             AndroidDesktopActionDispatcher.createContentScope();
 
     private LinearLayout mTaskbar;
+    private LinearLayout mComponentRow;
+    private final EnumMap<Kind, View> mComponents = new EnumMap<>(Kind.class);
+    private final EnumMap<Kind, Integer> mNaturalWidths = new EnumMap<>(Kind.class);
+    private List<ShellComposition.Component> mComposition;
+    private final List<View> mSpacers = new ArrayList<>();
+    private TextClock mClock;
+    private boolean mPhoneActionVisible;
     private Button mStartButton;
     private LinearLayout mPins;
     private HorizontalScrollView mTaskViewport;
@@ -161,7 +170,10 @@ final class TaskbarController {
                 start, "taskbar.start", "button",
                 mActivity.getString(R.string.action_start));
         mStartButton = start;
-        taskbar.addView(start, new LinearLayout.LayoutParams(
+        start.setSingleLine(true);
+        start.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        start.setAutoSizeTextTypeUniformWithConfiguration(8, 14, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+        addComponent(taskbar, Kind.START, start, new LinearLayout.LayoutParams(
                 desktopDp(108, 72),
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
@@ -188,7 +200,7 @@ final class TaskbarController {
                         0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
         pinsParams.setMargins(
                 desktopDp(10, 4), 0, desktopDp(10, 4), 0);
-        taskbar.addView(taskScroll, pinsParams);
+        addComponent(taskbar, Kind.TASKS, taskScroll, pinsParams);
 
         final ImageButton showDesktop = taskbarButton(
                 R.drawable.ic_show_desktop,
@@ -198,7 +210,7 @@ final class TaskbarController {
         mActivity.registerAutomationUiElement(
                 showDesktop, "taskbar.show_desktop", "button",
                 mActivity.getString(R.string.action_show_desktop));
-        addButton(taskbar, showDesktop);
+        addButton(taskbar, Kind.SHOW_DESKTOP, showDesktop);
 
         final ImageButton taskOverview = taskbarButton(
                 R.drawable.ic_file_new_window,
@@ -208,13 +220,12 @@ final class TaskbarController {
         mActivity.registerAutomationUiElement(
                 taskOverview, "taskbar.open_tasks", "button",
                 mActivity.getString(R.string.action_open_tasks));
-        addButton(taskbar, taskOverview);
+        addButton(taskbar, Kind.OPEN_TASKS, taskOverview);
 
         final View notifications =
                 mActivity.notifications().createTaskbarButton(
                         mActivity.isCompactDesktopPreview());
-        taskbar.addView(
-                notifications,
+        addComponent(taskbar, Kind.NOTIFICATIONS, notifications,
                 new LinearLayout.LayoutParams(
                         desktopDp(46, 38),
                         LinearLayout.LayoutParams.MATCH_PARENT));
@@ -237,7 +248,7 @@ final class TaskbarController {
         mKeyboardLayout.setOnClickListener(mInputMethodMenu::toggle);
         mKeyboardLayout.setEnabled(
                 ShellAccess.isReady());
-        taskbar.addView(mKeyboardLayout, new LinearLayout.LayoutParams(
+        addComponent(taskbar, Kind.KEYBOARD_LAYOUT, mKeyboardLayout, new LinearLayout.LayoutParams(
                 desktopDp(48, 38),
                 LinearLayout.LayoutParams.MATCH_PARENT));
         if (mActivity.isCompactDesktopPreview()) {
@@ -254,7 +265,7 @@ final class TaskbarController {
         mPhoneScreenButton.setOnClickListener(view ->
                 mActivity.togglePhoneScreen());
         mPhoneScreenButton.setEnabled(false);
-        addButton(taskbar, mPhoneScreenButton);
+        addButton(taskbar, Kind.PHONE_SCREEN, mPhoneScreenButton);
         if (mActivity.isCompactDesktopPreview()
                 || mActivity.getCurrentDisplayId() == Display.DEFAULT_DISPLAY) {
             mPhoneScreenButton.setVisibility(View.GONE);
@@ -271,7 +282,7 @@ final class TaskbarController {
         mActivity.registerAutomationUiElement(
                 mSystemButton, "taskbar.quick_controls", "button",
                 mActivity.getString(R.string.section_quick_controls));
-        addButton(taskbar, mSystemButton);
+        addButton(taskbar, Kind.QUICK_CONTROLS, mSystemButton);
 
         mBatteryStatus = new TextView(mActivity);
         UiAppearance.text(mBatteryStatus, UiColor.MUTED);
@@ -287,15 +298,20 @@ final class TaskbarController {
         mActivity.registerAutomationUiElement(
                 mBatteryStatus, "taskbar.battery", "button",
                 mActivity.getString(R.string.battery_status_unknown));
-        taskbar.addView(mBatteryStatus, new LinearLayout.LayoutParams(
+        addComponent(taskbar, Kind.BATTERY, mBatteryStatus, new LinearLayout.LayoutParams(
                 desktopDp(58, 44),
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
         final TextClock clock = new TextClock(mActivity);
+        mClock = clock;
         clock.setFormat24Hour("HH:mm");
         clock.setFormat12Hour("HH:mm");
         UiAppearance.text(clock, UiColor.TEXT);
         clock.setTextSize(mActivity.isCompactDesktopPreview() ? 12 : 16);
+        clock.setSingleLine(true);
+        clock.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        clock.setAutoSizeTextTypeUniformWithConfiguration(8, mActivity.isCompactDesktopPreview() ? 12 : 16,
+                1, android.util.TypedValue.COMPLEX_UNIT_SP);
         clock.setGravity(Gravity.CENTER);
         clock.setClickable(true);
         clock.setFocusable(true);
@@ -307,9 +323,20 @@ final class TaskbarController {
         mActivity.registerAutomationUiElement(
                 clock, "taskbar.clock", "button",
                 mActivity.getString(R.string.action_calendar));
-        taskbar.addView(clock, new LinearLayout.LayoutParams(
+        addComponent(taskbar, Kind.CLOCK, clock, new LinearLayout.LayoutParams(
                 desktopDp(72, 50),
                 LinearLayout.LayoutParams.MATCH_PARENT));
+        mComponentRow = new LinearLayout(mActivity);
+        mComponentRow.setGravity(Gravity.CENTER_VERTICAL);
+        taskbar.removeAllViews();
+        final HorizontalScrollView components = new HorizontalScrollView(mActivity);
+        components.setHorizontalScrollBarEnabled(false);
+        components.setFillViewport(true);
+        components.addView(mComponentRow, new HorizontalScrollView.LayoutParams(-2, -1));
+        taskbar.addView(components, new LinearLayout.LayoutParams(-1, -1));
+        taskbar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (r - l != or - ol) applyComposition();
+        });
         mTaskbar = taskbar;
         AppearanceStore.listen(mAppearanceChanged);
         applyAppearance();
@@ -323,6 +350,8 @@ final class TaskbarController {
         mContentRequests.close();
         mEdgeHidden = false;
         mTaskbar = null;
+        mComponentRow = null;
+        mComponents.clear(); mNaturalWidths.clear(); mSpacers.clear(); mComposition = null; mClock = null;
         mStartButton = null;
         mPins = null;
         mTaskViewport = null;
@@ -342,9 +371,13 @@ final class TaskbarController {
     }
 
     void setEdgeHidden(final boolean hidden) {
+        final boolean changed = hidden != mEdgeHidden;
+        if (!changed) return;
         mEdgeHidden = hidden;
         if (mTaskbar != null) {
+            UiMotion.cancel(mTaskbar);
             mTaskbar.setAlpha(hidden ? 0f : 1f);
+            if (changed && !hidden) UiMotion.reveal(mTaskbar, false);
         }
     }
 
@@ -379,17 +412,18 @@ final class TaskbarController {
         }
     }
 
-    int minimumWidth() { return fixedWidth() + desktopDp(48, 36); }
-    int preferredWidth() { return fixedWidth() + desktopDp(48, 36) * Math.max(1, mItemCount); }
+    int minimumWidth() { return contentWidth(false); }
+    int preferredWidth() { return contentWidth(true); }
 
-    private int fixedWidth() {
+    private int contentWidth(boolean preferred) {
         if (mTaskbar == null) return 0;
         int width = mTaskbar.getPaddingLeft() + mTaskbar.getPaddingRight();
-        for (int i = 0; i < mTaskbar.getChildCount(); i++) {
-            final View child = mTaskbar.getChildAt(i);
-            if (child.getVisibility() == View.GONE) continue;
-            final LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) child.getLayoutParams();
-            width += Math.max(0, params.width) + params.leftMargin + params.rightMargin;
+        for (var item : AppearanceStore.current().composition().taskbar()) {
+            if (!componentVisible(item)) continue;
+            width += componentWidth(item);
+            if (preferred && item.type() == Kind.TASKS && item.widthDp() == 0) {
+                width += desktopDp(48, 36) * Math.max(0, mItemCount - 1);
+            }
         }
         return width;
     }
@@ -399,7 +433,72 @@ final class TaskbarController {
         final int padding = AppearanceStore.current().taskbar().paddingDp();
         final int px = desktopDp(padding, padding / 2);
         mTaskbar.setPadding(px, px, px, px);
+        applyComposition();
         mActivity.onTaskbarContentChanged();
+    }
+
+    private boolean componentVisible(ShellComposition.Component item) {
+        final var metrics = mActivity.getResources().getDisplayMetrics();
+        return item.visible(mActivity.isCompactDesktopPreview(), mActivity.getCurrentDisplayId() != Display.DEFAULT_DISPLAY,
+                Math.round(metrics.widthPixels / metrics.density))
+                && (item.type() != Kind.PHONE_SCREEN || mPhoneActionVisible);
+    }
+
+    private int componentWidth(ShellComposition.Component item) {
+        if (item.widthDp() != 0) return dp(item.widthDp());
+        if (item.type() == Kind.TASKS) return desktopDp(48, 36);
+        if (item.type() == Kind.SPACER) return 0;
+        if (item.type() == Kind.CLOCK && item.clock() != ShellComposition.Clock.TIME) {
+            return dp(item.clock() == ShellComposition.Clock.DATE ? 110 : 170);
+        }
+        return mNaturalWidths.getOrDefault(item.type(), 0);
+    }
+
+    private void applyComposition() {
+        if (mComponentRow == null || mTaskbar == null) return;
+        final var composition = AppearanceStore.current().composition().taskbar();
+        if (!composition.equals(mComposition)) {
+            final List<View> ordered = new ArrayList<>();
+            int spacer = 0;
+            for (var item : composition) {
+                final View view;
+                if (item.type() == Kind.SPACER) {
+                    if (spacer == mSpacers.size()) mSpacers.add(new View(mActivity));
+                    view = mSpacers.get(spacer++);
+                } else view = mComponents.get(item.type());
+                ordered.add(view);
+                if (item.type() == Kind.START) mStartButton.setText(item.label().isEmpty()
+                        ? mActivity.getString(R.string.action_start) : item.label());
+                if (item.type() == Kind.CLOCK) {
+                    String format = switch (item.clock()) { case TIME -> "HH:mm"; case DATE -> "EEE, d MMM"; case DATE_TIME -> "d MMM  HH:mm"; };
+                    mClock.setFormat12Hour(format); mClock.setFormat24Hour(format);
+                }
+            }
+            // Retain Views and their service bindings; reorder only changed positions.
+            for (int i = mComponentRow.getChildCount() - 1; i >= 0; i--) {
+                if (!ordered.contains(mComponentRow.getChildAt(i))) mComponentRow.removeViewAt(i);
+            }
+            for (int i = 0; i < ordered.size(); i++) {
+                View view = ordered.get(i);
+                if (mComponentRow.indexOfChild(view) == i) continue;
+                mComponentRow.removeView(view);
+                mComponentRow.addView(view, i, new LinearLayout.LayoutParams(0, -1));
+            }
+            mComposition = composition;
+        }
+        final List<ShellComponentLayout.Slot> slots = new ArrayList<>();
+        for (var item : composition) {
+            boolean visible = componentVisible(item);
+            slots.add(new ShellComponentLayout.Slot(visible ? componentWidth(item) : 0,
+                    visible && item.widthDp() == 0 && (item.type() == Kind.TASKS || item.type() == Kind.SPACER)));
+        }
+        int[] widths = ShellComponentLayout.widths(slots, mTaskbar.getWidth() - mTaskbar.getPaddingLeft() - mTaskbar.getPaddingRight());
+        for (int i = 0; i < composition.size(); i++) {
+            View view = mComponentRow.getChildAt(i);
+            view.setVisibility(componentVisible(composition.get(i)) ? View.VISIBLE : View.GONE);
+            var params = (LinearLayout.LayoutParams) view.getLayoutParams();
+            if (params.width != widths[i]) { params.width = widths[i]; view.setLayoutParams(params); }
+        }
     }
 
     private List<TaskbarOverflowController.Entry> collectTaskbarItems(
@@ -561,10 +660,9 @@ final class TaskbarController {
                 mActivity.getString(actionResId));
         mPhoneScreenButton.setEnabled(phoneScreenControl);
         mPhoneScreenButton.setAlpha(phoneScreenControl ? 1f : 0.45f);
-        final int visibility = visible && !mActivity.isCompactDesktopPreview()
-                ? View.VISIBLE : View.GONE;
-        if (mPhoneScreenButton.getVisibility() != visibility) {
-            mPhoneScreenButton.setVisibility(visibility);
+        if (mPhoneActionVisible != visible) {
+            mPhoneActionVisible = visible;
+            applyComposition();
             mActivity.onTaskbarContentChanged();
         }
     }
@@ -825,10 +923,16 @@ final class TaskbarController {
 
     private void addButton(
             final LinearLayout taskbar,
+            final Kind kind,
             final ImageButton button) {
-        taskbar.addView(button, new LinearLayout.LayoutParams(
+        addComponent(taskbar, kind, button, new LinearLayout.LayoutParams(
                 desktopDp(46, 38),
                 LinearLayout.LayoutParams.MATCH_PARENT));
+    }
+
+    private void addComponent(LinearLayout parent, Kind kind, View view, LinearLayout.LayoutParams params) {
+        mComponents.put(kind, view); mNaturalWidths.put(kind, Math.max(0, params.width));
+        parent.addView(view, params);
     }
 
     private ImageButton taskbarButton(
