@@ -14,9 +14,30 @@ availability, service prerequisites and client grants are independent checks.
 See [Runtime API levels](runtime-api-levels.md) for the validation boundary.
 
 Native [appearance](appearance.md) has shared schema, validation, read/apply,
-preview/confirm/cancel, preset and reset operations. The JSON Schema is also
-available at `magicdesk://appearance/schema`. They use app-private state
-without Desktop or shell prerequisites; mutations require the control grant.
+preview/confirm/cancel, preset and reset operations. Version 3 describes 1-4
+native panels on any edge. Optional `workspaceKey` selects a stable workspace
+identity, not a display ID or live residency ID; omission selects global defaults.
+Workspace documents are sparse patches over global defaults, with whole-array
+replacement. Resetting a workspace removes its override. Read results include
+the effective/committed documents, patches, known override keys and preview ID.
+Confirm/cancel use the exact preview ID and the same scope. The JSON Schema is
+also available at `magicdesk://appearance/schema`. These operations use
+app-private state without Desktop or shell prerequisites; mutations require control.
+
+`appearance.import` reads a verified ordinary shell-readable `path`, accepts
+`format` (`zip` by default, or `json`), and returns an unconfirmed preview. It
+requires both **control** and **files_read**. A changed appearance revision
+rejects a delayed import. `appearance.export` takes an existing `directory`,
+optional filename `name` and `format`, requires **files_write**, and returns the
+actual newly created `path` for `files.download_begin`. Filename collisions
+choose an available name without overwriting existing files. File operations
+reuse the shared Files service and its availability checks, not Desktop.
+ZIP carries the current effective document and referenced validated resources;
+JSON carries the global document or selected sparse patch. Binary resources
+never travel inline in the MCP configuration document.
+`appearance.prune` explicitly removes unused app-private bundles with control
+permission; current, committed, preview and staged resources remain protected by
+the shared appearance store. It returns removed digests and count.
 
 ## Local MCP Server
 

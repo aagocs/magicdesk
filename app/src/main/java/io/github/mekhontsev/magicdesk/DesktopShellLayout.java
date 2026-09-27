@@ -1,44 +1,54 @@
 package io.github.mekhontsev.magicdesk;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /** Desktop shell policy expressed as layout intents; contains no Android window operations. */
 final class DesktopShellLayout {
-    static final String TASKBAR = "taskbar";
     private final ShellLayoutScope mScope = new ShellLayoutScope();
-    private ShellLayoutScope.Binding mTaskbar = mScope.bind();
-    private DesktopViewport mViewport;
-    private TaskbarGeometry mGeometry;
-    private boolean mAutoHide;
+    private ShellLayoutScope.Binding mNative = mScope.bind();
+    private List<PanelGeometry> mPanels = List.of();
 
-    void update(final DesktopViewport viewport, final TaskbarGeometry geometry, final boolean autoHide) {
-        if (viewport.equals(mViewport) && geometry.equals(mGeometry) && autoHide == mAutoHide) {
-            return;
+    void update(final DesktopViewport viewport, final List<PanelGeometry> panels, final boolean autoHide) {
+        final List<PanelGeometry> next = List.copyOf(panels);
+        final var ids = new HashSet<String>();
+        final List<ShellSurface> surfaces = new ArrayList<>();
+        for (PanelGeometry geometry : next) {
+            final ShellPanel panel = geometry.panel();
+            if (!ids.add(panel.id())) throw new IllegalArgumentException("Duplicate native panel identity");
+            surfaces.add(new ShellSurface(panel.id(), true, ShellSurface.Layer.TOP, ShellSurface.Keyboard.NONE,
+                    geometry.placement(), geometry.paintExtension(viewport),
+                    ShellSurface.PaintPolicy.CONTENT_EDGE, ShellSurface.Input.PAINT,
+                    // Native panels always avoid one another and shell popups. Only the window
+                    // reservation follows reserveSpace and auto-hide; concealment never moves them.
+                    List.of(ShellReservation.exclusive(geometry.reservationEdge(), geometry.thickness(),
+                            panel.style().reserveSpace() && !autoHide))));
         }
-        final ShellSurface taskbar = new ShellSurface(TASKBAR, true, ShellSurface.Layer.TOP,
-                ShellSurface.Keyboard.NONE,
-                new ShellSurface.Placement(ShellSurface.Reference.CONTENT,
-                        geometry.anchors(), geometry.width(), geometry.height(), geometry.margins()),
-                new ShellSurface.Margins(0, 0, 0, geometry.extendNavigation() ? viewport.insetBottom() : 0),
-                ShellSurface.Input.PAINT,
-                geometry.reserveSpace() ? List.of(ShellReservation.exclusive(
-                        ShellReservation.Edge.BOTTOM, geometry.height(), !autoHide)) : List.of());
-        mTaskbar.commit(viewport.outputGeometry(), viewport.contentGeometry(), List.of(taskbar));
-        mViewport = viewport;
-        mGeometry = geometry;
-        mAutoHide = autoHide;
+        // Scope listeners read the current component-to-panel mapping during this atomic commit.
+        mPanels = next;
+        mNative.commit(viewport.outputGeometry(), viewport.contentGeometry(), surfaces);
     }
 
     ShellLayout.Snapshot snapshot() { return mScope.snapshot(); }
     ShellLayoutScope scope() { return mScope; }
-    ShellLayout.Surface taskbar() { return mTaskbar.surface(TASKBAR); }
+    ShellLayout.Surface panel(final String id) { return mNative.surface(id); }
+    ShellLayout.Surface panelFor(final ShellComposition.Kind component) {
+        for (PanelGeometry geometry : mPanels) {
+            if (geometry.panel().components().stream().anyMatch(value -> value.type() == component)) {
+                return panel(geometry.panel().id());
+            }
+        }
+        return taskbar();
+    }
+    ShellLayout.Surface taskbar() { return mPanels.isEmpty() ? null : panel(mPanels.get(0).panel().id()); }
     ShellLayoutScope.Binding bind() { return mScope.bind(); }
     void listen(final Runnable listener) { mScope.listen(listener); }
     void unlisten(final Runnable listener) { mScope.unlisten(listener); }
 
     void release() {
+        mPanels = List.of();
         mScope.clear();
-        mTaskbar = mScope.bind();
-        mViewport = null;
+        mNative = mScope.bind();
     }
 }

@@ -6,6 +6,14 @@ import java.util.Objects;
 sealed interface ShellPanelPlacement {
     ShellSurface.Placement resolve(ShellLayout.Snapshot layout);
 
+    default boolean hasMappedOwner(final ShellLayout.Snapshot layout) {
+        final String owner = this instanceof OwnedPopup popup ? popup.owner()
+                : this instanceof BesideSurface beside ? beside.owner() : null;
+        if (owner == null) return true;
+        final var surface = layout.surfaces().get(owner);
+        return surface != null && surface.request().mapped();
+    }
+
     default ShellPanelPlacement ownedBy(final ShellLayout.Surface owner) {
         return this instanceof Popup popup
                 ? new OwnedPopup(owner.request().id(), owner.content(), popup) : this;
@@ -41,22 +49,47 @@ sealed interface ShellPanelPlacement {
         }
     }
 
-    /** Follows a live shell surface, including when its width or alignment changes. */
-    record AboveSurface(String owner, int width, int height, boolean endAligned, int inset, int gap)
+    /** Follows the inward side of a live panel on any output edge. */
+    record BesideSurface(String owner, ShellPanel.Edge edge, int width, int height,
+            boolean endAligned, int inset, int gap)
             implements ShellPanelPlacement {
-        public AboveSurface {
+        public BesideSurface {
             Objects.requireNonNull(owner);
+            Objects.requireNonNull(edge);
             if (width < 1 || height < 1 || inset < 0 || gap < 0) throw new IllegalArgumentException("Invalid panel anchor");
         }
         @Override public ShellSurface.Placement resolve(ShellLayout.Snapshot layout) {
             final var surface = layout.surfaces().get(owner);
             if (surface == null || !surface.request().mapped()) throw new IllegalStateException("Panel owner is not mapped");
             final var bounds = surface.content();
-            final int offset = Math.min(inset, bounds.width() / 2);
-            final int x = endAligned ? bounds.right() - offset : bounds.left() + offset;
-            return new Popup(new ShellBounds(x, bounds.top(), x, bounds.top()), width, height,
-                    endAligned ? Popup.Direction.BEFORE : Popup.Direction.AFTER, Popup.Direction.BEFORE,
-                    0, gap, 0, false).resolve(layout);
+            // A retained native panel can move to another edge during a live appearance update.
+            final var liveEdge = surface.request().reservations().stream()
+                    .filter(value -> value.origin() == ShellReservation.Origin.PLACEMENT)
+                    .map(value -> switch (value.edge()) {
+                        case TOP -> ShellPanel.Edge.TOP;
+                        case BOTTOM -> ShellPanel.Edge.BOTTOM;
+                        case LEFT -> ShellPanel.Edge.LEFT;
+                        case RIGHT -> ShellPanel.Edge.RIGHT;
+                    }).findFirst().orElse(edge);
+            final int offset = Math.min(inset, (liveEdge.vertical() ? bounds.height() : bounds.width()) / 2);
+            final int along = liveEdge.vertical()
+                    ? endAligned ? bounds.bottom() - offset : bounds.top() + offset
+                    : endAligned ? bounds.right() - offset : bounds.left() + offset;
+            final int x = switch (liveEdge) {
+                case TOP, BOTTOM -> along;
+                case LEFT -> bounds.right();
+                case RIGHT -> bounds.left();
+            };
+            final int y = switch (liveEdge) {
+                case TOP -> bounds.bottom();
+                case BOTTOM -> bounds.top();
+                case LEFT, RIGHT -> along;
+            };
+            final var direction = endAligned ? Popup.Direction.BEFORE : Popup.Direction.AFTER;
+            return new Popup(new ShellBounds(x, y, x, y), width, height,
+                    liveEdge.vertical() ? liveEdge == ShellPanel.Edge.LEFT ? Popup.Direction.AFTER : Popup.Direction.BEFORE : direction,
+                    liveEdge.vertical() ? direction : liveEdge == ShellPanel.Edge.TOP ? Popup.Direction.AFTER : Popup.Direction.BEFORE,
+                    liveEdge.vertical() ? gap : 0, liveEdge.vertical() ? 0 : gap, 0, false).resolve(layout);
         }
     }
 

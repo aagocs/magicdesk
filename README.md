@@ -130,12 +130,14 @@ precedence. **Settings > Session** controls phone screen retention, CPU wake
 lock, adaptive brightness and a temporary system-wide light/dark theme. These
 options apply while Desktop is running and release their overrides when it ends.
 
-**Settings > Appearance** customizes MagicDesk's native interface, including a
-floating, translucent taskbar. Choose built-in color presets or import/export a
-[JSON theme](docs/appearance.md). Styles apply to open panels and built-in tools
-without restarting them, including when no Desktop is running. The same document
-controls taskbar contents, Start layout and native feedback effects, with a
-published JSON Schema and live preview before confirmation.
+**Settings > Appearance** customizes MagicDesk's native interface with panels
+along any screen edge, including floating, translucent layouts. Choose presets,
+import/export a [JSON theme](docs/appearance.md), or use a theme bundle containing
+icons, fonts and wallpaper. Global defaults can be overridden per workspace.
+Styles apply to open panels and built-in tools without restarting them, including
+when no Desktop is running. The declarative document controls panel contents,
+Start layout and native feedback effects, with a published JSON Schema and live
+preview before confirmation.
 
 Close records the selected workspace and releases its surviving applications
 as independent fullscreen tasks on the same live display, leaving other

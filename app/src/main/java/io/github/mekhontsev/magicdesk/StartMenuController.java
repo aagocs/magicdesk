@@ -79,7 +79,8 @@ final class StartMenuController implements StartMenuContent.Host {
         final int width = getWidth(area);
         final int height = getHeight(area);
         final int margin = mUi.desktopDp(16, 6, mActivity.isCompactDesktopPreview());
-        if (!panels.show(mPanel, panels.aboveTaskbar(width, height, false, margin, 0), focusable,
+        if (!panels.show(mPanel, panels.besideComponent(ShellComposition.Kind.START,
+                width, height, false, margin, 0), focusable,
                 "MagicDesk Start")) {
             mActivity.setErrorStatus(
                     "PANEL-001", mActivity.getString(R.string.status_desktop_panel_unavailable));

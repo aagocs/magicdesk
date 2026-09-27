@@ -1,5 +1,6 @@
 package io.github.mekhontsev.magicdesk;
 
+import android.content.Context;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 
@@ -7,7 +8,10 @@ import android.graphics.drawable.StateListDrawable;
 final class UiFeedbackDrawable extends StateListDrawable {
     private final GradientDrawable[] mPaints = new GradientDrawable[6];
     private final float mDensity, mRadius;
-    UiFeedbackDrawable(float density, float radius) {
+    private final AppearanceScopeSource mSource;
+    private ShellMotion mMotion;
+    UiFeedbackDrawable(Context context, float density, float radius) {
+        mSource = new AppearanceScopeSource(context);
         mDensity = density; mRadius = radius;
         int[][] states = {{-android.R.attr.state_enabled}, {android.R.attr.state_pressed},
                 {android.R.attr.state_focused}, {android.R.attr.state_selected}, {android.R.attr.state_hovered}, {}};
@@ -15,7 +19,8 @@ final class UiFeedbackDrawable extends StateListDrawable {
         refresh();
     }
     void refresh() {
-        var theme = AppearanceStore.current(); var f = theme.feedback();
+        var theme = mSource.current(); var f = theme.feedback();
+        mMotion = theme.motion();
         UiColor[] fills = {f.disabled(), f.pressed(), f.focused(), f.selected(), f.hover(), f.normal()};
         for (int i = 0; i < fills.length; i++) {
             mPaints[i].setColor(theme.palette().color(fills[i]));
@@ -26,8 +31,8 @@ final class UiFeedbackDrawable extends StateListDrawable {
         updateMotion(); invalidateSelf();
     }
     private void updateMotion() {
-        var motion = AppearanceStore.current().motion();
-        int duration = motion.reduced() || !android.animation.ValueAnimator.areAnimatorsEnabled() ? 0 : motion.feedbackMs();
+        int duration = mMotion == null || mMotion.reduced() || !android.animation.ValueAnimator.areAnimatorsEnabled()
+                ? 0 : mMotion.feedbackMs();
         setEnterFadeDuration(duration); setExitFadeDuration(duration);
     }
     @Override protected boolean onStateChange(int[] states) {

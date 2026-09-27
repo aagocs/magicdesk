@@ -246,6 +246,9 @@ public abstract class DesktopShellActivity extends Activity
             overridePendingTransition(0, 0);
             return;
         }
+        final String appearanceKey = registrationTarget.isDefaultWorkspace() ? "workspace:phone"
+                : registrationTarget.output.profileKey.isEmpty() ? null : "workspace:" + registrationTarget.output.profileKey;
+        if (appearanceKey != null) AppearanceStore.bindScope(this, getCurrentDisplayId(), appearanceKey);
         mUi = new DesktopUiFactory(this);
         mAutomationUi = new DesktopAutomationUiRegistry();
         mTaskbarHost = new DesktopTaskbarHost(
@@ -265,16 +268,16 @@ public abstract class DesktopShellActivity extends Activity
                     }
 
                     @Override
-                    public int taskbarHeight() {
-                        return getTaskbarHeight();
+                    public int panelThickness(ShellPanel panel) {
+                        return getPanelThickness(panel);
                     }
 
-                    @Override public int taskbarPreferredWidth() {
-                        return mTaskbarController == null ? 0 : mTaskbarController.preferredWidth();
+                    @Override public int panelPreferredLength(ShellPanel panel) {
+                        return mTaskbarController == null ? 0 : mTaskbarController.preferredLength(panel);
                     }
 
-                    @Override public int taskbarMinimumWidth() {
-                        return mTaskbarController == null ? 0 : mTaskbarController.minimumWidth();
+                    @Override public int panelMinimumLength(ShellPanel panel) {
+                        return mTaskbarController == null ? 0 : mTaskbarController.minimumLength(panel);
                     }
 
                     @Override
@@ -454,6 +457,7 @@ public abstract class DesktopShellActivity extends Activity
         }
         mDesktopHostReady = false;
         releaseDesktopUiWindows();
+        AppearanceStore.unbindScope(this);
         DesktopRuntimeBridge.unregister(this);
         if (mDesktopControls != null) {
             mDesktopControls.stop();
@@ -1100,8 +1104,8 @@ public abstract class DesktopShellActivity extends Activity
         mHomeSurfaceHost = new DesktopHomeSurfaceHost(shellBackground, shellBottom);
 
         mStartMenuController.create();
-        final LinearLayout taskbar = mTaskbarController.create();
-        if (!mDesktopLayout.attachTaskbar(taskbar, mTaskbarHost)) {
+        mTaskbarController.create();
+        if (!mDesktopLayout.attachPanels(mTaskbarController, mTaskbarHost)) {
             setErrorStatus("TASKBAR-001",
                     getString(R.string.status_taskbar_unavailable));
         }
@@ -1941,8 +1945,9 @@ public abstract class DesktopShellActivity extends Activity
         return mDesktopLayout.workAreaBounds();
     }
 
-    int getTaskbarHeight() {
-        final int padding = AppearanceStore.current().taskbar().paddingDp();
+    int getPanelThickness(ShellPanel panel) {
+        if (panel.style().thicknessDp() != 0) return mUi.dp(panel.style().thicknessDp());
+        final int padding = panel.style().paddingDp();
         return desktopDp(TASKBAR_HEIGHT_DP - 16 + padding * 2,
                 COMPACT_TASKBAR_HEIGHT_DP - 8 + 2 * (padding / 2));
     }
@@ -1990,7 +1995,10 @@ public abstract class DesktopShellActivity extends Activity
                 panels == null ? null : panels.visibleBounds(),
                 panels == null ? "" : panels.visibleTitle(),
                 isDesktopWallpaperRendered(),
-                isUsingFallbackDesktopWallpaper());
+                isUsingFallbackDesktopWallpaper(),
+                mTaskbarHost == null ? List.of() : mTaskbarHost.panels().stream()
+                        .map(panel -> new DesktopUiSnapshot.Panel(panel.id(), panel.edge(),
+                                panel.content(), panel.paint(), panel.output())).toList());
     }
 
     DesktopAutomationUiRegistry.Snapshot getAutomationUiElements(

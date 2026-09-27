@@ -28,15 +28,8 @@ public final class DesktopChromeActivity extends Activity {
             BuildConfig.APPLICATION_ID, CLASS_NAME);
 
     private FrameLayout mRoot;
-    private View mTaskbar;
     private WindowManager mWindowManager;
-    private TaskbarPanel mTaskbarPanel;
-    private boolean mTaskbarPanelAdded;
-    private final Rect mAppliedPanelBounds = new Rect();
-    private final Rect mTaskbarBounds = new Rect();
-    private final Rect mSurfaceBounds = new Rect();
-    private final Rect mOutputBounds = new Rect();
-    private GradientDrawable mPanelBackground;
+    private final java.util.Map<String, NativePanel> mPanels = new java.util.LinkedHashMap<>();
     private int mDisplayId = Display.INVALID_DISPLAY;
     private boolean mPresented = true;
     private boolean mEdgeHidden;
@@ -111,7 +104,7 @@ public final class DesktopChromeActivity extends Activity {
                     public void onViewDetachedFromWindow(final View view) {
                         DesktopPanelWindowController.unregisterActivity(
                                 mDisplayId, DesktopChromeActivity.this);
-                        removeTaskbarPanel();
+                        removePanelWindows();
                     }
                 });
         DesktopTaskbarHost.registerActivity(mDisplayId, this);
@@ -121,8 +114,8 @@ public final class DesktopChromeActivity extends Activity {
     protected void onDestroy() {
         DesktopPanelWindowController.unregisterActivity(mDisplayId, this);
         DesktopTaskbarHost.unregisterActivity(mDisplayId, this);
-        detachTaskbar();
-        removeTaskbarPanel();
+        detachPanels();
+        removePanelWindows();
         mWindowManager = null;
         mRoot = null;
         super.onDestroy();
@@ -138,188 +131,104 @@ public final class DesktopChromeActivity extends Activity {
                 mDisplayId, activityToken());
     }
 
-    void attachTaskbar(
-            final View taskbar,
-            final Rect taskbarBounds, final Rect surfaceBounds, final Rect outputBounds) {
-        mTaskbarBounds.set(taskbarBounds);
-        mSurfaceBounds.set(surfaceBounds);
-        mOutputBounds.set(outputBounds);
-        if (mRoot == null || taskbar == null) {
-            applyPresentation();
-            return;
+    void attachPanels(java.util.List<DesktopTaskbarHost.Panel> definitions) {
+        var ids = definitions.stream().map(DesktopTaskbarHost.Panel::id).toList();
+        for (var it = mPanels.entrySet().iterator(); it.hasNext();) {
+            var entry = it.next();
+            if (!ids.contains(entry.getKey())) { entry.getValue().release(); it.remove(); }
         }
-        if (mTaskbar == taskbar) {
-            updateTaskbarLayout();
-            applyPresentation();
-            return;
-        }
-        detachTaskbar();
-        final ViewGroup parent = taskbar.getParent() instanceof ViewGroup
-                ? (ViewGroup) taskbar.getParent() : null;
-        if (parent != null) {
-            parent.removeView(taskbar);
-        }
-        if (mTaskbarPanel == null) {
-            mTaskbarPanel = new TaskbarPanel();
-            mPanelBackground = UiAppearance.taskbarPaint(taskbar.getResources().getDisplayMetrics().density);
-            mTaskbarPanel.setBackground(mPanelBackground);
-            mTaskbarPanel.setClipToOutline(true);
-            mTaskbarPanel.setImportantForAccessibility(
-                    View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        }
-        mTaskbar = taskbar;
-        mTaskbarPanel.addView(taskbar, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                mTaskbarBounds.height(),
-                Gravity.TOP));
-        applyPresentation();
-    }
-
-    void detachTaskbar() {
-        removeTaskbarPanel();
-        if (mTaskbar != null) {
-            final ViewGroup parent = mTaskbar.getParent() instanceof ViewGroup
-                    ? (ViewGroup) mTaskbar.getParent() : null;
-            if (parent != null) {
-                parent.removeView(mTaskbar);
+        for (var definition : definitions) {
+            var panel = mPanels.get(definition.id());
+            if (panel != null && panel.definition.view() != definition.view()) {
+                panel.release(); mPanels.remove(definition.id()); panel = null;
             }
+            if (panel == null) {
+                panel = new NativePanel(definition);
+                mPanels.put(definition.id(), panel);
+            } else panel.definition = definition;
         }
-        mTaskbar = null;
-        mTaskbarPanel = null;
-    }
-
-    void setPresentation(
-            final boolean presented,
-            final boolean edgeHidden,
-            final int edgeHeight) {
-        mPresented = presented;
-        mEdgeHidden = edgeHidden;
-        mEdgeHeight = Math.max(1, edgeHeight);
         applyPresentation();
     }
 
-    private void applyPresentation() {
-        updateTaskbarLayout();
-        if (mTaskbarPanel != null) {
-            // The hidden edge keeps receiving input without painting over
-            // fullscreen content. Window alpha and touchability stay unchanged.
-            mPanelBackground.setAlpha(TaskbarGeometry.paintAlpha(mPresented, mEdgeHidden));
-        }
-        if (mTaskbar != null) {
-            mTaskbar.setAlpha(mPresented && !mEdgeHidden ? 1f : 0f);
-            mTaskbar.setVisibility(mPresented ? View.VISIBLE : View.INVISIBLE);
-        }
-        final ShellBounds output = new ShellBounds(mOutputBounds.left, mOutputBounds.top, mOutputBounds.right, mOutputBounds.bottom);
-        final ShellBounds surface = new ShellBounds(mSurfaceBounds.left, mSurfaceBounds.top, mSurfaceBounds.right, mSurfaceBounds.bottom);
-        final ShellBounds bounds = TaskbarGeometry.presented(output, surface, mPresented, mEdgeHidden, mEdgeHeight);
-        updateTaskbarPanel(new Rect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()));
+    void detachPanels() {
+        for (var panel : mPanels.values()) panel.release();
+        mPanels.clear();
     }
 
-    private void updateTaskbarLayout() {
-        if (mTaskbar == null) {
-            return;
-        }
-        final ViewGroup.LayoutParams current = mTaskbar.getLayoutParams();
-        if (!(current instanceof FrameLayout.LayoutParams)) {
-            return;
-        }
-        final FrameLayout.LayoutParams params =
-                (FrameLayout.LayoutParams) current;
-        if (params.width != FrameLayout.LayoutParams.MATCH_PARENT
-                || params.height != mTaskbarBounds.height()
-                || params.gravity != Gravity.TOP) {
-            params.width = FrameLayout.LayoutParams.MATCH_PARENT;
-            params.height = mTaskbarBounds.height();
-            params.gravity = Gravity.TOP;
-            mTaskbar.setLayoutParams(params);
-        }
+    void setPresentation(boolean presented, boolean edgeHidden, int edgeHeight) {
+        mPresented = presented; mEdgeHidden = edgeHidden; mEdgeHeight = Math.max(1, edgeHeight);
+        applyPresentation();
     }
 
-    private void updateTaskbarPanel(final Rect bounds) {
-        if (bounds.isEmpty()) {
-            removeTaskbarPanel();
-            return;
-        }
-        if (mWindowManager == null
-                || mRoot == null
-                || mRoot.getWindowToken() == null
-                || mTaskbarPanel == null
-                || (mTaskbarPanelAdded
-                        && mAppliedPanelBounds.equals(bounds))) {
-            return;
-        }
-        final WindowManager.LayoutParams params = createPanelParams(bounds);
-        if (mTaskbarPanelAdded) {
-            mWindowManager.updateViewLayout(mTaskbarPanel, params);
-        } else {
-            mWindowManager.addView(mTaskbarPanel, params);
-            mTaskbarPanelAdded = true;
-        }
-        mAppliedPanelBounds.set(bounds);
-    }
+    private void applyPresentation() { for (var panel : mPanels.values()) panel.apply(); }
+    private void removePanelWindows() { for (var panel : mPanels.values()) panel.removeWindow(); }
+    private static ShellBounds bounds(Rect r) { return new ShellBounds(r.left, r.top, r.right, r.bottom); }
 
-    private WindowManager.LayoutParams createPanelParams(final Rect bounds) {
-        final WindowManager.LayoutParams params =
-                new WindowManager.LayoutParams(
-                        bounds.width(),
-                        bounds.height(),
-                        WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-                        PixelFormat.TRANSLUCENT);
-        params.gravity = Gravity.LEFT | Gravity.TOP;
-        params.x = bounds.left;
-        params.y = bounds.top;
-        params.token = mRoot.getWindowToken();
-        // DesktopLayoutController already provides physical display geometry.
-        // Applying bars or IME insets again would move this attached window
-        // whenever another focused task changes system-bar visibility.
-        params.setFitInsetsTypes(0);
-        params.softInputMode =
-                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
-        params.setTitle("MagicDesk taskbar panel");
-        return params;
-    }
+    private final class NativePanel extends FrameLayout {
+        DesktopTaskbarHost.Panel definition;
+        final GradientDrawable paint;
+        final Rect applied = new Rect();
+        boolean added, hiddenTouch;
 
-    private void removeTaskbarPanel() {
-        if (mTaskbarPanelAdded && mTaskbarPanel != null
-                && mWindowManager != null) {
-            mWindowManager.removeViewImmediate(mTaskbarPanel);
-        }
-        mTaskbarPanelAdded = false;
-        mAppliedPanelBounds.setEmpty();
-    }
-
-    private final class TaskbarPanel extends FrameLayout {
-        private boolean mHiddenEdgeTouchSequence;
-
-        TaskbarPanel() {
-            super(DesktopChromeActivity.this);
+        NativePanel(DesktopTaskbarHost.Panel value) {
+            super(value.view().getContext());
+            definition = value;
+            paint = UiAppearance.panelPaint(value.view().getContext(), value.id());
+            setBackground(paint); setClipToOutline(true);
+            setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            if (value.view().getParent() instanceof ViewGroup parent) parent.removeView(value.view());
+            addView(value.view(), new FrameLayout.LayoutParams(value.content().width(), value.content().height()));
         }
 
-        @Override
-        public boolean dispatchGenericMotionEvent(final MotionEvent event) {
+        void apply() {
+            var view = definition.view();
+            var content = definition.content(); var surface = definition.paint();
+            var params = (FrameLayout.LayoutParams) view.getLayoutParams();
+            int left = content.left - surface.left, top = content.top - surface.top;
+            if (params.width != content.width() || params.height != content.height()
+                    || params.leftMargin != left || params.topMargin != top) {
+                params.width = content.width(); params.height = content.height();
+                params.leftMargin = left; params.topMargin = top; view.setLayoutParams(params);
+            }
+            paint.setAlpha(mPresented && !mEdgeHidden ? 255 : 0);
+            view.setAlpha(mPresented && !mEdgeHidden ? 1 : 0);
+            view.setVisibility(mPresented ? View.VISIBLE : View.INVISIBLE);
+            var target = PanelGeometry.presented(bounds(definition.output()), bounds(surface),
+                    definition.edge(), mPresented, mEdgeHidden, mEdgeHeight);
+            Rect rect = new Rect(target.left(), target.top(), target.right(), target.bottom());
+            if (rect.isEmpty()) { removeWindow(); return; }
+            if (mWindowManager == null || mRoot == null || mRoot.getWindowToken() == null
+                    || (added && applied.equals(rect))) return;
+            WindowManager.LayoutParams window = new WindowManager.LayoutParams(rect.width(), rect.height(),
+                    WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                            | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH, PixelFormat.TRANSLUCENT);
+            window.gravity = Gravity.LEFT | Gravity.TOP; window.x = rect.left; window.y = rect.top;
+            window.token = mRoot.getWindowToken();
+            // Shared shell layout already resolved stable system insets and panel reservations.
+            window.setFitInsetsTypes(0); window.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING;
+            window.setTitle("MagicDesk panel " + definition.id());
+            if (added) mWindowManager.updateViewLayout(this, window);
+            else { mWindowManager.addView(this, window); added = true; }
+            applied.set(rect);
+        }
+        void removeWindow() {
+            if (added && mWindowManager != null) mWindowManager.removeViewImmediate(this);
+            added = false; applied.setEmpty();
+        }
+        void release() { removeWindow(); removeAllViews(); UiMotion.cancel(definition.view()); }
+        @Override public boolean dispatchGenericMotionEvent(MotionEvent event) {
             DesktopTaskbarHost.dispatchEdgeInput(mDisplayId, event);
             return super.dispatchGenericMotionEvent(event);
         }
-
-        @Override
-        public boolean dispatchTouchEvent(final MotionEvent event) {
-            final int action = event.getActionMasked();
-            boolean consumeHiddenSequence = mHiddenEdgeTouchSequence;
-            if (action == MotionEvent.ACTION_DOWN && mEdgeHidden) {
-                mHiddenEdgeTouchSequence = true;
-                consumeHiddenSequence = true;
-            }
-            // View may enqueue performClick on UP. Deliver to the controls before
-            // queuing reveal dismissal, which can detach them and cancel that click.
-            final boolean handled = consumeHiddenSequence || super.dispatchTouchEvent(event);
+        @Override public boolean dispatchTouchEvent(MotionEvent event) {
+            int action = event.getActionMasked();
+            boolean consume = hiddenTouch;
+            if (action == MotionEvent.ACTION_DOWN && mEdgeHidden) { hiddenTouch = true; consume = true; }
+            // Deliver UP before reveal dismissal can detach the clicked control.
+            boolean handled = consume || super.dispatchTouchEvent(event);
             DesktopTaskbarHost.dispatchEdgeInput(mDisplayId, event);
-            if (action == MotionEvent.ACTION_UP
-                    || action == MotionEvent.ACTION_CANCEL) {
-                mHiddenEdgeTouchSequence = false;
-            }
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) hiddenTouch = false;
             return handled;
         }
     }

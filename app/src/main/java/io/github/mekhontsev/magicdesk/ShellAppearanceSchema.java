@@ -24,6 +24,8 @@ final class ShellAppearanceSchema {
             }
             JSONObject icons = new JSONObject();
             for (var role : ShellResources.Icon.values()) icons.put(name(role), enumeration(ShellResources.Icon.values()));
+            JSONObject iconAssets = new JSONObject();
+            for (var role : ShellResources.Icon.values()) iconAssets.put(name(role), assetPath(false));
             JSONObject component = object(new JSONObject()
                     .put("type", enumeration(ShellComposition.Kind.values()))
                     .put("widthDp", new JSONObject().put("oneOf", new JSONArray()
@@ -35,22 +37,27 @@ final class ShellAppearanceSchema {
                     .put("clock", enumeration(ShellComposition.Clock.values())
                             .put("description", "Clock display format; only valid for clock.")))
                     .put("required", new JSONArray().put("type"));
+            JSONObject panel = object(new JSONObject()
+                    .put("id", type("string").put("pattern", "^[a-z][a-z0-9_-]{0,31}$"))
+                    .put("edge", enumeration(ShellPanel.Edge.values()))
+                    .put("style", object(new JSONObject()
+                            .put("length", enumeration(ShellAppearance.Width.values())).put("alignment", enumeration(ShellAppearance.Alignment.values()))
+                            .put("maxLengthDp", number(true, 64, 4096)).put("sideGapDp", number(true, 0, 96))
+                            .put("edgeGapDp", number(true, 0, 96)).put("paddingDp", number(true, 0, 16))
+                            .put("thicknessDp", new JSONObject().put("oneOf", new JSONArray().put(type("integer").put("const", 0)).put(number(true, 40, 160))))
+                            .put("radiusDp", number(true, 0, 32)).put("opacity", number(false, .15, 1)).put("reserveSpace", type("boolean"))))
+                    .put("components", type("array").put("items", component).put("minItems", 1).put("maxItems", 24)))
+                    .put("required", new JSONArray().put("id").put("components"));
             return object(new JSONObject()
-                    .put("version", type("integer").put("const", 2))
+                    .put("version", type("integer").put("const", 3))
                     .put("preset", strings("dark", "light", "contrast"))
                     .put("colors", object(colors))
                     .put("typography", object(new JSONObject().put("font", enumeration(ShellAppearance.Font.values()))
                             .put("scale", number(false, .8, 1.3))))
                     .put("shape", object(new JSONObject().put("radiusScale", number(false, 0, 2)).put("borderDp", number(false, 0, 3))))
-                    .put("taskbar", object(new JSONObject()
-                            .put("width", enumeration(ShellAppearance.Width.values())).put("alignment", enumeration(ShellAppearance.Alignment.values()))
-                            .put("maxWidthDp", number(true, 240, 4096)).put("sideGapDp", number(true, 0, 96))
-                            .put("bottomGapDp", number(true, 0, 96)).put("paddingDp", number(true, 0, 16))
-                            .put("radiusDp", number(true, 0, 32)).put("opacity", number(false, .15, 1))
-                            .put("reserveSpace", type("boolean"))))
                     .put("composition", object(new JSONObject()
-                            .put("taskbar", type("array").put("items", component).put("minItems", 1).put("maxItems", 24)
-                                    .put("description", "Ordered native components. Types are unique except spacer. Zero-width tasks/spacers share spare width."))
+                            .put("panels", type("array").put("items", panel).put("minItems", 1).put("maxItems", 4)
+                                    .put("description", "Ordered native panels. Panel IDs and non-spacer component types are unique across the shell."))
                             .put("start", object(new JSONObject()
                                     .put("sections", type("array").put("items", enumeration(ShellComposition.Section.values()))
                                             .put("minItems", 1).put("maxItems", 4).put("uniqueItems", true)
@@ -62,7 +69,9 @@ final class ShellAppearanceSchema {
                             .put("panels", enumeration(ShellMotion.Effect.values())).put("taskbar", enumeration(ShellMotion.Effect.values()))
                             .put("durationMs", number(true, 0, 400)).put("feedbackMs", number(true, 0, 250))
                             .put("curve", enumeration(ShellMotion.Curve.values()))))
-                    .put("resources", object(new JSONObject().put("icons", object(icons)))))
+                    .put("resources", object(new JSONObject().put("icons", object(icons))
+                            .put("bundle", type("string").put("pattern", "^(?:[a-f0-9]{64})?$"))
+                            .put("iconAssets", object(iconAssets)).put("font", assetPath(true)).put("wallpaper", assetPath(true)))))
                     .put("$schema", "https://json-schema.org/draft/2020-12/schema")
                     .put("title", "MagicDesk shell appearance")
                     .put("description", "Bounded native shell configuration. Missing fields inherit the selected preset and defaults. No commands, paths or scripts.");
@@ -70,6 +79,10 @@ final class ShellAppearanceSchema {
     }
 
     private static JSONObject type(String value) throws JSONException { return new JSONObject().put("type", value); }
+    private static JSONObject assetPath(boolean empty) throws JSONException {
+        return type("string").put("maxLength", 160).put("pattern",
+                "^(?:[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*/[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]+)" + (empty ? "?" : "") + "$");
+    }
     private static JSONObject object(JSONObject properties) throws JSONException {
         return type("object").put("properties", properties).put("additionalProperties", false);
     }
@@ -94,7 +107,7 @@ final class ShellAppearanceSchema {
                 try { validate(choices.getJSONObject(i), value, path); return; }
                 catch (IllegalArgumentException ignored) { }
             }
-            throw invalid(path, "must be 0 (automatic) or an integer between 32 and 240");
+            throw invalid(path, "value does not match any allowed alternative: " + choices);
         }
         String type = rule.getString("type");
         boolean correct = switch (type) {

@@ -36,7 +36,7 @@ public final class DesktopTaskbarTouchDispatchTest {
                     }
                 }
                 static class Panel extends FrameLayout {
-                    boolean mHiddenEdgeTouchSequence, mEdgeHidden;
+                    boolean hiddenTouch, mEdgeHidden;
                     int mDisplayId;
                 """ + RuntimeSourceFixture.methods("DesktopChromeActivity", "dispatchTouchEvent") + """
                 }
@@ -62,7 +62,7 @@ public final class DesktopTaskbarTouchDispatchTest {
                         drain();
                         check(events.stream().noneMatch(e -> e.startsWith("control:")),
                                 "reveal gesture clicked exposed controls: " + events);
-                        check(!panel.mHiddenEdgeTouchSequence, "edge tracking survived termination");
+                        check(!panel.hiddenTouch, "edge tracking survived termination");
                         reset();
                         panel.dispatchTouchEvent(new MotionEvent(MotionEvent.ACTION_DOWN));
                         panel.dispatchTouchEvent(new MotionEvent(MotionEvent.ACTION_UP));

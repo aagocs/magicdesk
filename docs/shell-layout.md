@@ -57,7 +57,7 @@ input or create a privileged Android layer by choosing an enum value.
 - An absolute output-edge distance with a partial interval. Overlapping absolute
   reservations form a union; their depths are not added.
 - A placement-relative exclusive zone including its edge margin. Panels placed
-  against `AVAILABLE` can stack; panels against `CONTENT` can overlap.
+  against `AVAILABLE` or `PANEL` can stack; panels against `CONTENT` can overlap.
 
 Mapped reserving surfaces are arranged first, then other surfaces. Higher
 semantic layers take layout precedence; ties retain the owner's commit order.
@@ -73,24 +73,36 @@ does not reduce maximized windows, but Start and shell panels still avoid it.
 
 ## Android Adapter
 
-`DesktopViewport` reads stable system-bar geometry. `DesktopShellLayout` expresses
-the current bottom taskbar policy. `DesktopLayoutController` converts the resolved
-bounds to Android rectangles and updates existing desktop views and taskbar hosts.
-Window placement, shell panels, popup limits and the icon-grid viewport consume the
-same result rather than independently subtracting a taskbar height.
+`DesktopViewport` reads stable system-bar geometry. Native
+[appearance](appearance.md) declares one to four `ShellPanel` values with stable
+IDs, any output edge and unique non-spacer components. `PanelGeometry` resolves
+density-independent length, alignment, thickness and gaps; zero thickness uses
+the runtime's automatic measurement.
 
-Native [appearance](appearance.md) supplies density-independent taskbar constraints.
-`TaskbarGeometry` resolves content width, alignment and gaps before the shared
-placement pass. The chrome host receives full rectangles, including the output
-used for edge reveal. Translucent backgrounds do not reduce icon opacity, and
-empty outer gaps do not become an input surface. A floating panel's optional
-reservation includes its bottom gap.
+`DesktopShellLayout` commits the complete native surface set through one binding
+in the workspace's shared scope. Native panels use `PANEL` placement and
+placement-relative reservations, including their edge gaps. Same-edge panels
+stack in composition order. Every native panel reserves shell space; only panels
+with `reserveSpace` enabled and auto-hide disabled reserve application space.
+Auto-hide changes that reservation without moving the panels or popup limits.
+External contributions retain their own bindings in the same layout.
+Native system-inset paint extends only from a resolved edge still touching stable
+viewport content. An external reservation that moves the panel inward suppresses
+that paint/input extension; removing the reservation restores it in the same pass.
+Protocol family paint extensions remain relative to their own surfaces.
+
+`DesktopLayoutController` passes each panel's content, paint and output rectangles
+to the existing chrome host. Window placement, popups and the icon-grid viewport
+consume the shared `workArea` and `panelArea`; there is no separate native work-area
+or focus manager. Translucent panel backgrounds do not reduce control opacity.
 
 Start, overview, notifications and quick controls submit measured sizes and
 `ShellPanelPlacement` intents. Popup placement resolves anchors, edge flipping and
-clamping centrally. An owned popup follows its parent's resolved position; it
-cannot resolve against an absent or unmapped parent. The Android controller closes
-children before releasing their parent.
+clamping centrally. Native component popups select their owning panel and open on
+its inward side on any edge. A retained popup follows its owner's geometry and
+edge changes; removing or unmapping the owner dismisses it. Child popups close
+before their parent. The first native panel is only the fallback for callers
+without a matching component.
 
 `DesktopPanelWindowController` materializes the resolved geometry in application
 panel windows. Geometry changes update existing windows rather than detaching
@@ -184,11 +196,20 @@ deadline reports failure, never successful readiness. These event-driven receipt
 allocate no worker thread, poll no state and are not requested for pointer motion
 or pixel-only repaints. Ordinary application hosts retain their existing behavior.
 
-Taskbar concealment/reveal and IME visibility keep their existing presentation
-policy. They do not discard the taskbar's layout intent or move its stable viewport.
-`DesktopTaskbarHost` and `DesktopChromeActivity` still own the actual bounded child
-window, including its temporary reveal-edge input region. Wallpaper fills the
-physical display independently of shell content padding.
+Native panel concealment/reveal and IME visibility keep their existing presentation
+policy without discarding layout intents or moving the stable viewport.
+`DesktopTaskbarHost` and `DesktopChromeActivity` own one bounded child window per
+panel under the same chrome token. Reveal strips lie on each panel's physical
+output edge and retain only its long-axis span. Reveal hit testing and popup
+interaction-owner checks use the individual rectangles, never their bounding box:
+floating gaps and spaces between panels remain outside native input. Touch reveal
+uses an inward gesture on the edge where it began. Wallpaper fills the physical
+display independently of shell content padding.
+
+Automation exposes the live native panel set at `workspaces[].ui.panels`: each
+entry contains `id`, `edge`, stable content `bounds`, `paintBounds` and `outputBounds`
+in display pixels. These are committed host geometry, not frame/input readiness
+receipts. The singular `taskbar.bounds` remains the first panel's content bounds.
 
 Android DisplayArea ownership, stable fullscreen planes and the task activation
 gateway remain separate. No layer enum maps directly to a DisplayArea or raw
@@ -276,7 +297,7 @@ and coordinate conversion:
 `WaylandShellLayout` translates surface units and signed margins to display
 pixels using the scope owner's density, and resolved geometry back to logical
 output coordinates. Positive zones reserve an unambiguous anchored edge;
-zero zones avoid existing reservations, and negative zones use the complete
+nonnegative zones avoid both window and shell-only reservations, and negative zones use the complete
 output. Configure requests carry the exact committed revision. The initial
 configure handshake is distinct from an unmapped surface that needs no reply.
 

@@ -89,6 +89,19 @@ public final class ShellLayoutTest {
         assertEquals(ShellSurface.Keyboard.ON_DEMAND, resolved.request().keyboard());
     }
 
+    @Test public void protocolFamilyPaintStillExtendsFromASurfaceDisplacedByReservations() {
+        final var content = new ShellBounds(0, 0, 1920, 1050);
+        final var reservation = panel("outer", ShellReservation.Edge.BOTTOM, 50, 0, true);
+        final var placement = panel("family", ShellReservation.Edge.BOTTOM, 40, 0, true);
+        final var family = new ShellSurface(placement.id(), true, placement.layer(), placement.keyboard(),
+                placement.placement(), new ShellSurface.Margins(0, 10, 0, 30),
+                ShellSurface.Input.PAINT, placement.reservations());
+        final var resolved = layout(OUTPUT, content, reservation, family).snapshot().surfaces().get("family");
+        assertEquals(new ShellBounds(0, 960, 1920, 1000), resolved.content());
+        assertEquals(new ShellBounds(0, 950, 1920, 1030), resolved.paint());
+        assertEquals(resolved.paint(), resolved.input());
+    }
+
     @Test public void unrelatedOrEmptyPartialRangeDoesNotReserveSpace() {
         final ShellSurface struts = surface("dock", ShellSurface.Reference.CONTENT,
                 ShellSurface.BOTTOM, 100, 30, ShellSurface.Margins.NONE,

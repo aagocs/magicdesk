@@ -40,6 +40,7 @@ final class McpAccessPolicy {
     boolean has(final Permission permission) { return mPermissions.contains(permission); }
 
     boolean allows(final String name) {
+        if ("appearance.import".equals(name)) return has(Permission.CONTROL) && has(Permission.FILES_READ);
         if (OBSERVATIONS.contains(name)) return true;
         final Permission permission = required(name);
         return permission != null && has(permission);
@@ -56,7 +57,7 @@ final class McpAccessPolicy {
             case "files.list", "files.stat", "files.download_begin", "files.download_chunk",
                     "files.download_finish" -> Permission.FILES_READ;
             case "files.create", "files.rename", "files.upload_begin", "files.upload_chunk",
-                    "files.upload_status", "files.upload_commit", "files.upload_abort" -> Permission.FILES_WRITE;
+                    "files.upload_status", "files.upload_commit", "files.upload_abort", "appearance.export" -> Permission.FILES_WRITE;
             case "app.update" -> Permission.UPDATE;
             case "send_key", "move_pointer", "click_pointer", "run_self_test", "cancel_self_test",
                     "ui.perform", "ui.release", "input.gesture", "input.key_chord",
@@ -69,7 +70,7 @@ final class McpAccessPolicy {
                     "clipboard.open", "clipboard.share", "list_notifications",
                     "get_intent_result", "get_activity_history" -> Permission.CONTENT;
             case "ui.inspect", "ui.wait", "ui.read_text", "graphics.inspect_window" -> Permission.CONTENT;
-            case "appearance.apply", "appearance.preset", "appearance.reset", "appearance.preview", "appearance.confirm", "appearance.cancel",
+            case "appearance.apply", "appearance.preset", "appearance.reset", "appearance.preview", "appearance.confirm", "appearance.cancel", "appearance.import", "appearance.prune",
                     "graphics.open_window", "graphics.set_workspace", "graphics.set_scale", "start_desktop", "close_desktop", "create_display", "remove_display",
                     "graphics.close_window", "graphics.detach_viewer", "set_task_state",
                     "select_display_viewer",

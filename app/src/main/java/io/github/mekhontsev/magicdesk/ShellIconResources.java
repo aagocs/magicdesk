@@ -3,8 +3,12 @@ package io.github.mekhontsev.magicdesk;
 /** Android resource mapping stays outside the portable configuration contract. */
 final class ShellIconResources {
     static int resolve(int original, ShellResources resources) {
-        for (var role : ShellResources.Icon.values()) if (resource(role) == original) return resource(resources.resolve(role));
-        return original;
+        var role = role(original);
+        return role == null ? original : resource(resources.resolve(role));
+    }
+    static ShellResources.Icon role(int original) {
+        for (var role : ShellResources.Icon.values()) if (resource(role) == original) return role;
+        return null;
     }
     private static int resource(ShellResources.Icon icon) {
         return switch (icon) {

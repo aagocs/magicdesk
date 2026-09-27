@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "preset": "dark",
+  "colors": { "panel": "#172624", "accent": "#8BE8C8" },
+  "composition": {
+    "panels": [
+      {
+        "id": "apps",
+        "edge": "bottom",
+        "style": {
+          "length": "content",
+          "maxLengthDp": 1000,
+          "sideGapDp": 12,
+          "edgeGapDp": 12,
+          "radiusDp": 8,
+          "opacity": 0.92
+        },
+        "components": [
+          { "type": "start" },
+          { "type": "tasks" },
+          { "type": "show_desktop" },
+          { "type": "open_tasks" }
+        ]
+      },
+      {
+        "id": "status",
+        "edge": "top",
+        "style": { "thicknessDp": 48 },
+        "components": [
+          { "type": "notifications" },
+          { "type": "spacer" },
+          { "type": "keyboard_layout" },
+          { "type": "phone_screen" },
+          { "type": "battery" },
+          { "type": "clock" }
+        ]
+      },
+      {
+        "id": "controls",
+        "edge": "right",
+        "style": {
+          "length": "content",
+          "thicknessDp": 56,
+          "edgeGapDp": 8,
+          "radiusDp": 8
+        },
+        "components": [{ "type": "quick_controls" }]
+      }
+    ]
+  }
+}

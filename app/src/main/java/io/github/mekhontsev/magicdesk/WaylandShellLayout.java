@@ -96,7 +96,7 @@ final class WaylandShellLayout implements AutoCloseable {
             case ON_DEMAND -> ShellSurface.Keyboard.ON_DEMAND;
             case EXCLUSIVE -> ShellSurface.Keyboard.EXCLUSIVE;
         }, new ShellSurface.Placement(state.exclusiveZone() < 0
-                ? ShellSurface.Reference.OUTPUT : ShellSurface.Reference.AVAILABLE, anchors,
+                ? ShellSurface.Reference.OUTPUT : ShellSurface.Reference.PANEL, anchors,
                 size(state.width(), density), size(state.height(), density),
                 new ShellSurface.Margins(pixels(state.marginLeft(), density), pixels(state.marginTop(), density),
                         pixels(state.marginRight(), density), pixels(state.marginBottom(), density))),

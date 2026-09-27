@@ -5,11 +5,12 @@ import java.util.Objects;
 
 /** Committed layout intent, independent of native surfaces, task areas and focus grants. */
 record ShellSurface(String id, boolean mapped, Layer layer, Keyboard keyboard, Placement placement,
-        Margins paintExtension, Input input, List<ShellReservation> reservations) {
+        Margins paintExtension, PaintPolicy paintPolicy, Input input, List<ShellReservation> reservations) {
     enum Layer { BACKGROUND, BOTTOM, TOP, OVERLAY }
     enum Keyboard { NONE, ON_DEMAND, EXCLUSIVE }
     enum Input { NONE, CONTENT, PAINT }
     enum Reference { OUTPUT, CONTENT, AVAILABLE, PANEL }
+    enum PaintPolicy { SURFACE, CONTENT_EDGE }
 
     static final int LEFT = 1;
     static final int TOP = 2;
@@ -33,6 +34,12 @@ record ShellSurface(String id, boolean mapped, Layer layer, Keyboard keyboard, P
         }
     }
 
+    /** Protocol family paint extends from the surface independently of viewport-edge contact. */
+    ShellSurface(String id, boolean mapped, Layer layer, Keyboard keyboard, Placement placement,
+            Margins paintExtension, Input input, List<ShellReservation> reservations) {
+        this(id, mapped, layer, keyboard, placement, paintExtension, PaintPolicy.SURFACE, input, reservations);
+    }
+
     ShellSurface {
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("Surface identity is required");
@@ -41,6 +48,7 @@ record ShellSurface(String id, boolean mapped, Layer layer, Keyboard keyboard, P
         Objects.requireNonNull(keyboard);
         Objects.requireNonNull(placement);
         Objects.requireNonNull(paintExtension);
+        Objects.requireNonNull(paintPolicy);
         if (paintExtension.left() < 0 || paintExtension.top() < 0
                 || paintExtension.right() < 0 || paintExtension.bottom() < 0) {
             throw new IllegalArgumentException("Paint extension must be nonnegative");
@@ -64,6 +72,6 @@ record ShellSurface(String id, boolean mapped, Layer layer, Keyboard keyboard, P
 
     ShellSurface withId(final String identity) {
         return new ShellSurface(identity, mapped, layer, keyboard, placement,
-                paintExtension, input, reservations);
+                paintExtension, paintPolicy, input, reservations);
     }
 }

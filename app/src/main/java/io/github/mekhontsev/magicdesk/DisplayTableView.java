@@ -182,7 +182,7 @@ final class DisplayTableView {
         if (MagicDeskRuntime.inputDisplayId() == display.id) {
             label.append("  |  ").append(mActivity.getString(R.string.display_input_active));
         }
-        label.setSpan(new AppearanceTextSpan(UiColor.MUTED), titleEnd, label.length(),
+        label.setSpan(new AppearanceTextSpan(mActivity, UiColor.MUTED), titleEnd, label.length(),
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         label.setSpan(new RelativeSizeSpan(12f / 14f), titleEnd, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return label;

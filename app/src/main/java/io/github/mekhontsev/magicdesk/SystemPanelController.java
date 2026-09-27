@@ -72,7 +72,7 @@ final class SystemPanelController {
         final int height = Math.min(maxHeight, mPanel.getMeasuredHeight());
         if (!panels.show(
                 mPanel,
-                panels.aboveTaskbar(width, height, true, dp(8), dp(8)),
+                panels.besideComponent(ShellComposition.Kind.QUICK_CONTROLS, width, height, true, dp(8), dp(8)),
                 false,
                 mActivity.getString(R.string.section_quick_controls))) {
             mActivity.setErrorStatus(

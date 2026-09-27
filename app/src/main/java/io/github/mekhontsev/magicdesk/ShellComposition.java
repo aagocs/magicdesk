@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 /** Native shell contents, independent of Views, service permissions and task ownership. */
-public record ShellComposition(List<Component> taskbar, Start start) {
+public record ShellComposition(List<ShellPanel> panels, Start start) {
     public enum Kind {
         START, TASKS, SHOW_DESKTOP, OPEN_TASKS, NOTIFICATIONS, KEYBOARD_LAYOUT,
         PHONE_SCREEN, QUICK_CONTROLS, BATTERY, CLOCK, SPACER
@@ -55,17 +55,25 @@ public record ShellComposition(List<Component> taskbar, Start start) {
         }
     }
     public ShellComposition {
-        taskbar = List.copyOf(taskbar); Objects.requireNonNull(start);
-        if (taskbar.isEmpty() || taskbar.size() > 24) throw new IllegalArgumentException("Taskbar needs 1-24 components");
+        panels = List.copyOf(panels); Objects.requireNonNull(start);
+        if (panels.isEmpty() || panels.size() > 4) throw new IllegalArgumentException("Shell needs 1-4 panels");
+        var ids = new HashSet<String>();
         var seen = new HashSet<Kind>();
-        for (Component component : taskbar) {
-            if (component.type() != Kind.SPACER && !seen.add(component.type())) {
-                throw new IllegalArgumentException("Repeated taskbar component: " + component.type());
+        for (ShellPanel panel : panels) {
+            if (!ids.add(panel.id())) throw new IllegalArgumentException("Repeated panel id: " + panel.id());
+            for (Component component : panel.components()) {
+                if (component.type() != Kind.SPACER && !seen.add(component.type())) {
+                    throw new IllegalArgumentException("Repeated shell component: " + component.type());
+                }
             }
         }
     }
+    public ShellPanel panel(String id) { return panels.stream().filter(p -> p.id().equals(id)).findFirst().orElse(null); }
+    public ShellPanel panelFor(Kind kind) {
+        return panels.stream().filter(p -> p.components().stream().anyMatch(c -> c.type() == kind)).findFirst().orElse(panels.get(0));
+    }
     public static ShellComposition defaults() {
-        return new ShellComposition(java.util.Arrays.stream(Kind.values())
-                .filter(k -> k != Kind.SPACER).map(Component::of).toList(), Start.defaults());
+        return new ShellComposition(List.of(new ShellPanel("main", ShellPanel.Edge.BOTTOM, ShellAppearance.PanelStyle.defaults(),
+                java.util.Arrays.stream(Kind.values()).filter(k -> k != Kind.SPACER).map(Component::of).toList())), Start.defaults());
     }
 }

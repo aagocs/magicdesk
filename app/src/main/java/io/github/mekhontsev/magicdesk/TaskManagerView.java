@@ -78,7 +78,7 @@ final class TaskManagerView {
         empty = text(14, true); empty.setText(R.string.task_manager_empty); empty.setGravity(Gravity.CENTER);
         root.addView(empty, new LinearLayout.LayoutParams(-1, dp(64)));
         list = new ListView(activity); list.setAdapter(adapter); list.setEmptyView(empty);
-        list.setDivider(UiAppearance.paint(activity.getResources().getDisplayMetrics().density,
+        list.setDivider(UiAppearance.paint(activity,
                 UiColor.HOVER, 0, UiColor.TRANSPARENT)); list.setDividerHeight(dp(1));
         root.addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
         tabs.setOnCheckedChangeListener((group, id) -> {

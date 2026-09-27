@@ -153,12 +153,22 @@ final class DesktopAutomationStateReader {
 
     private static JSONObject uiJson(final DesktopUiSnapshot ui)
             throws JSONException {
+        final JSONArray panels = new JSONArray();
+        for (DesktopUiSnapshot.Panel panel : ui.panels) {
+            panels.put(new JSONObject()
+                    .put("id", panel.id())
+                    .put("edge", panel.edge().name().toLowerCase(Locale.ROOT))
+                    .put("bounds", rectJson(panel.bounds()))
+                    .put("paintBounds", rectJson(panel.paintBounds()))
+                    .put("outputBounds", rectJson(panel.outputBounds())));
+        }
         return new JSONObject()
                 .put("available", ui.available)
                 .put("displayId", ui.displayId)
                 .put("taskbar", new JSONObject()
                         .put("visible", ui.taskbarVisible)
                         .put("bounds", rectJson(ui.taskbarBounds)))
+                .put("panels", panels)
                 .put("startVisible", ui.startVisible)
                 .put("popup", new JSONObject()
                         .put("visible", ui.popupVisible)

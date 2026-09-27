@@ -19,6 +19,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Hosts desktop panels as child windows of the persistent desktop chrome task. */
@@ -56,7 +57,7 @@ final class DesktopPanelWindowController {
     private boolean mRelayout;
     private final Rect mBounds = new Rect();
     private final Rect mChildBounds = new Rect();
-    private final Rect mInteractionOwnerBounds = new Rect();
+    private List<Rect> mInteractionOwnerBounds = List.of();
 
     private DesktopChromeActivity mHostActivity;
     private WindowManager mWindowManager;
@@ -381,7 +382,7 @@ final class DesktopPanelWindowController {
                     && !mChildBounds.contains(
                             Math.round(event.getRawX()),
                             Math.round(event.getRawY()))
-                    && !mInteractionOwnerBounds.contains(
+                    && !interactionOwnerContains(
                             Math.round(event.getRawX()),
                             Math.round(event.getRawY()))) {
                 hideAll();
@@ -462,7 +463,7 @@ final class DesktopPanelWindowController {
             }
             final int x = Math.round(event.getRawX());
             final int y = Math.round(event.getRawY());
-            if (mInteractionOwnerBounds.contains(x, y)) {
+            if (interactionOwnerContains(x, y)) {
                 hideChild();
             } else {
                 hideAll();
@@ -615,20 +616,32 @@ final class DesktopPanelWindowController {
         }
         hideAll(false);
         dismissDialog();
-        mInteractionOwnerBounds.setEmpty();
+        mInteractionOwnerBounds = List.of();
         clearHost();
     }
 
-    void setInteractionOwnerBounds(final Rect bounds) {
-        if (bounds == null) {
-            mInteractionOwnerBounds.setEmpty();
-        } else {
-            mInteractionOwnerBounds.set(bounds);
-        }
+    void setInteractionOwnerBounds(final List<Rect> bounds) {
+        mInteractionOwnerBounds = bounds == null ? List.of() : bounds.stream().map(Rect::new).toList();
     }
 
-    ShellPanelPlacement aboveTaskbar(int width, int height, boolean endAligned, int inset, int gap) {
-        return new ShellPanelPlacement.AboveSurface(mLayout.taskbar().request().id(),
+    private boolean interactionOwnerContains(final int x, final int y) {
+        for (Rect bounds : mInteractionOwnerBounds) {
+            if (bounds.contains(x, y)) return true;
+        }
+        return false;
+    }
+
+    ShellPanelPlacement besideComponent(ShellComposition.Kind component, int width, int height,
+            boolean endAligned, int inset, int gap) {
+        final ShellLayout.Surface owner = mLayout.panelFor(component);
+        if (owner == null) throw new IllegalStateException("Native panel is not mapped");
+        final ShellPanel.Edge edge = switch (owner.request().reservations().get(0).edge()) {
+            case TOP -> ShellPanel.Edge.TOP;
+            case BOTTOM -> ShellPanel.Edge.BOTTOM;
+            case LEFT -> ShellPanel.Edge.LEFT;
+            case RIGHT -> ShellPanel.Edge.RIGHT;
+        };
+        return new ShellPanelPlacement.BesideSurface(owner.request().id(), edge,
                 width, height, endAligned, inset, gap);
     }
 
@@ -1069,6 +1082,9 @@ final class DesktopPanelWindowController {
         if (mReleased || mRelayout) return;
         mRelayout = true;
         try {
+            if (mPanelPlacement != null && !mPanelPlacement.hasMappedOwner(mLayout.snapshot())) hideAll();
+            if (mChildPlacement != null && !mChildPlacement.hasMappedOwner(mLayout.snapshot())) hideChild();
+            if (mTransientPlacement != null && !mTransientPlacement.hasMappedOwner(mLayout.snapshot())) hideTransient();
             if (mVisibleRequested && mPanelLayout != null && mPanelLayout.surface("panel") != null) {
                 final var bounds = place(mPanelLayout, mPanelPlacement, mVisibleFocusable);
                 mBounds.set(bounds.left(), bounds.top(), bounds.right(), bounds.bottom());

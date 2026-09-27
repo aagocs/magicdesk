@@ -12,29 +12,40 @@ final class AutomationCommandCatalog {
     static JSONArray create() throws JSONException {
         final JSONArray tools = new JSONArray()
                 .put(readTool("appearance.get", "Read shell appearance",
-                        "Read effective and committed native shell configuration, active preview ID and revision. Independent of Desktop, shell access and Termux.", emptySchema()))
+                        "Read effective and committed native shell configuration, workspace patch, known override keys, active preview ID and revision. Omit workspaceKey for global defaults. Independent of Desktop, shell access and Termux.", appearanceSchema(new JSONObject())))
                 .put(readTool("appearance.schema", "Read shell configuration schema",
                         "Read the authoritative JSON Schema for native appearance, composition, symbols, feedback and motion. Does not change state.", emptySchema()))
                 .put(readTool("appearance.validate", "Validate shell configuration",
                         "Validate and resolve a document without applying it. Reports JSON-pointer paths for invalid fields and component constraints.",
-                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 2 shell configuration; discover fields with appearance.schema.")), "document")))
+                        appearanceSchema(new JSONObject().put("document", openObjectProperty("Version 3 document, or workspace patch resolved over global defaults. Discover fields with appearance.schema.")), "document")))
                 .put(actionTool("appearance.preview", "Preview shell configuration",
-                        "Apply a temporary, non-persisted configuration. Returns an exact previewId for confirm/cancel. Only one preview can be active; process restart restores the committed configuration.",
-                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 2 shell configuration; discover fields with appearance.schema.")), "document")))
+                        "Apply a temporary, non-persisted configuration. Returns an exact previewId for confirm/cancel with the same workspaceKey. One preview per scope; process restart restores committed configuration.",
+                        appearanceSchema(new JSONObject().put("document", openObjectProperty("Version 3 document or sparse workspace patch; discover fields with appearance.schema.")), "document")))
                 .put(actionTool("appearance.confirm", "Confirm shell preview",
                         "Persist the exact active preview. Stale preview IDs are rejected.",
-                        objectSchema(new JSONObject().put("previewId", stringProperty("Exact active preview ID.")), "previewId")))
+                        appearanceSchema(new JSONObject().put("previewId", stringProperty("Exact active preview ID in the selected scope.")), "previewId")))
                 .put(actionTool("appearance.cancel", "Cancel shell preview",
                         "Discard the exact preview and restore the committed configuration. Stale preview IDs cannot revert later changes.",
-                        objectSchema(new JSONObject().put("previewId", stringProperty("Exact active preview ID.")), "previewId")))
+                        appearanceSchema(new JSONObject().put("previewId", stringProperty("Exact active preview ID in the selected scope.")), "previewId")))
                 .put(actionTool("appearance.apply", "Apply shell appearance",
-                        "Validate and replace the native shell theme document, at most 32 KiB. Missing fields inherit built-in defaults. Live Views update without relaunching tools; Android captions, wallpaper, terminal protocol colors and permission settings are unaffected. Returns persisted values, not pixel-presentation acknowledgement.",
-                        objectSchema(new JSONObject().put("document", openObjectProperty("Version 2 shell configuration; discover fields with appearance.schema.")), "document")))
+                        "Validate and replace the document or selected workspace patch, at most 32 KiB. Global omissions use built-in defaults; workspace omissions inherit global fields and arrays replace whole lists. Supersedes that scope's preview. Returns accepted values, not pixel-presentation or disk-completion acknowledgement.",
+                        appearanceSchema(new JSONObject().put("document", openObjectProperty("Version 3 document or sparse workspace patch. Workspace patches do not accept preset.")), "document")))
                 .put(actionTool("appearance.preset", "Select appearance preset",
-                        "Apply a built-in color, typography and shape preset while retaining taskbar geometry and unrelated preferences.",
-                        objectSchema(new JSONObject().put("name", enumProperty("Built-in style.", "dark", "light", "contrast")), "name")))
+                        "Apply a built-in color, typography and shape preset while retaining panel geometry, resources and motion in the selected scope.",
+                        appearanceSchema(new JSONObject().put("name", enumProperty("Built-in style.", "dark", "light", "contrast")), "name")))
                 .put(actionTool("appearance.reset", "Reset shell appearance",
-                        "Restore the default native shell style and taskbar geometry. Does not reset wallpaper, widgets or other preferences.", emptySchema()))
+                        "Restore built-in global appearance, or remove the selected workspace override to resume global inheritance. Does not reset widgets or unrelated preferences.", appearanceSchema(new JSONObject())))
+                .put(actionTool("appearance.import", "Preview appearance from file",
+                        "Import JSON or a bounded theme ZIP from a verified ordinary shell-readable file and preview it in the selected scope. Also requires files_read. Returns an exact previewId; confirm explicitly with the same workspaceKey. A concurrent appearance change rejects the preview. Does not start Desktop.",
+                        appearanceSchema(new JSONObject().put("path", stringProperty("Absolute shell-readable file path, for example returned by files.upload_commit."))
+                                .put("format", enumProperty("File format; defaults to zip.", "json", "zip")), "path")))
+                .put(actionTool("appearance.export", "Export appearance to file",
+                        "Export a snapshot as JSON or a theme ZIP through the shared verified Files boundary. Creates a new file, choosing an available filename on collision; never overwrites an existing file. Returns the actual path for files.download_begin. Requires file service availability, not Desktop.",
+                        appearanceSchema(new JSONObject().put("directory", stringProperty("Absolute existing shell-writable directory."))
+                                .put("name", stringProperty("Requested filename; defaults to magicdesk-theme.zip or magicdesk-theme.json."))
+                                .put("format", enumProperty("File format; defaults to zip.", "json", "zip")), "directory")))
+                .put(destructiveTool("appearance.prune", "Remove unused theme bundles",
+                        "Explicitly remove unused app-private theme bundles, retaining global and workspace current, committed, preview and staged resources. Does not remove external files or change the appearance. Cleanup prevents concurrent appearance publication.", emptySchema()))
                 .put(readTool(
                         "get_state",
                         "Get desktop state",
@@ -1443,11 +1454,27 @@ final class AutomationCommandCatalog {
             case "appearance.apply":
             case "appearance.preset":
             case "appearance.reset":
-                properties.put("document", openObjectProperty("Effective version 2 shell configuration."))
+            case "appearance.import":
+                properties.put("document", openObjectProperty("Effective version 3 shell configuration."))
                         .put("committed", openObjectProperty("Confirmed configuration, restored after preview cancellation or process restart."))
+                        .put("workspaceKey", nullableStringProperty("Selected stable workspace identity; null means global defaults."))
+                        .put("workspaceKeys", arrayProperty("Known workspace override or preview keys; not a list of live displays.", stringProperty("Stable workspace key.")))
+                        .put("patch", new JSONObject().put("type", new JSONArray().put("object").put("null"))
+                                .put("description", "Effective sparse workspace override; null for global scope."))
+                        .put("committedPatch", new JSONObject().put("type", new JSONArray().put("object").put("null"))
+                                .put("description", "Confirmed sparse workspace override; null for global scope."))
                         .put("previewId", nullableStringProperty("Exact active preview ID, or null."))
                         .put("revision", integerProperty("Process-local configuration revision."))
                         .put("presets", arrayProperty("Built-in style presets.", stringProperty("Preset name.")));
+                break;
+            case "appearance.export":
+                properties.put("path", stringProperty("Actual created ordinary file path."))
+                        .put("format", enumProperty("Export format.", "json", "zip"))
+                        .put("workspaceKey", nullableStringProperty("Selected stable workspace key or null for global defaults."));
+                break;
+            case "appearance.prune":
+                properties.put("removed", arrayProperty("Removed unused bundle digests.", stringProperty("SHA-256 bundle digest.")))
+                        .put("count", integerProperty("Number of removed bundles."));
                 break;
             case "appearance.schema":
                 properties.put("schema", openObjectProperty("Authoritative JSON Schema."));
@@ -2245,6 +2272,11 @@ final class AutomationCommandCatalog {
                 .put("foregroundProcess", openObjectProperty(
                         "Foreground PTY process metadata."))
                 .put("semantics", openObjectProperty("Status-only OSC metadata: shellState, up to 128 commands, progress, last notification and up to 256 visible-screen link spans. Positions are zero-based buffer cells; negative rows are scrollback; endColumn is exclusive. Unknown exit codes are null."));
+    }
+
+    private static JSONObject appearanceSchema(JSONObject properties, String... required) throws JSONException {
+        return objectSchema(properties.put("workspaceKey", stringProperty(
+                "Stable workspace/profile identity, never a transient displayId or workspace residency ID. Omit for global defaults.")), required);
     }
 
     private static JSONObject emptySchema() throws JSONException {

@@ -170,8 +170,9 @@ public final class QuickControlsPresentationTest {
                     int left, top, width, height;
                     boolean requested;
                     boolean isRequested(Panel panel) { return requested; }
-                    ShellPanelPlacement aboveTaskbar(int w, int h, boolean end, int inset, int gap) {
-                        return new ShellPanelPlacement.AboveSurface("taskbar", w, h, end, inset, gap);
+                    ShellPanelPlacement besideComponent(ShellComposition.Kind kind, int w, int h, boolean end, int inset, int gap) {
+                        check(kind == ShellComposition.Kind.QUICK_CONTROLS, "wrong native panel owner");
+                        return new ShellPanelPlacement.BesideSurface("taskbar", ShellPanel.Edge.BOTTOM, w, h, end, inset, gap);
                     }
                     boolean show(Panel panel, ShellPanelPlacement placement, boolean focus, String title) {
                         Rect area = activity.getDesktopPanelAreaBounds();
@@ -218,6 +219,7 @@ public final class QuickControlsPresentationTest {
                 public static void verify() {
                     Fixture f = new Fixture();
                 """ + scenario + "}\n" + RuntimeSourceFixture.methods("SystemPanelController", "toggle"),
-                "ShellBounds", "ShellSurface", "ShellReservation", "ShellLayout", "ShellPanelPlacement");
+                "ShellBounds", "ShellSurface", "ShellReservation", "ShellLayout", "ShellPanelPlacement",
+                "ShellPanel", "ShellComposition", "ShellAppearance", "UiColor", "ShellMotion", "ShellResources");
     }
 }

@@ -12,6 +12,27 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class AutomationCommandCatalogTest {
+    @Test public void appearanceScopesAndAssetFileBoundariesAreDiscoverable() throws Exception {
+        var tools = AutomationCommandCatalog.create();
+        for (String name : Set.of("appearance.get", "appearance.validate", "appearance.apply", "appearance.preview",
+                "appearance.confirm", "appearance.cancel", "appearance.preset", "appearance.reset", "appearance.import", "appearance.export")) {
+            var input = tool(tools, name).getJSONObject("inputSchema");
+            assertEquals("string", input.getJSONObject("properties").getJSONObject("workspaceKey").getString("type"));
+            assertFalse(input.getJSONObject("properties").has("displayId"));
+            assertFalse(input.has("required") && contains(input.getJSONArray("required"), "workspaceKey"));
+        }
+        for (String key : Set.of("workspaceKey", "workspaceKeys", "patch", "committedPatch", "previewId", "revision")) {
+            assertTrue(key, dataProperties(tools, "appearance.get").has(key));
+        }
+        var imports = tool(tools, "appearance.import");
+        assertTrue(imports.getString("description").contains("files_read"));
+        assertFalse(imports.getJSONObject("annotations").getBoolean("readOnlyHint"));
+        assertTrue(contains(imports.getJSONObject("inputSchema").getJSONArray("required"), "path"));
+        assertTrue(dataProperties(tools, "appearance.export").has("path"));
+        assertFalse(tool(tools, "appearance.export").getJSONObject("inputSchema").getJSONObject("properties").has("overwrite"));
+        assertTrue(tool(tools, "appearance.prune").getJSONObject("annotations").getBoolean("destructiveHint"));
+        assertTrue(dataProperties(tools, "appearance.prune").has("removed"));
+    }
     @Test public void desktopEntriesExposeDiscoveryAndIndependentPlacement() throws Exception {
         var tools = AutomationCommandCatalog.create();
         var list = tool(tools, "list_desktop_entries");

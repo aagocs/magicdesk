@@ -1,5 +1,6 @@
 package io.github.mekhontsev.magicdesk;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -19,11 +20,15 @@ public final class UiAppearance {
     private static final WeakHashMap<Paint, Boolean> PAINTS = new WeakHashMap<>();
     private static final WeakHashMap<UiFeedbackDrawable, Boolean> FEEDBACK = new WeakHashMap<>();
     private static final WeakHashMap<UiSymbolDrawable, Boolean> SYMBOLS = new WeakHashMap<>();
+    private static final WeakHashMap<AppearanceTextSpan, Boolean> SPANS = new WeakHashMap<>();
     private UiAppearance() {}
 
+    static void registerSpan(AppearanceTextSpan span) { SPANS.put(span, true); }
+
     public static int color(UiColor role) { return AppearanceStore.current().palette().color(role); }
-    static android.graphics.drawable.Drawable symbol(android.content.Context context, int resource, UiColor role) {
-        final var drawable = new UiSymbolDrawable(context.getResources(), resource, role);
+    public static int color(Context context, UiColor role) { return AppearanceStore.current(context).palette().color(role); }
+    static android.graphics.drawable.Drawable symbol(Context context, int resource, UiColor role) {
+        final var drawable = new UiSymbolDrawable(context, resource, role);
         synchronized (SYMBOLS) { SYMBOLS.put(drawable, true); }
         return drawable;
     }
@@ -47,7 +52,6 @@ public final class UiAppearance {
     }
     static void icon(ImageView view, int resource, UiColor role) {
         view.setImageDrawable(symbol(view.getContext(), resource, role));
-        image(view, role);
     }
     public static void imageStates(ImageView view, UiColor role) {
         bind(view, Property.IMAGE, (v, t) -> ((ImageView) v).setImageTintList(states(t, role)));
@@ -78,7 +82,7 @@ public final class UiAppearance {
     static void dialog(android.app.AlertDialog dialog, android.app.Activity owner) {
         final View root = dialog.getWindow().getDecorView();
         DialogContentInsets.bind(root, owner);
-        dialog.getWindow().setBackgroundDrawable(paint(root.getResources().getDisplayMetrics().density,
+        dialog.getWindow().setBackgroundDrawable(paint(root.getContext(),
                 UiColor.PANEL, 8 * root.getResources().getDisplayMetrics().density, UiColor.HOVER));
         dialogContents(root);
     }
@@ -104,11 +108,13 @@ public final class UiAppearance {
         if (view instanceof android.widget.CompoundButton button && !binding.styles.containsKey(Property.BUTTON)) {
             button(button, UiColor.ACCENT);
         }
-        style.apply(view, AppearanceStore.current());
-        binding.applyTypography(AppearanceStore.current());
+        var appearance = binding.source.resolve();
+        style.apply(view, appearance.theme());
+        binding.applyTypography(appearance.theme(), appearance.assets());
     }
     static void refresh() {
         UiMotion.refresh();
+        for (var span : new ArrayList<>(SPANS.keySet())) span.refresh();
         for (var control : new ArrayList<>(FEEDBACK.keySet())) control.refresh();
         synchronized (SYMBOLS) {
             for (var drawable : new ArrayList<>(SYMBOLS.keySet())) drawable.refresh();
@@ -116,50 +122,60 @@ public final class UiAppearance {
         for (Paint paint : new ArrayList<>(PAINTS.keySet())) paint.refresh();
         for (Binding binding : new ArrayList<>(BINDINGS.keySet())) binding.refresh();
     }
-    static android.graphics.drawable.StateListDrawable feedback(float density, int radius) {
-        final var drawable = new UiFeedbackDrawable(density, radius);
+    static android.graphics.drawable.StateListDrawable feedback(Context context, int radius) {
+        final var drawable = new UiFeedbackDrawable(context, context.getResources().getDisplayMetrics().density, radius);
         FEEDBACK.put(drawable, true);
         return drawable;
     }
-    static GradientDrawable paint(float density, UiColor fill, float radiusPx, UiColor border) {
-        final Paint paint = new Paint(density, fill, radiusPx, border);
+    static GradientDrawable paint(Context context, UiColor fill, float radiusPx, UiColor border) {
+        final Paint paint = new Paint(context, context.getResources().getDisplayMetrics().density, fill, radiusPx, border);
         PAINTS.put(paint, true);
         paint.refresh();
         return paint;
     }
-    static GradientDrawable taskbarPaint(float density) {
-        final Paint paint = new Paint(density, UiColor.PANEL, 0, UiColor.SURFACE);
-        paint.taskbar = true;
+    static GradientDrawable panelPaint(Context context, String panelId) {
+        if (AppearanceStore.current(context).composition().panel(panelId) == null) {
+            throw new IllegalArgumentException("Unknown appearance panel: " + panelId);
+        }
+        final Paint paint = new Paint(context, context.getResources().getDisplayMetrics().density,
+                UiColor.PANEL, 0, UiColor.SURFACE);
+        paint.panelId = panelId;
         PAINTS.put(paint, true);
         paint.refresh();
         return paint;
     }
     private static final class Binding implements View.OnAttachStateChangeListener {
         final View view;
+        final AppearanceScopeSource source;
         final EnumMap<Property, Style> styles = new EnumMap<>(Property.class);
         float baseSize;
         Typeface baseFace;
         boolean captured;
         ShellAppearance.Typography appliedTypography;
-        Binding(View view) { this.view = view; }
+        Typeface appliedFont;
+        Binding(View view) { this.view = view; source = new AppearanceScopeSource(view.getContext()); }
         public void onViewAttachedToWindow(View view) { refresh(); }
         public void onViewDetachedFromWindow(View view) {}
         void refresh() {
-            final ShellAppearance theme = AppearanceStore.current();
+            var appearance = source.resolve();
+            final ShellAppearance theme = appearance.theme();
             for (Style style : styles.values()) style.apply(view, theme);
-            applyTypography(theme);
+            applyTypography(theme, appearance.assets());
+            view.invalidate();
         }
-        void applyTypography(ShellAppearance theme) {
+        void applyTypography(ShellAppearance theme, ThemeAssets.Prepared assets) {
             if (view instanceof TextView text && view.isAttachedToWindow()) {
                 if (!captured) {
                     baseSize = text.getTextSize(); baseFace = text.getTypeface(); captured = true;
                 }
-                if (theme.typography().equals(appliedTypography)) return;
+                Typeface font = assets.font(baseFace == null ? Typeface.NORMAL : baseFace.getStyle());
+                if (theme.typography().equals(appliedTypography) && font == appliedFont) return;
                 appliedTypography = theme.typography();
+                appliedFont = font;
                 final String family = switch (theme.typography().font()) {
                     case SANS -> "sans-serif"; case SERIF -> "serif"; case MONO -> "monospace";
                 };
-                text.setTypeface(theme.typography().font() == ShellAppearance.Font.SANS ? baseFace
+                text.setTypeface(font != null ? font : theme.typography().font() == ShellAppearance.Font.SANS ? baseFace
                         : Typeface.create(family, baseFace == null ? Typeface.NORMAL : baseFace.getStyle()));
                 if (text.getAutoSizeTextType() == TextView.AUTO_SIZE_TEXT_TYPE_NONE) {
                     text.setTextSize(TypedValue.COMPLEX_UNIT_PX, baseSize * theme.typography().scale());
@@ -172,15 +188,22 @@ public final class UiAppearance {
         final UiColor fill;
         final float radius;
         final UiColor border;
-        boolean taskbar;
-        Paint(float density, UiColor fill, float radius, UiColor border) {
+        final AppearanceScopeSource source;
+        String panelId;
+        Paint(Context context, float density, UiColor fill, float radius, UiColor border) {
             this.density = density; this.fill = fill; this.radius = radius; this.border = border;
+            source = new AppearanceScopeSource(context);
         }
         void refresh() {
-            final ShellAppearance theme = AppearanceStore.current();
+            final ShellAppearance theme = source.current();
+            ShellPanel panel = panelId == null ? null : theme.composition().panel(panelId);
+            if (panelId != null && panel == null) {
+                setColor(0); setStroke(0, 0); setCornerRadius(0); invalidateSelf();
+                return;
+            }
             final int color = theme.palette().color(fill);
-            setColor(taskbar ? (Math.round(255 * theme.taskbar().opacity()) << 24) | (color & 0xffffff) : color);
-            setCornerRadius(taskbar ? theme.taskbar().radiusDp() * density : radius * theme.shape().radiusScale());
+            setColor(panel != null ? (Math.round(255 * panel.style().opacity()) << 24) | (color & 0xffffff) : color);
+            setCornerRadius(panel != null ? panel.style().radiusDp() * density : radius * theme.shape().radiusScale());
             setStroke(border == UiColor.TRANSPARENT ? 0 : Math.round(density * theme.shape().borderDp()),
                     theme.palette().color(border));
             invalidateSelf();

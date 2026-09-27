@@ -244,7 +244,7 @@ public final class DesktopUiFactory {
     private GradientDrawable filled(
             final UiColor color,
             final int radius) {
-        return UiAppearance.paint(mContext.getResources().getDisplayMetrics().density, color, radius, TRANSPARENT);
+        return UiAppearance.paint(mContext, color, radius, TRANSPARENT);
     }
 
     Button smallButton(final int textResId, final UiColor accentColor) {
@@ -295,10 +295,10 @@ public final class DesktopUiFactory {
             final UiColor color,
             final int radius,
             final UiColor strokeColor) {
-        return UiAppearance.paint(mContext.getResources().getDisplayMetrics().density, color, radius, strokeColor);
+        return UiAppearance.paint(mContext, color, radius, strokeColor);
     }
 
     StateListDrawable flatButtonBackground(final int radius) {
-        return UiAppearance.feedback(mContext.getResources().getDisplayMetrics().density, radius);
+        return UiAppearance.feedback(mContext, radius);
     }
 }

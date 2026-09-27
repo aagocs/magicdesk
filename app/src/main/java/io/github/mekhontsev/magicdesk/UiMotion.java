@@ -8,13 +8,14 @@ import java.util.WeakHashMap;
 
 /** Native presentation effects. Dismissal and focus never await animation completion. */
 final class UiMotion {
-    private static final WeakHashMap<View, Boolean> ACTIVE = new WeakHashMap<>();
+    private static final WeakHashMap<View, ShellAppearance> ACTIVE = new WeakHashMap<>();
     static void reveal(View view, boolean panel) {
         cancel(view);
-        var motion = AppearanceStore.current().motion();
+        var theme = AppearanceStore.current(view.getContext());
+        var motion = theme.motion();
         int duration = motion.duration(panel ? motion.panels() : motion.taskbar(), ValueAnimator.areAnimatorsEnabled());
         if (duration == 0) return;
-        ACTIVE.put(view, true);
+        ACTIVE.put(view, theme);
         View.OnAttachStateChangeListener lifetime = new View.OnAttachStateChangeListener() {
             public void onViewAttachedToWindow(View v) { }
             public void onViewDetachedFromWindow(View v) { cancel(v); }
@@ -35,5 +36,9 @@ final class UiMotion {
     static void cancel(View view) {
         if (ACTIVE.remove(view) != null) { view.animate().cancel(); view.setAlpha(1f); }
     }
-    static void refresh() { for (View view : new java.util.ArrayList<>(ACTIVE.keySet())) cancel(view); }
+    static void refresh() {
+        for (View view : new java.util.ArrayList<>(ACTIVE.keySet())) {
+            if (!AppearanceStore.current(view.getContext()).equals(ACTIVE.get(view))) cancel(view);
+        }
+    }
 }

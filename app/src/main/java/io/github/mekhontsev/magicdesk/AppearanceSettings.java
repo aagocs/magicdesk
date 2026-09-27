@@ -17,25 +17,47 @@ import java.util.function.IntSupplier;
 
 /** UI and SAF adapters to the same validated appearance document used by automation. */
 final class AppearanceSettings implements AutoCloseable {
-    private static final int IMPORT = 6201, EXPORT = 6202, SCHEMA = 6203;
+    private static final int IMPORT = 6201, EXPORT = 6202, SCHEMA = 6203, IMPORT_BUNDLE = 6204, EXPORT_BUNDLE = 6205;
     private final Activity mActivity;
     private final DesktopUiFactory mUi;
     private final ExecutorService mFiles = Executors.newSingleThreadExecutor();
     private final List<Runnable> mRefreshers = new ArrayList<>();
+    private final List<AlertDialog> mChildren = new ArrayList<>();
     private final Runnable mChanged = this::refresh;
     private AlertDialog mDialog;
     private AlertDialog mPreviewDialog;
     private boolean mRendering;
-    private boolean mClosed;
+    private volatile boolean mClosed;
+    private String mPanelId;
+    private String mWorkspaceKey;
+    private volatile int mGeneration;
+    private record EditTarget(String workspaceKey, long revision, int generation) {}
+    private record FileRequest(int code, EditTarget target, ShellAppearance appearance, String document) {}
+    private FileRequest mPendingFile;
+    private boolean mFileBusy;
+    private volatile Thread mFileThread;
+    private android.os.CancellationSignal mFileCancellation;
 
     AppearanceSettings(Activity activity) { mActivity = activity; mUi = new DesktopUiFactory(activity); }
 
     void show() {
+        if (mClosed) return;
         if (mDialog != null) { mDialog.show(); return; }
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(mUi.dp(16), mUi.dp(8), mUi.dp(16), mUi.dp(8));
         UiAppearance.background(page, UiColor.PANEL);
+        final String workspace = AppearanceScopeBindings.find(mActivity);
+        choice(page, R.string.appearance_scope, workspace == null ? new int[] {R.string.appearance_global}
+                        : new int[] {R.string.appearance_global, R.string.appearance_workspace},
+                () -> mWorkspaceKey == null ? 0 : 1, index -> {
+                    dismissChildren(); invalidateFiles(); mWorkspaceKey = index == 0 ? null : workspace;
+                    mPanelId = null; refresh();
+                });
+        final Button inherit = mUi.menuItem(R.string.appearance_inherit, UiColor.TEXT);
+        inherit.setOnClickListener(v -> reset());
+        mRefreshers.add(() -> inherit.setVisibility(mWorkspaceKey == null ? View.GONE : View.VISIBLE));
+        page.addView(inherit);
         heading(page, R.string.appearance_colors);
         final LinearLayout presets = new LinearLayout(mActivity);
         final String[] ids = {"dark", "light", "contrast"};
@@ -46,10 +68,10 @@ final class AppearanceSettings implements AutoCloseable {
             button.setGravity(android.view.Gravity.CENTER);
             button.setBackground(mUi.flatButtonBackground(mUi.dp(4)));
             mRefreshers.add(() -> {
-                var current = AppearanceStore.current();
+                var current = current();
                 button.setSelected(current.equals(current.withStyle(ShellAppearance.preset(id))));
             });
-            button.setOnClickListener(v -> AppearanceStore.apply(AppearanceStore.current().withStyle(ShellAppearance.preset(id))));
+            button.setOnClickListener(v -> apply(current().withStyle(ShellAppearance.preset(id))));
             presets.addView(button, new LinearLayout.LayoutParams(0, mUi.dp(48), 1));
         }
         page.addView(presets);
@@ -58,6 +80,7 @@ final class AppearanceSettings implements AutoCloseable {
             if (role == UiColor.TRANSPARENT) continue;
             final View swatch = new View(mActivity);
             swatch.setBackground(mUi.rounded(role, mUi.dp(2), UiColor.MUTED));
+            mRefreshers.add(() -> swatch.setBackgroundTintList(android.content.res.ColorStateList.valueOf(current().palette().color(role))));
             swatch.setContentDescription(role.name().toLowerCase(Locale.ROOT));
             swatch.setTooltipText(swatch.getContentDescription());
             swatch.setFocusable(true);
@@ -68,84 +91,102 @@ final class AppearanceSettings implements AutoCloseable {
         }
         page.addView(swatches);
         choice(page, R.string.appearance_font, new int[] {R.string.appearance_sans, R.string.appearance_serif, R.string.appearance_mono},
-                () -> AppearanceStore.current().typography().font().ordinal(), index -> {
-                    var t = AppearanceStore.current();
-                    AppearanceStore.apply(t.withTypography(new ShellAppearance.Typography(
+                () -> current().typography().font().ordinal(), index -> {
+                    var t = current();
+                    apply(t.withTypography(new ShellAppearance.Typography(
                             ShellAppearance.Font.values()[index], t.typography().scale())));
                 });
         slider(page, R.string.appearance_text_scale, 80, 130,
-                () -> Math.round(AppearanceStore.current().typography().scale() * 100), value -> {
-                    var t = AppearanceStore.current();
-                    AppearanceStore.apply(t.withTypography(new ShellAppearance.Typography(
+                () -> Math.round(current().typography().scale() * 100), value -> {
+                    var t = current();
+                    apply(t.withTypography(new ShellAppearance.Typography(
                             t.typography().font(), value / 100f)));
                 });
-        slider(page, R.string.appearance_border, 0, 3, () -> Math.round(AppearanceStore.current().shape().borderDp()), value -> {
-            var t = AppearanceStore.current();
-            AppearanceStore.apply(t.withShape(new ShellAppearance.Shape(t.shape().radiusScale(), value)));
+        slider(page, R.string.appearance_border, 0, 3, () -> Math.round(current().shape().borderDp()), value -> {
+            var t = current();
+            apply(t.withShape(new ShellAppearance.Shape(t.shape().radiusScale(), value)));
         });
-        slider(page, R.string.appearance_rounding, 0, 200, () -> Math.round(AppearanceStore.current().shape().radiusScale() * 100), value -> {
-            var t = AppearanceStore.current();
-            AppearanceStore.apply(t.withShape(new ShellAppearance.Shape(value / 100f, t.shape().borderDp())));
+        slider(page, R.string.appearance_rounding, 0, 200, () -> Math.round(current().shape().radiusScale() * 100), value -> {
+            var t = current();
+            apply(t.withShape(new ShellAppearance.Shape(value / 100f, t.shape().borderDp())));
         });
-        heading(page, R.string.appearance_taskbar);
-        choice(page, R.string.appearance_width, new int[] {R.string.appearance_fill, R.string.appearance_content},
-                () -> AppearanceStore.current().taskbar().width().ordinal(), value -> changeBar("width", ShellAppearance.Width.values()[value].name().toLowerCase(Locale.ROOT)));
-        choice(page, R.string.appearance_alignment, new int[] {R.string.appearance_start, R.string.appearance_center, R.string.appearance_end},
-                () -> AppearanceStore.current().taskbar().alignment().ordinal(), value -> changeBar("alignment", ShellAppearance.Alignment.values()[value].name().toLowerCase(Locale.ROOT)));
-        slider(page, R.string.appearance_max_width, 240, 4096, () -> AppearanceStore.current().taskbar().maxWidthDp(), v -> changeBar("maxWidthDp", v));
-        slider(page, R.string.appearance_side_gap, 0, 96, () -> AppearanceStore.current().taskbar().sideGapDp(), v -> changeBar("sideGapDp", v));
-        slider(page, R.string.appearance_bottom_gap, 0, 96, () -> AppearanceStore.current().taskbar().bottomGapDp(), v -> changeBar("bottomGapDp", v));
-        slider(page, R.string.appearance_padding, 0, 16, () -> AppearanceStore.current().taskbar().paddingDp(), v -> changeBar("paddingDp", v));
-        slider(page, R.string.appearance_radius, 0, 32, () -> AppearanceStore.current().taskbar().radiusDp(), v -> changeBar("radiusDp", v));
-        slider(page, R.string.appearance_opacity, 15, 100, () -> Math.round(AppearanceStore.current().taskbar().opacity() * 100), v -> changeBar("opacity", v / 100f));
+        heading(page, R.string.appearance_panels);
+        panelSelector(page);
+        choice(page, R.string.appearance_edge, new int[] {R.string.appearance_top, R.string.appearance_bottom,
+                        R.string.appearance_left, R.string.appearance_right},
+                () -> panel().edge().ordinal(), value -> replacePanel(new ShellPanel(panel().id(),
+                        ShellPanel.Edge.values()[value], panel().style(), panel().components())));
+        choice(page, R.string.appearance_length, new int[] {R.string.appearance_fill, R.string.appearance_content},
+                () -> panel().style().length().ordinal(), value -> changeBar("length", ShellAppearance.Width.values()[value].name().toLowerCase(Locale.ROOT)));
+        choice(page, R.string.appearance_alignment, new int[] {R.string.appearance_align_start, R.string.appearance_center, R.string.appearance_align_end},
+                () -> panel().style().alignment().ordinal(), value -> changeBar("alignment", ShellAppearance.Alignment.values()[value].name().toLowerCase(Locale.ROOT)));
+        slider(page, R.string.appearance_max_length, 64, 4096, () -> panel().style().maxLengthDp(), v -> changeBar("maxLengthDp", v));
+        slider(page, R.string.appearance_side_gap, 0, 96, () -> panel().style().sideGapDp(), v -> changeBar("sideGapDp", v));
+        slider(page, R.string.appearance_edge_gap, 0, 96, () -> panel().style().edgeGapDp(), v -> changeBar("edgeGapDp", v));
+        final Switch automatic = new Switch(mActivity);
+        automatic.setText(R.string.appearance_auto_thickness); UiAppearance.text(automatic, UiColor.TEXT);
+        mRefreshers.add(() -> automatic.setChecked(panel().style().thicknessDp() == 0));
+        automatic.setOnCheckedChangeListener((v, checked) -> { if (!mRendering) changeBar("thicknessDp", checked ? 0 : 64); });
+        page.addView(automatic);
+        slider(page, R.string.appearance_thickness, 40, 160,
+                () -> panel().style().thicknessDp() == 0 ? 64 : panel().style().thicknessDp(), v -> changeBar("thicknessDp", v));
+        slider(page, R.string.appearance_padding, 0, 16, () -> panel().style().paddingDp(), v -> changeBar("paddingDp", v));
+        slider(page, R.string.appearance_radius, 0, 32, () -> panel().style().radiusDp(), v -> changeBar("radiusDp", v));
+        slider(page, R.string.appearance_opacity, 15, 100, () -> Math.round(panel().style().opacity() * 100), v -> changeBar("opacity", v / 100f));
         final Switch reserve = new Switch(mActivity);
         UiAppearance.button(reserve, UiColor.ACCENT);
-        reserve.setText(R.string.appearance_reserve);
+        reserve.setText(R.string.appearance_panel_reserve);
         UiAppearance.text(reserve, UiColor.TEXT);
         reserve.setPadding(0, mUi.dp(8), 0, mUi.dp(8));
-        mRefreshers.add(() -> reserve.setChecked(AppearanceStore.current().taskbar().reserveSpace()));
+        mRefreshers.add(() -> reserve.setChecked(panel().style().reserveSpace()));
         reserve.setOnCheckedChangeListener((v, checked) -> { if (!mRendering) changeBar("reserveSpace", checked); });
         page.addView(reserve);
         heading(page, R.string.appearance_composition);
-        Button composition = mUi.menuItem(R.string.appearance_components, UiColor.TEXT);
+        Button composition = mUi.menuItem(R.string.appearance_panel_components, UiColor.TEXT);
         composition.setOnClickListener(v -> editComponents());
         page.addView(composition);
         choice(page, R.string.appearance_start_presentation, new int[] {R.string.appearance_grid, R.string.appearance_list},
-                () -> AppearanceStore.current().composition().start().presentation().ordinal(),
+                () -> current().composition().start().presentation().ordinal(),
                 v -> change("composition.start", "presentation", v == 0 ? "grid" : "list"));
-        slider(page, R.string.appearance_tile_width, 80, 200, () -> AppearanceStore.current().composition().start().tileWidthDp(),
+        slider(page, R.string.appearance_tile_width, 80, 200, () -> current().composition().start().tileWidthDp(),
                 v -> change("composition.start", "tileWidthDp", v));
-        slider(page, R.string.appearance_icon_size, 24, 64, () -> AppearanceStore.current().composition().start().iconSizeDp(),
+        slider(page, R.string.appearance_icon_size, 24, 64, () -> current().composition().start().iconSizeDp(),
                 v -> change("composition.start", "iconSizeDp", v));
         heading(page, R.string.appearance_motion);
         final Switch reduced = new Switch(mActivity);
         reduced.setText(R.string.appearance_reduced_motion); UiAppearance.text(reduced, UiColor.TEXT);
-        mRefreshers.add(() -> reduced.setChecked(AppearanceStore.current().motion().reduced()));
+        mRefreshers.add(() -> reduced.setChecked(current().motion().reduced()));
         reduced.setOnCheckedChangeListener((v, checked) -> { if (!mRendering) change("motion", "reduced", checked); });
         page.addView(reduced);
         int[] effects = {R.string.appearance_none, R.string.appearance_fade};
-        choice(page, R.string.appearance_panel_effect, effects, () -> AppearanceStore.current().motion().panels().ordinal(),
+        choice(page, R.string.appearance_panel_effect, effects, () -> current().motion().panels().ordinal(),
                 v -> change("motion", "panels", v == 0 ? "none" : "fade"));
-        choice(page, R.string.appearance_taskbar_effect, effects, () -> AppearanceStore.current().motion().taskbar().ordinal(),
+        choice(page, R.string.appearance_taskbar_effect, effects, () -> current().motion().taskbar().ordinal(),
                 v -> change("motion", "taskbar", v == 0 ? "none" : "fade"));
-        slider(page, R.string.appearance_duration, 0, 400, () -> AppearanceStore.current().motion().durationMs(), v -> change("motion", "durationMs", v));
-        slider(page, R.string.appearance_feedback_duration, 0, 250, () -> AppearanceStore.current().motion().feedbackMs(), v -> change("motion", "feedbackMs", v));
+        slider(page, R.string.appearance_duration, 0, 400, () -> current().motion().durationMs(), v -> change("motion", "durationMs", v));
+        slider(page, R.string.appearance_feedback_duration, 0, 250, () -> current().motion().feedbackMs(), v -> change("motion", "feedbackMs", v));
         final LinearLayout files = new LinearLayout(mActivity);
         addCommand(files, R.string.appearance_import, R.drawable.ic_folder_open, this::importDocument);
         addCommand(files, R.string.appearance_export, R.drawable.ic_arrow_down, this::exportDocument);
-        addCommand(files, R.string.appearance_reset, R.drawable.ic_file_refresh, () -> AppearanceStore.apply(ShellAppearance.defaults()));
+        addCommand(files, R.string.appearance_reset, R.drawable.ic_file_refresh, this::reset);
         page.addView(files);
         final LinearLayout document = new LinearLayout(mActivity);
         addCommand(document, R.string.appearance_edit_document, R.drawable.ic_file_rename, this::editDocument);
-        addCommand(document, R.string.appearance_export_schema, R.drawable.ic_file_properties, () ->
-                mActivity.startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                        .setType("application/json").putExtra(Intent.EXTRA_TITLE, "magicdesk-theme.schema.json"), SCHEMA));
+        addCommand(document, R.string.appearance_export_schema, R.drawable.ic_file_properties, () -> chooseFile(SCHEMA));
         page.addView(document);
+        heading(page, R.string.appearance_resources);
+        final LinearLayout bundles = new LinearLayout(mActivity);
+        addCommand(bundles, R.string.appearance_import_bundle, R.drawable.ic_folder_open, () -> chooseFile(IMPORT_BUNDLE));
+        addCommand(bundles, R.string.appearance_export_bundle, R.drawable.ic_arrow_down, () -> chooseFile(EXPORT_BUNDLE));
+        addCommand(bundles, R.string.appearance_prune, R.drawable.ic_file_delete, this::pruneBundles);
+        page.addView(bundles);
         final ScrollView scroll = new ScrollView(mActivity);
         scroll.addView(page);
         mDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_title).setView(scroll)
                 .setPositiveButton(android.R.string.ok, null).create();
         mDialog.setOnDismissListener(d -> {
+            invalidateFiles();
+            dismissChildren();
             AppearanceStore.unlisten(mChanged); mRefreshers.clear(); mDialog = null;
         });
         AppearanceStore.listen(mChanged);
@@ -155,80 +196,276 @@ final class AppearanceSettings implements AutoCloseable {
     }
 
     private void editColor(UiColor role) {
+        final EditTarget target = target();
         final EditText text = new EditText(mActivity);
         text.setSingleLine(true);
         text.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(7)});
-        text.setText(String.format(Locale.ROOT, "#%06X", UiAppearance.color(role) & 0xffffff));
+        text.setText(String.format(Locale.ROOT, "#%06X", current().palette().color(role) & 0xffffff));
         UiAppearance.text(text, UiColor.TEXT);
         final AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(role.name().toLowerCase(Locale.ROOT)).setView(text)
                 .setPositiveButton(android.R.string.ok, null).setNegativeButton(android.R.string.cancel, null).create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            if (!isCurrent(target)) { text.setError(mActivity.getString(R.string.appearance_changed)); return; }
             if (!text.getText().toString().matches("#[0-9a-fA-F]{6}")) { text.setError("#RRGGBB"); return; }
-            var t = AppearanceStore.current();
+            var t = current();
             EnumMap<UiColor, Integer> colors = new EnumMap<>(UiColor.class);
             colors.putAll(t.palette().colors());
             colors.put(role, android.graphics.Color.parseColor(text.getText().toString()));
-            AppearanceStore.apply(t.withPalette(new ShellAppearance.Palette(colors)));
+            apply(t.withPalette(new ShellAppearance.Palette(colors)));
             dialog.dismiss();
         }));
-        dialog.show();
-        UiAppearance.dialog(dialog, mActivity);
+        showChild(dialog);
     }
 
     private void changeBar(String key, Object value) {
-        change("taskbar", key, value);
+        try {
+            var json = ShellAppearanceJson.encode(current());
+            var panels = json.getJSONObject("composition").getJSONArray("panels");
+            for (int i = 0; i < panels.length(); i++) {
+                var item = panels.getJSONObject(i);
+                if (item.getString("id").equals(panel().id())) item.getJSONObject("style").put(key, value);
+            }
+            apply(ShellAppearanceJson.parse(json.toString()));
+        } catch (org.json.JSONException error) { throw new IllegalArgumentException(error); }
     }
 
     private void change(String section, String key, Object value) {
         try {
-            var json = ShellAppearanceJson.encode(AppearanceStore.current());
+            var json = ShellAppearanceJson.encode(current());
             var target = json;
             for (String part : section.split("\\.")) target = target.getJSONObject(part);
             target.put(key, value);
-            AppearanceStore.apply(ShellAppearanceJson.parse(json.toString()));
+            apply(ShellAppearanceJson.parse(json.toString()));
         } catch (org.json.JSONException error) { throw new IllegalArgumentException(error); }
     }
 
     private void editDocument() {
+        final EditTarget target = target();
         final EditText text = new EditText(mActivity);
         text.setTypeface(android.graphics.Typeface.MONOSPACE); text.setTextSize(12);
         text.setGravity(android.view.Gravity.TOP);
         text.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
                 | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         text.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(ShellAppearanceJson.MAX_BYTES)});
-        try { text.setText(ShellAppearanceJson.encode(AppearanceStore.current()).toString(2)); }
+        try { text.setText((mWorkspaceKey == null ? ShellAppearanceJson.encode(current())
+                : new org.json.JSONObject(AppearanceStore.snapshot(mWorkspaceKey).patch())).toString(2)); }
         catch (org.json.JSONException error) { throw new IllegalArgumentException(error); }
         UiAppearance.text(text, UiColor.TEXT);
         final ScrollView scroll = new ScrollView(mActivity); scroll.addView(text);
         final AlertDialog editor = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_edit_document).setView(scroll)
                 .setPositiveButton(R.string.appearance_preview, null).setNegativeButton(android.R.string.cancel, null).create();
         editor.setOnShowListener(d -> editor.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try { preview(ShellAppearanceJson.parse(text.getText().toString())); }
+            try { preparePreview(text.getText().toString(), target, editor); }
             catch (Exception error) { text.setError(error.getMessage()); }
         }));
-        editor.show(); UiAppearance.dialog(editor, mActivity);
+        showChild(editor);
     }
 
-    private void preview(ShellAppearance value) {
-        final String id = AppearanceStore.preview(value);
+    private void preview(ShellAppearance value, EditTarget target) {
+        try {
+            String document = mWorkspaceKey == null ? ShellAppearanceJson.encode(value).toString()
+                    : changedPatch(AppearanceStore.snapshot(mWorkspaceKey).patch(), current(), value);
+            previewDocument(document, target);
+        } catch (org.json.JSONException error) { throw new IllegalArgumentException(error); }
+    }
+
+    private void previewDocument(String document, EditTarget target) {
+        if (mPreviewDialog != null) throw new IllegalStateException(mActivity.getString(R.string.appearance_preview));
+        final String scope = target.workspaceKey();
+        final String id;
+        requireCurrent(target);
+        try { id = scope == null ? AppearanceStore.preview(ShellAppearanceJson.parse(document), target.revision())
+                : AppearanceStore.preview(scope, document, target.revision()); }
+        catch (org.json.JSONException error) { throw new IllegalArgumentException(error.getMessage(), error); }
         mPreviewDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_preview)
                 .setPositiveButton(R.string.appearance_keep, (d, which) -> {
-                    if (id.equals(AppearanceStore.snapshot().previewId())) AppearanceStore.confirm(id);
+                    try {
+                        if (id.equals(previewId(scope))) {
+                            if (scope == null) AppearanceStore.confirm(id); else AppearanceStore.confirm(scope, id);
+                        }
+                    } catch (Exception error) { showError(error); }
                 }).setNegativeButton(android.R.string.cancel, null).create();
         mPreviewDialog.setOnDismissListener(d -> {
-            if (id.equals(AppearanceStore.snapshot().previewId())) AppearanceStore.cancel(id);
+            try {
+                if (id.equals(previewId(scope))) {
+                    if (scope == null) AppearanceStore.cancel(id); else AppearanceStore.cancel(scope, id);
+                }
+            } catch (Exception error) { showError(error); }
             mPreviewDialog = null;
         });
         mPreviewDialog.show(); UiAppearance.dialog(mPreviewDialog, mActivity);
     }
 
+    private void preparePreview(String document, EditTarget target, AlertDialog editor) {
+        requireCurrent(target);
+        if (mFileBusy || mPendingFile != null) throw new IllegalStateException(mActivity.getString(R.string.appearance_file_busy));
+        mFileBusy = true;
+        final var cancellation = new android.os.CancellationSignal();
+        mFileCancellation = cancellation;
+        mFiles.execute(() -> {
+            mFileThread = Thread.currentThread();
+            try {
+                cancellation.throwIfCanceled();
+                prepareDocument(document, target.workspaceKey());
+                cancellation.throwIfCanceled();
+                mActivity.runOnUiThread(() -> {
+                    if (!editor.isShowing()) return;
+                    try { previewDocument(document, target); editor.dismiss(); }
+                    catch (Exception error) { showError(error); }
+                });
+            } catch (Exception error) {
+                if (!cancellation.isCanceled()) mActivity.runOnUiThread(() -> showError(error));
+            } finally { finishFileTask(cancellation); }
+        });
+    }
+
+    private static void prepareDocument(String document, String scope) throws org.json.JSONException {
+        if (scope == null) AppearanceStore.prepareAssets(ShellAppearanceJson.parse(document));
+        else AppearanceStore.prepareAssets(scope, document);
+    }
+
+    private void finishFileTask(android.os.CancellationSignal cancellation) {
+        mFileThread = null;
+        mActivity.runOnUiThread(() -> {
+            if (mFileCancellation == cancellation) { mFileCancellation = null; mFileBusy = false; }
+        });
+    }
+
+    private void pruneBundles() {
+        var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_prune)
+                .setPositiveButton(R.string.action_delete, (d, which) -> {
+                    if (mFileBusy || mPendingFile != null) {
+                        Toast.makeText(mActivity, R.string.appearance_file_busy, Toast.LENGTH_SHORT).show(); return;
+                    }
+                    mFileBusy = true;
+                    var cancellation = new android.os.CancellationSignal(); mFileCancellation = cancellation;
+                    mFiles.execute(() -> {
+                        mFileThread = Thread.currentThread();
+                        try {
+                            cancellation.throwIfCanceled();
+                            int removed = AppearanceStore.pruneUnusedBundles().size();
+                            mActivity.runOnUiThread(() -> {
+                                if (!mClosed && mDialog != null && !cancellation.isCanceled()) Toast.makeText(mActivity,
+                                        mActivity.getString(R.string.appearance_pruned, removed), Toast.LENGTH_SHORT).show();
+                            });
+                        } catch (Exception error) {
+                            if (!cancellation.isCanceled()) mActivity.runOnUiThread(() -> showError(error));
+                        } finally { finishFileTask(cancellation); }
+                    });
+                }).setNegativeButton(android.R.string.cancel, null).create();
+        showChild(dialog);
+    }
+
+    private ShellPanel panel() {
+        var panels = current().composition().panels();
+        for (var panel : panels) if (panel.id().equals(mPanelId)) return panel;
+        mPanelId = panels.get(0).id();
+        return panels.get(0);
+    }
+
+    private void replacePanel(ShellPanel replacement) {
+        var appearance = current();
+        var panels = new ArrayList<>(appearance.composition().panels());
+        for (int i = 0; i < panels.size(); i++) {
+            if (panels.get(i).id().equals(replacement.id())) panels.set(i, replacement);
+        }
+        apply(appearance.withComposition(new ShellComposition(panels, appearance.composition().start())));
+    }
+
+    private void panelSelector(LinearLayout page) {
+        final Spinner select = mUi.spinner(new String[0]);
+        final List<String> ids = new ArrayList<>();
+        select.setContentDescription(mActivity.getString(R.string.appearance_panel));
+        mRefreshers.add(() -> {
+            var next = current().composition().panels().stream().map(ShellPanel::id).toList();
+            if (!next.equals(ids)) {
+                ids.clear(); ids.addAll(next);
+                var adapter = new ArrayAdapter<>(mActivity, android.R.layout.simple_spinner_item, ids);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                select.setAdapter(adapter);
+            }
+            select.setSelection(ids.indexOf(panel().id()));
+        });
+        select.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (!mRendering && position < ids.size() && !ids.get(position).equals(mPanelId)) {
+                    mPanelId = ids.get(position); refresh();
+                }
+            }
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        page.addView(select, new LinearLayout.LayoutParams(-1, mUi.dp(48)));
+        final LinearLayout commands = new LinearLayout(mActivity);
+        ImageButton add = addCommand(commands, R.string.appearance_add_panel, R.drawable.ic_add, () -> {
+            var theme = current();
+            var panels = new ArrayList<>(theme.composition().panels());
+            String id = nextPanelId(panels);
+            panels.add(new ShellPanel(id, ShellPanel.Edge.BOTTOM, ShellAppearance.PanelStyle.defaults(),
+                    List.of(ShellComposition.Component.of(ShellComposition.Kind.SPACER))));
+            mPanelId = id;
+            apply(theme.withComposition(new ShellComposition(panels, theme.composition().start())));
+        });
+        ImageButton remove = addCommand(commands, R.string.appearance_remove_panel, R.drawable.ic_remove, () -> {
+            final String id = panel().id();
+            final EditTarget editTarget = target();
+            var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_remove_panel)
+                    .setMessage(id).setPositiveButton(R.string.action_delete, (d, which) -> {
+                        if (!isCurrent(editTarget)) { showError(new IllegalStateException(mActivity.getString(R.string.appearance_changed))); return; }
+                        var theme = current();
+                        if (theme.composition().panels().size() <= 1) return;
+                        var panels = theme.composition().panels().stream().filter(p -> !p.id().equals(id)).toList();
+                        apply(theme.withComposition(new ShellComposition(panels, theme.composition().start())));
+                    }).setNegativeButton(android.R.string.cancel, null).create();
+            showChild(dialog);
+        });
+        mRefreshers.add(() -> {
+            int count = current().composition().panels().size();
+            add.setEnabled(count < 4); remove.setEnabled(count > 1);
+        });
+        page.addView(commands);
+    }
+
+    static String nextPanelId(List<ShellPanel> panels) {
+        for (int suffix = 1; ; suffix++) {
+            String id = "panel-" + suffix;
+            if (panels.stream().noneMatch(panel -> panel.id().equals(id))) return id;
+        }
+    }
+
+    static ShellComposition moveComponent(ShellComposition composition, String source, int index, String destination) {
+        if (source.equals(destination)) throw new IllegalArgumentException("Choose another panel");
+        var panels = new ArrayList<>(composition.panels());
+        int from = -1, to = -1;
+        for (int i = 0; i < panels.size(); i++) {
+            if (panels.get(i).id().equals(source)) from = i;
+            if (panels.get(i).id().equals(destination)) to = i;
+        }
+        if (from < 0 || to < 0) throw new IllegalArgumentException("Panel is unavailable");
+        var sourceItems = new ArrayList<>(panels.get(from).components());
+        var targetItems = new ArrayList<>(panels.get(to).components());
+        targetItems.add(sourceItems.remove(index));
+        if (sourceItems.isEmpty()) sourceItems.add(ShellComposition.Component.of(ShellComposition.Kind.SPACER));
+        panels.set(from, panels.get(from).withComponents(sourceItems));
+        panels.set(to, panels.get(to).withComponents(targetItems));
+        return new ShellComposition(panels, composition.start());
+    }
+
     private void editComponents() {
-        final List<ShellComposition.Component> items = new ArrayList<>(AppearanceStore.current().composition().taskbar());
+        final EditTarget editTarget = target();
+        final String selected = panel().id();
+        final ShellAppearance original = current();
+        final ShellComposition[] draft = {original.composition()};
         final LinearLayout rows = new LinearLayout(mActivity); rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(mUi.dp(16), mUi.dp(8), mUi.dp(16), mUi.dp(8));
         final Runnable render = new Runnable() {
             public void run() {
                 rows.removeAllViews();
+                var panel = draft[0].panels().stream().filter(p -> p.id().equals(selected)).findFirst().orElseThrow();
+                final List<ShellComposition.Component> items = new ArrayList<>(panel.components());
+                final Runnable update = () -> {
+                    var panels = draft[0].panels().stream().map(p -> p.id().equals(selected) ? p.withComponents(items) : p).toList();
+                    draft[0] = new ShellComposition(panels, draft[0].start()); run();
+                };
                 for (int i = 0; i < items.size(); i++) {
                     final int index = i;
                     final LinearLayout row = new LinearLayout(mActivity); row.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -241,21 +478,33 @@ final class AppearanceSettings implements AutoCloseable {
                     UiAppearance.text(title, UiColor.TEXT); row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
                     ImageButton up = mUi.taskbarIconButton(R.drawable.ic_arrow_up, R.string.appearance_move_up, true);
                     up.setEnabled(i > 0);
-                    up.setOnClickListener(v -> { java.util.Collections.swap(items, index, index - 1); run(); });
+                    up.setOnClickListener(v -> { java.util.Collections.swap(items, index, index - 1); update.run(); });
                     row.addView(up, new LinearLayout.LayoutParams(mUi.dp(40), mUi.dp(44)));
+                    ImageButton move = mUi.taskbarIconButton(R.drawable.ic_arrow_down, R.string.appearance_move_panel, true);
+                    var targets = draft[0].panels().stream().filter(p -> !p.id().equals(selected) && p.components().size() < 24).toList();
+                    move.setEnabled(!targets.isEmpty());
+                    move.setOnClickListener(v -> {
+                        var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_move_panel)
+                                .setItems(targets.stream().map(ShellPanel::id).toArray(String[]::new), (d, which) -> {
+                                    draft[0] = moveComponent(draft[0], selected, index, targets.get(which).id()); run();
+                                }).create();
+                        showChild(dialog);
+                    });
+                    row.addView(move, new LinearLayout.LayoutParams(mUi.dp(40), mUi.dp(44)));
                     ImageButton remove = mUi.taskbarIconButton(R.drawable.ic_remove, R.string.action_delete, true);
-                    remove.setOnClickListener(v -> { items.remove(index); run(); });
+                    remove.setEnabled(items.size() > 1);
+                    remove.setOnClickListener(v -> { items.remove(index); update.run(); });
                     row.addView(remove, new LinearLayout.LayoutParams(mUi.dp(40), mUi.dp(44)));
                     rows.addView(row);
                 }
                 Button add = mUi.menuItem(R.string.appearance_add_component, UiColor.TEXT);
                 add.setOnClickListener(v -> {
                     var choices = java.util.Arrays.stream(ShellComposition.Kind.values()).filter(kind -> kind == ShellComposition.Kind.SPACER
-                            || items.stream().noneMatch(item -> item.type() == kind)).toList();
+                            || draft[0].panels().stream().flatMap(p -> p.components().stream()).noneMatch(item -> item.type() == kind)).toList();
                     String[] labels = choices.stream().map(AppearanceSettings.this::componentLabel).toArray(String[]::new);
                     var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_add_component)
-                            .setItems(labels, (d, which) -> { items.add(ShellComposition.Component.of(choices.get(which))); run(); }).show();
-                    UiAppearance.dialog(dialog, mActivity);
+                            .setItems(labels, (d, which) -> { items.add(ShellComposition.Component.of(choices.get(which))); update.run(); }).create();
+                    showChild(dialog);
                 });
                 add.setEnabled(items.size() < 24);
                 rows.addView(add);
@@ -263,16 +512,16 @@ final class AppearanceSettings implements AutoCloseable {
         };
         render.run();
         ScrollView scroll = new ScrollView(mActivity); scroll.addView(rows);
-        AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_components).setView(scroll)
+        AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_panel_components).setView(scroll)
                 .setPositiveButton(R.string.appearance_preview, null).setNegativeButton(android.R.string.cancel, null).create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             try {
-                var theme = AppearanceStore.current();
-                preview(new ShellAppearance(theme.palette(), theme.typography(), theme.shape(), theme.taskbar(),
-                        new ShellComposition(items, theme.composition().start()), theme.motion(), theme.feedback(), theme.resources()));
+                requireCurrent(editTarget);
+                preview(original.withComposition(draft[0]), editTarget);
+                dialog.dismiss();
             } catch (Exception error) { Toast.makeText(mActivity, error.getMessage(), Toast.LENGTH_LONG).show(); }
         }));
-        dialog.show(); UiAppearance.dialog(dialog, mActivity);
+        showChild(dialog);
     }
 
     private String componentLabel(ShellComposition.Kind kind) {
@@ -292,6 +541,62 @@ final class AppearanceSettings implements AutoCloseable {
     }
 
     private void heading(LinearLayout page, int title) { mUi.addControlSection(page, title, mUi.dp(12)); }
+    private ShellAppearance current() {
+        return mWorkspaceKey == null ? AppearanceStore.current() : AppearanceStore.current(mWorkspaceKey);
+    }
+    private long revision(String scope) {
+        return scope == null ? AppearanceStore.snapshot().revision() : AppearanceStore.snapshot(scope).revision();
+    }
+    private String previewId(String scope) {
+        return scope == null ? AppearanceStore.snapshot().previewId() : AppearanceStore.snapshot(scope).previewId();
+    }
+    private EditTarget target() { return new EditTarget(mWorkspaceKey, revision(mWorkspaceKey), mGeneration); }
+    private boolean isCurrent(EditTarget target) {
+        return !mClosed && mDialog != null && target.generation() == mGeneration
+                && java.util.Objects.equals(target.workspaceKey(), mWorkspaceKey)
+                && target.revision() == revision(target.workspaceKey());
+    }
+    private void requireCurrent(EditTarget target) {
+        if (!isCurrent(target)) throw new IllegalStateException(mActivity.getString(R.string.appearance_changed));
+    }
+    private void apply(ShellAppearance value) {
+        try {
+            if (mWorkspaceKey == null) AppearanceStore.apply(value);
+            else {
+                var state = AppearanceStore.snapshot(mWorkspaceKey);
+                AppearanceStore.apply(mWorkspaceKey, changedPatch(state.patch(), state.current(), value));
+            }
+        } catch (Exception error) { showError(error); refresh(); }
+    }
+    private void reset() {
+        try {
+            if (mWorkspaceKey == null) AppearanceStore.apply(ShellAppearance.defaults());
+            else AppearanceStore.removeOverride(mWorkspaceKey);
+        } catch (Exception error) { showError(error); }
+    }
+    static String changedPatch(String patch, ShellAppearance before, ShellAppearance after) throws org.json.JSONException {
+        var result = new org.json.JSONObject(patch);
+        mergeChanges(result, ShellAppearanceJson.encode(before), ShellAppearanceJson.encode(after));
+        return result.toString();
+    }
+    private static void mergeChanges(org.json.JSONObject patch, org.json.JSONObject before, org.json.JSONObject after)
+            throws org.json.JSONException {
+        for (var keys = after.keys(); keys.hasNext();) {
+            String key = keys.next();
+            Object previous = before.opt(key), next = after.get(key);
+            if (next instanceof org.json.JSONObject child && previous instanceof org.json.JSONObject old) {
+                var nested = patch.optJSONObject(key);
+                if (nested == null) nested = new org.json.JSONObject();
+                mergeChanges(nested, old, child);
+                if (nested.length() != 0) patch.put(key, nested);
+            } else if (next instanceof org.json.JSONArray array && previous instanceof org.json.JSONArray old) {
+                if (!array.toString().equals(old.toString())) patch.put(key, array);
+            } else if (!next.equals(previous)) patch.put(key, next);
+        }
+    }
+    private void showError(Exception error) {
+        if (!mClosed && mDialog != null) Toast.makeText(mActivity, error.getMessage(), Toast.LENGTH_LONG).show();
+    }
     private TextView label(LinearLayout page, int title) {
         TextView text = new TextView(mActivity); text.setText(title); text.setTextSize(14);
         UiAppearance.text(text, UiColor.TEXT); page.addView(text); return text;
@@ -328,59 +633,117 @@ final class AppearanceSettings implements AutoCloseable {
         });
         page.addView(seek, new LinearLayout.LayoutParams(-1, mUi.dp(40)));
     }
-    private void addCommand(LinearLayout row, int title, int icon, Runnable action) {
+    private ImageButton addCommand(LinearLayout row, int title, int icon, Runnable action) {
         ImageButton button = mUi.taskbarIconButton(icon, title, false);
         button.setOnClickListener(v -> action.run());
         row.addView(button, new LinearLayout.LayoutParams(0, mUi.dp(56), 1));
+        return button;
     }
     private void refresh() {
+        if (mClosed) return;
         mRendering = true;
         try { for (Runnable action : mRefreshers) action.run(); }
         finally { mRendering = false; }
     }
+    private void showChild(AlertDialog dialog) {
+        if (mClosed || mDialog == null) return;
+        mChildren.add(dialog);
+        dialog.setOnDismissListener(d -> mChildren.remove(dialog));
+        dialog.show(); UiAppearance.dialog(dialog, mActivity);
+    }
+    private void dismissChildren() {
+        if (mPreviewDialog != null) mPreviewDialog.dismiss();
+        for (var child : List.copyOf(mChildren)) child.dismiss();
+    }
     private void importDocument() {
-        mActivity.startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                .setType("application/json"), IMPORT);
+        chooseFile(IMPORT);
     }
     private void exportDocument() {
-        mActivity.startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-                .setType("application/json").putExtra(Intent.EXTRA_TITLE, "magicdesk-theme.json"), EXPORT);
+        chooseFile(EXPORT);
+    }
+    private void chooseFile(int request) {
+        if (mPendingFile != null || mFileBusy) {
+            Toast.makeText(mActivity, R.string.appearance_file_busy, Toast.LENGTH_SHORT).show(); return;
+        }
+        boolean importing = request == IMPORT || request == IMPORT_BUNDLE;
+        boolean bundle = request == IMPORT_BUNDLE || request == EXPORT_BUNDLE;
+        try {
+            var global = AppearanceStore.snapshot();
+            var local = mWorkspaceKey == null ? null : AppearanceStore.snapshot(mWorkspaceKey);
+            ShellAppearance value = local == null ? global.current() : local.current();
+            String document = (request == SCHEMA ? ShellAppearanceSchema.document()
+                    : local == null ? ShellAppearanceJson.encode(value) : new org.json.JSONObject(local.patch())).toString(2);
+            EditTarget target = new EditTarget(mWorkspaceKey, local == null ? global.revision() : local.revision(), mGeneration);
+            mPendingFile = new FileRequest(request, target, value, document);
+            Intent intent = new Intent(importing ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_CREATE_DOCUMENT)
+                    .addCategory(Intent.CATEGORY_OPENABLE).setType(bundle ? "application/zip" : "application/json");
+            if (!importing) intent.putExtra(Intent.EXTRA_TITLE, request == SCHEMA ? "magicdesk-theme.schema.json"
+                    : bundle ? "magicdesk-theme.zip" : "magicdesk-theme.json");
+            mActivity.startActivityForResult(intent, request);
+        } catch (Exception error) { mPendingFile = null; showError(error); }
+    }
+    private void invalidateFiles() {
+        mGeneration++;
+        if (mFileCancellation != null) mFileCancellation.cancel();
+        Thread worker = mFileThread;
+        if (worker != null) worker.interrupt();
     }
     boolean onResult(int request, int result, Intent data) {
-        if (request != IMPORT && request != EXPORT && request != SCHEMA) return false;
+        if (request < IMPORT || request > EXPORT_BUNDLE) return false;
+        final FileRequest pending = mPendingFile;
+        if (pending == null || pending.code() != request) return true;
+        mPendingFile = null;
         if (result != Activity.RESULT_OK || data == null || data.getData() == null) return true;
+        if (!isCurrent(pending.target())) { showError(new IllegalStateException(mActivity.getString(R.string.appearance_changed))); return true; }
         final var uri = data.getData();
-        final var snapshot = AppearanceStore.current();
+        mFileBusy = true;
+        final var cancellation = new android.os.CancellationSignal();
+        mFileCancellation = cancellation;
         mFiles.execute(() -> {
+            mFileThread = Thread.currentThread();
             try {
-                if (request == IMPORT) {
-                    final ShellAppearance value;
-                    try (var input = mActivity.getContentResolver().openInputStream(uri)) {
-                        if (input == null) throw new java.io.IOException("Document is unavailable");
-                        byte[] bytes = input.readNBytes(ShellAppearanceJson.MAX_BYTES + 1);
-                        if (bytes.length > ShellAppearanceJson.MAX_BYTES) throw new java.io.IOException("Appearance document exceeds 32 KiB");
-                        value = ShellAppearanceJson.parse(new String(bytes, StandardCharsets.UTF_8));
+                cancellation.throwIfCanceled();
+                if (request == IMPORT || request == IMPORT_BUNDLE) {
+                    final String document;
+                    try (var descriptor = mActivity.getContentResolver().openAssetFileDescriptor(uri, "r", cancellation)) {
+                        if (descriptor == null) throw new java.io.IOException("Document is unavailable");
+                        try (var input = descriptor.createInputStream()) {
+                            if (request == IMPORT_BUNDLE) {
+                                document = ShellAppearanceJson.encode(AppearanceBundles.read(input)).toString();
+                            } else {
+                                byte[] bytes = input.readNBytes(ShellAppearanceJson.MAX_BYTES + 1);
+                                if (bytes.length > ShellAppearanceJson.MAX_BYTES) throw new java.io.IOException("Appearance document exceeds 32 KiB");
+                                document = new String(bytes, StandardCharsets.UTF_8);
+                            }
+                        }
                     }
+                    cancellation.throwIfCanceled();
+                    prepareDocument(document, pending.target().workspaceKey());
+                    cancellation.throwIfCanceled();
                     mActivity.runOnUiThread(() -> {
-                        if (!mClosed) try { preview(value); }
-                        catch (Exception error) { Toast.makeText(mActivity, error.getMessage(), Toast.LENGTH_LONG).show(); }
+                        try { previewDocument(document, pending.target()); }
+                        catch (Exception error) { showError(error); }
                     });
                 } else {
-                    try (var output = mActivity.getContentResolver().openOutputStream(uri, "wt")) {
-                        if (output == null) throw new java.io.IOException("Document is unavailable");
-                        output.write((request == SCHEMA ? ShellAppearanceSchema.document() : ShellAppearanceJson.encode(snapshot))
-                                .toString(2).getBytes(StandardCharsets.UTF_8));
+                    try (var descriptor = mActivity.getContentResolver().openAssetFileDescriptor(uri, "wt", cancellation)) {
+                        if (descriptor == null) throw new java.io.IOException("Document is unavailable");
+                        try (var output = descriptor.createOutputStream()) {
+                            cancellation.throwIfCanceled();
+                            if (request == EXPORT_BUNDLE) AppearanceBundles.write(pending.appearance(), output);
+                            else output.write(pending.document().getBytes(StandardCharsets.UTF_8));
+                        }
                     }
                 }
             } catch (Exception error) {
-                mActivity.runOnUiThread(() -> { if (!mClosed) Toast.makeText(mActivity, error.getMessage(), Toast.LENGTH_LONG).show(); });
-            }
+                if (!cancellation.isCanceled()) mActivity.runOnUiThread(() -> showError(error));
+            } finally { finishFileTask(cancellation); }
         });
         return true;
     }
     public void close() {
         mClosed = true;
-        if (mPreviewDialog != null) mPreviewDialog.dismiss();
+        invalidateFiles();
+        dismissChildren();
         if (mDialog != null) mDialog.dismiss();
         AppearanceStore.unlisten(mChanged);
         mFiles.shutdownNow();

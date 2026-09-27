@@ -47,6 +47,10 @@ final class DesktopWallpaperController {
     private volatile boolean mUsingCustomWallpaper;
     private volatile boolean mUsingFallbackWallpaper;
     private volatile boolean mRendered;
+    private String mThemeWallpaperKey = "";
+    private final Runnable mAppearanceChanged = () -> {
+        if (!themeWallpaperKey().equals(mThemeWallpaperKey)) reload();
+    };
 
     DesktopWallpaperController(
             final DesktopShellActivity activity,
@@ -61,6 +65,7 @@ final class DesktopWallpaperController {
             return;
         }
         mStarted = true;
+        AppearanceStore.listen(mAppearanceChanged);
         reload();
     }
 
@@ -69,6 +74,7 @@ final class DesktopWallpaperController {
             return;
         }
         mStarted = false;
+        AppearanceStore.unlisten(mAppearanceChanged);
         mRendered = false;
         mLoadGeneration.incrementAndGet();
         mExecutor.shutdownNow();
@@ -76,6 +82,26 @@ final class DesktopWallpaperController {
 
     void useDefaultWallpaper() {
         if (!mStarted) {
+            return;
+        }
+        try {
+            final String scope = AppearanceScopeBindings.find(mActivity);
+            final ShellAppearance theme = AppearanceStore.current(mActivity);
+            if (!theme.resources().wallpaper().isEmpty()) {
+                if (scope == null) {
+                    var r = theme.resources();
+                    AppearanceStore.apply(theme.withResources(new ShellResources(r.icons(), r.bundle(), r.iconAssets(), r.font(), "")));
+                } else {
+                    var patch = new org.json.JSONObject(AppearanceStore.snapshot(scope).patch());
+                    var resources = patch.optJSONObject("resources");
+                    if (resources == null) { resources = new org.json.JSONObject(); patch.put("resources", resources); }
+                    resources.put("wallpaper", "");
+                    AppearanceStore.apply(scope, patch.toString());
+                }
+            }
+        } catch (org.json.JSONException | RuntimeException error) {
+            mActivity.setErrorStatus("WALLPAPER-003", mActivity.getString(R.string.status_desktop_wallpaper_failed,
+                    usefulMessage(error)), "appearance wallpaper", error);
             return;
         }
         mExecutor.execute(() -> {
@@ -127,6 +153,8 @@ final class DesktopWallpaperController {
             return;
         }
         mRendered = false;
+        mThemeWallpaperKey = themeWallpaperKey();
+        final Bitmap themeWallpaper = AppearanceStore.assets(mActivity).wallpaper();
         final int generation = mLoadGeneration.incrementAndGet();
         final DisplayMetrics metrics = mWallpaperView.getResources().getDisplayMetrics();
         final int targetWidth = Math.max(1, metrics.widthPixels);
@@ -137,8 +165,8 @@ final class DesktopWallpaperController {
             public void run() {
                 try {
                     ContentStreamCopy.checkCancelled(cancelled);
-                    final WallpaperResult source = loadWallpaper(
-                            targetWidth, targetHeight, cancelled);
+                    final WallpaperResult source = themeWallpaper == null ? loadWallpaper(
+                            targetWidth, targetHeight, cancelled) : renderThemeWallpaper(themeWallpaper, targetWidth, targetHeight);
                     if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
                         source.bitmap.recycle();
                         return;
@@ -173,6 +201,24 @@ final class DesktopWallpaperController {
                 }
             }
         });
+    }
+
+    private String themeWallpaperKey() {
+        final var resources = AppearanceStore.current(mActivity).resources();
+        return resources.wallpaper().isEmpty() ? "" : resources.bundle() + "/" + resources.wallpaper();
+    }
+
+    private static WallpaperResult renderThemeWallpaper(Bitmap source, int width, int height) {
+        // Prepared resources are borrowed. This controller owns only the viewport-sized frame.
+        final Bitmap frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        try {
+            frame.setDensity(Bitmap.DENSITY_NONE);
+            final float scale = Math.max(width / (float) source.getWidth(), height / (float) source.getHeight());
+            final float w = source.getWidth() * scale, h = source.getHeight() * scale;
+            new Canvas(frame).drawBitmap(source, null, new RectF((width - w) / 2, (height - h) / 2,
+                    (width + w) / 2, (height + h) / 2), new Paint(Paint.FILTER_BITMAP_FLAG));
+            return new WallpaperResult(frame, true, false);
+        } catch (RuntimeException error) { frame.recycle(); throw error; }
     }
 
     private void publishRenderedFrame(

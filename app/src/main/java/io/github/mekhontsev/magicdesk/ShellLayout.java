@@ -83,7 +83,16 @@ final class ShellLayout {
                 case PANEL -> available(exclusions, false);
             };
             final ShellBounds bounds = place(surface.placement(), frame);
-            final ShellSurface.Margins extension = surface.paintExtension();
+            final ShellSurface.Margins requested = surface.paintExtension();
+            // Viewport-inset paint belongs only to an edge still touching stable content.
+            // Reservations can move a native panel inward without changing its intent.
+            final ShellSurface.Margins extension = surface.paintPolicy() == ShellSurface.PaintPolicy.CONTENT_EDGE
+                    ? new ShellSurface.Margins(
+                            bounds.left() == mContent.left() ? requested.left() : 0,
+                            bounds.top() == mContent.top() ? requested.top() : 0,
+                            bounds.right() == mContent.right() ? requested.right() : 0,
+                            bounds.bottom() == mContent.bottom() ? requested.bottom() : 0)
+                    : requested;
             final ShellBounds paint = new ShellBounds(
                     clamp((long) bounds.left() - extension.left(), mOutput.left(), bounds.right()),
                     clamp((long) bounds.top() - extension.top(), mOutput.top(), bounds.bottom()),

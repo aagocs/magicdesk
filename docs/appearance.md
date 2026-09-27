@@ -1,79 +1,96 @@
 # Native Appearance
 
-**Settings > Appearance** styles MagicDesk's taskbar, Start, panels and built-in
-tools. It is available without Desktop, shell access or Termux. Dark, Light and
-Contrast select colors, typography and control shapes while preserving taskbar
-geometry, composition, symbols and motion. Reset restores the complete shell
-configuration. Import and Export use Android's document picker and one JSON document.
-Import, **Edit configuration** and **Taskbar components** offer a live preview with
-**Keep changes** or cancellation. Closing the confirmation restores the committed
-configuration. Process restart also discards an unconfirmed preview.
+**Settings > Appearance** configures MagicDesk's native panels, Start and built-in
+tools without starting Desktop or acquiring display input. Choose **Global
+defaults**, or **Current workspace** when the host supplies a stable workspace
+identity. **Use global defaults** removes that workspace's override. Dark, Light
+and Contrast change colors, typography, shapes and feedback while retaining
+panel geometry, composition, resources and motion.
 
-The setting does not change Android application captions, third-party apps,
-wallpaper, widget bindings or terminal protocol colors. **System theme during
-Desktop** is a separate, temporary system-wide preference.
+Select a panel to edit its edge, length, alignment, gaps, thickness, padding,
+rounding, opacity and space reservation. Add or remove panels, reorder components,
+or move a component to another panel. Moving the last component leaves a spacer
+in its source panel. Removing a panel removes its components from the composition,
+not their underlying services or workspace tasks.
 
-## Ownership
+JSON and theme ZIP import/export use Android's document picker. Imports,
+**Edit configuration** and **Panel components** offer a live preview with **Keep
+changes** or cancellation. Dismissing confirmation restores committed state.
+Closing Settings cancels its preview and pending work; process restart discards
+unconfirmed previews. Edits and imports capture scope and revision so a late
+result cannot overwrite a newer configuration or a different workspace.
 
-`ShellAppearance` is an immutable density-independent value: semantic palette,
-typography, control shape, taskbar layout, `ShellComposition`, `ShellMotion`,
-feedback states and symbolic `ShellResources`. `AppearanceStore` owns app-private
-global defaults, independent of privileged storage and workspace lifetimes.
-No ephemeral display ID is persisted. Every workspace resolves layout using its
-current viewport and density, including a portable workspace moved to another
-output.
+Appearance does not restyle third-party applications, Android captions or
+terminal protocol colors. Widget bindings, Android application identities and
+permissions are independent. **System theme during Desktop** is a separate,
+temporary system-wide preference.
 
-`UiColor` identifies purpose rather than a literal paint value. `UiAppearance`
-binds native Views and drawables to these roles. Updates preserve the existing
-Views, focus, text selection, scroll, tool state and PTYs for style-only changes.
-Composition changes reconcile taskbar children and rebuild Start contents while
-preserving its search text and selection. Registrations are weak;
-workspace listeners are released with their owner. Changes run on the main
-thread, without a rendering/pointer polling loop. Terminal content retains its
-own font and palette; its Android toolbar follows the shell style.
+## Ownership And Scope
 
-`TaskbarGeometry` resolves size constraints and edge-reveal placement.
-`DesktopShellLayout` contributes the resulting intent to the workspace's shared
-`ShellLayout`. The Android host consumes its full content and paint rectangles;
-it does not recompute insets or reserve space independently. Color changes grant
-no input or focus authority and do not change Android task-area topology.
+`ShellAppearance` is an immutable density-independent model: semantic palette,
+typography, shape, composition, motion, feedback and resources. `AppearanceStore`
+owns global defaults and workspace patches in app-private preferences.
+`WorkspaceAppearance` resolves patches over global defaults. Stable profile or
+workspace keys survive output changes; transient display IDs and live workspace
+residency IDs are not persistence keys. Ordinary tools use global defaults unless
+their host explicitly supplies a workspace binding.
+
+Global documents inherit omitted fields from the named built-in `preset`
+(default `dark`). A workspace patch inherits omitted fields from the global
+document, not from its previous patch, and does not accept `preset`. Objects merge
+recursively; arrays replace whole lists. Overriding `composition.panels` owns the
+complete panel list, while overriding `typography.scale` still inherits the global
+font. Empty `{}` restores inheritance. There are at most 32 saved/preview scopes,
+keys of at most 512 UTF-8 bytes and 256 KiB total override/preview JSON.
+
+Native bindings use already-prepared immutable assets. File access and decoding
+run on workers, never in draw callbacks. Style-only changes retain native Views,
+focus, text selection, tool state and PTYs. Composition changes reconcile native
+panel contents. Listeners and context bindings are released by their owners.
+No custom renderer, script, executable or polling loop is part of a theme.
+
+Panels contribute geometry and edge reservations to the existing shared
+`ShellLayout`. The native hosts consume that layout without acquiring new task,
+focus or input authority. Application task-area topology remains unchanged.
 
 ## Document
 
-Documents are at most 32 KiB, version 2, with bounded nesting. Optional fields
-inherit the named built-in `preset` (default `dark`), not the previously selected
-theme. Unknown fields, invalid types and out-of-range values are rejected before
-any setting changes. `ShellAppearanceSchema` publishes the schema used by the
-validator; errors identify a JSON-pointer path and the permitted values. Obtain
-it through **Export JSON Schema**, `appearance.schema`, or the MCP resource
-`magicdesk://appearance/schema`. Component identity and host-specific constraints
-are additionally validated by the typed model. External paths, scripts and binary
-assets are not accepted.
+Documents and workspace patches are at most 32 KiB with bounded nesting. The
+current document version is **3**. Unknown fields, invalid types, duplicate
+identities and out-of-range values are rejected before the appearance changes.
+The authoritative schema is available through **Export JSON Schema**,
+`appearance.schema`, and `magicdesk://appearance/schema`. Errors identify
+JSON-pointer paths; typed model checks also enforce cross-panel uniqueness.
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "preset": "dark",
   "colors": { "accent": "#22D3EE" },
-  "typography": { "font": "sans", "scale": 1 },
-  "shape": { "radiusScale": 1, "borderDp": 1 },
-  "taskbar": {
-    "width": "content",
-    "alignment": "center",
-    "maxWidthDp": 1100,
-    "sideGapDp": 12,
-    "bottomGapDp": 12,
-    "paddingDp": 8,
-    "radiusDp": 8,
-    "opacity": 0.88,
-    "reserveSpace": true
-  },
   "composition": {
-    "taskbar": [
-      { "type": "start" },
-      { "type": "tasks" },
-      { "type": "quick_controls" },
-      { "type": "clock" }
+    "panels": [
+      {
+        "id": "dock",
+        "edge": "bottom",
+        "style": {
+          "length": "content",
+          "alignment": "center",
+          "maxLengthDp": 1100,
+          "sideGapDp": 12,
+          "edgeGapDp": 12,
+          "thicknessDp": 0,
+          "paddingDp": 8,
+          "radiusDp": 8,
+          "opacity": 0.88,
+          "reserveSpace": true
+        },
+        "components": [ { "type": "start" }, { "type": "tasks" } ]
+      },
+      {
+        "id": "status",
+        "edge": "top",
+        "components": [ { "type": "quick_controls" }, { "type": "spacer" }, { "type": "clock" } ]
+      }
     ],
     "start": { "sections": ["apps", "recent", "tools"], "presentation": "grid" }
   },
@@ -82,108 +99,124 @@ assets are not accepted.
 ```
 
 Color roles are `background`, `panel`, `surface`, `text`, `muted`, `accent`,
-`danger`, `attention`, `hover`, and `desktop_text`, written as opaque `#RRGGBB`.
-The desktop label color is separate from panel text because wallpaper is independent.
-Taskbar background
-opacity is independent of icons and labels. App icon artwork is left intact.
-By default, taskbar controls and Start entries have no permanent individual background;
-hover, press, keyboard focus and selection provide feedback. Running tasks use
-an underline, stronger for the active task.
+`danger`, `attention`, `hover` and `desktop_text`, written as opaque `#RRGGBB`.
+Desktop label color is independent of panel text. Panel background opacity does
+not fade its icons or labels. Application artwork stays owned by the application
+catalog. Fonts are `sans`, `serif` or `mono`, with scale 0.8-1.3. Control radius
+scale is 0-2 and border width 0-3 dp.
 
-Fonts: `sans`, `serif`, `mono`; text scale: 0.8-1.3. The default font preserves
-purpose-specific faces such as monospaced logs. Control radius scale: 0-2;
-border: 0-3 dp. Taskbar width is `fill` or `content`; alignment is `start`,
-`center`, or `end`. Maximum content width is 240-4096 dp, gaps 0-96 dp, padding
-0-16 dp, radius 0-32 dp, opacity 0.15-1. Limits are constrained by the available
-viewport and the minimum width of taskbar controls; excess applications use the
-existing overflow menu. Geometry uses dp, never physical display DPI as storage.
+## Panels And Components
 
-With `reserveSpace`, windows avoid the panel and its bottom gap. The shared
-model retains the precise edge interval, while rectangular window consumers
-conservatively exclude a full-width band. An auto-hiding reserving taskbar only
-reserves space for shell panels. Without reservation it overlays the workspace.
-Gaps lie outside the Android input window. A flush full-width phone panel extends
-its paint through the navigation inset; a floating panel does not. The hidden
-reveal strip remains at the output's bottom edge, aligned with the panel's width.
-Start, Quick controls, Calendar and notification panels follow the taskbar's live
-surface through the shared popup placement policy, including overlay layouts.
+`composition.panels` contains 1-4 panels with unique stable `id` values of 1-32
+ASCII lowercase letters, digits, `_` or `-`. Each declares `edge` (`top`,
+`bottom`, `left`, `right`), `style`, and 1-24 ordered `components`. A component
+kind may occur only once across all panels, except `spacer`.
 
-## Composition
+Panel style uses `length` (`fill`, `content`), `alignment` (`start`, `center`,
+`end`), `maxLengthDp` (64-4096), `sideGapDp` and `edgeGapDp` (0-96),
+`thicknessDp` (0 for automatic, otherwise 40-160), `paddingDp` (0-16),
+`radiusDp` (0-32), `opacity` (0.15-1), and `reserveSpace`. Automatic thickness
+uses the native host's normal sizing. All lengths are density-independent and
+constrained to the available viewport. Start/end alignment follows the panel's
+long axis. Reserving panels contribute edge intervals; rectangular window
+consumers conservatively avoid an edge band. Non-reserving panels overlay the
+workspace. These reservations do not alter Android task-area ownership.
 
-`composition.taskbar` is an ordered list of 1-24 native components: `start`,
-`tasks`, `show_desktop`, `open_tasks`, `notifications`, `keyboard_layout`,
-`phone_screen`, `quick_controls`, `battery`, `clock`, `spacer`. Components are
-singletons except spacers. Omitted components do not close their services or
-change workspace tasks. Actions retain their production controllers and semantic
-automation identities.
+Components are `start`, `tasks`, `show_desktop`, `open_tasks`, `notifications`,
+`keyboard_layout`, `phone_screen`, `quick_controls`, `battery`, `clock`, `spacer`.
+They retain production action controllers and semantic automation identities.
+Each accepts `widthDp` (0 for automatic, otherwise 32-240), `minViewportDp`
+(0-4096), and `visibility` (`always`, `expanded`, `external`). The Start component
+accepts `label` (at most 32 printable characters); Clock accepts `clock` (`time`,
+`date`, `date_time`). Unavailable controls do not start their services.
 
-Each component accepts `widthDp` (0 for automatic, otherwise 32-240),
-`minViewportDp` (0-4096), and `visibility` (`always`, `expanded`, `external`).
-Conditions use the output's logical width and compact-preview status, not an
-animation frame or pointer event. The phone-screen action additionally requires
-its existing runtime availability. `start.label` overrides its localized label;
-`clock.clock` selects `time`, `date`, or `date_time`.
-
-Automatic tasks and spacers share spare width. Fixed controls retain their
-dimensions; the component strip scrolls when it cannot fit. Task entries retain
-their separate overflow menu. `TaskbarController` reconciles the committed list
-while retaining component Views and service bindings; palette changes do not
-rebuild the list. `ShellComponentLayout` owns allocation without Android objects.
-The native host is one horizontal bottom taskbar. Composition does not create
-arbitrary Android windows, additional bars or privileged layers.
-
-`composition.start` selects ordered `sections` (`recent`, `apps`, `running`,
+`composition.start` declares ordered `sections` (`recent`, `apps`, `running`,
 `tools`), `presentation` (`grid`, `list`), `tileWidthDp` (80-200), and `iconSizeDp`
-(24-64). `apps` is required and sections cannot repeat. Each Start host omits
-unavailable sections without creating Desktop services. Both presentations use
-the shared application catalog and bounded pages. Search, launch destinations,
-recent scope and application identity remain owned by their existing services.
+(24-64). `apps` is required and sections cannot repeat. Both presentations retain
+the shared application catalog, profile identity, bounded pages, search and
+existing launch destinations.
 
-## Feedback And Resources
+## Resources
+
+`resources.icons` maps semantic symbols to built-in symbols: `desktop`, `windows`,
+`notifications`, `keyboard`, `controls`, `files`, `terminal`, `settings`, `search`,
+`camera`, `video`. These are single-step substitutions, not recursive aliases or
+Android resource IDs.
+
+A theme ZIP contains `theme.json` and optional raster assets under `icons/` and
+`wallpapers/`, plus `.ttf` or `.otf` fonts under `fonts/`. `resources.iconAssets`
+maps semantic symbols to bundle-relative image paths; `resources.font` and
+`resources.wallpaper` select a font and wallpaper. Supported images are static
+PNG, JPEG and WebP. The portable document omits `resources.bundle` or leaves it
+empty. Import attaches the verified content digest; a JSON-only document with
+assets therefore references an already-installed bundle.
+
+```json
+{
+  "version": 3,
+  "resources": {
+    "iconAssets": { "files": "icons/files.png" },
+    "font": "fonts/interface.ttf",
+    "wallpaper": "wallpapers/workspace.jpg"
+  }
+}
+```
+
+ZIP import validates schema and all referenced asset kinds before atomic
+publication. It rejects traversal, ambiguous paths, duplicate entries, invalid
+media, scripts and non-allowlisted formats. Limits include 32 MiB archive size,
+64 MiB expanded size, 256 entries, 16 MiB per entry, 4 MiB per font, 8192-pixel
+image dimensions and 24 million aggregate decoded pixels. Installed storage is
+bounded to 16 bundles and 256 MiB. Imported resources are immutable and
+content-addressed; validation never follows external paths or fetches URLs.
+**Remove unused theme bundles** explicitly reclaims unused storage, retaining
+global/workspace current, committed, preview and staged resources. Cleanup and
+appearance publication are coordinated by the shared store.
+
+ZIP export captures the effective edited document and its verified resource bundle,
+removing the installed digest from portable `theme.json`. It does not export an
+outdated original document. JSON export captures the global document, or the
+selected workspace's sparse patch; it carries no binary assets.
+
+## Feedback And Motion
 
 `feedback` maps `normal`, `hover`, `pressed`, `selected`, `focused`, `disabled`
-and `outline` to palette roles, including `transparent`. Native flat controls
-share one retained state drawable. Defaults have no idle backplate and outline
-only selection or keyboard focus; state changes retain their geometry.
+and `outline` to palette roles, including `transparent`. Native controls retain
+geometry as their state changes; defaults have no permanent idle backplate.
 
-`resources.icons` maps semantic symbols to bundled symbols: `desktop`, `windows`,
-`notifications`, `keyboard`, `controls`, `files`, `terminal`, `settings`, `search`,
-`camera`, `video`. Android resource IDs are not part of the document. These are
-single-step substitutions, not recursive aliases. Application artwork remains
-owned by the application catalog.
-
-## Motion
-
-`motion.panels` and `motion.taskbar` accept `none` or `fade` for native popup
-appearance and taskbar reveal. `durationMs` is 0-400; `curve` is `linear`,
-`ease_out` or `smooth`. `feedbackMs` (0-250) controls native flat-control state
-transitions. `reduced` disables these effects, as does Android's disabled animator
-setting. Default effects are off.
-
-`UiMotion` changes presentation opacity only. It never delays focus, changes
-layout reservations, or submits a task/window transaction. Hiding and detaching
-cancel effects immediately; theme replacement cancels active effects. It does
-not animate application tasks, external Linux surfaces, or display topology.
+`motion.panels` and `motion.taskbar` accept `none` or `fade`. `durationMs` is
+0-400, `feedbackMs` is 0-250, and `curve` is `linear`, `ease_out` or `smooth`.
+`reduced` disables effects, as does Android's disabled animator setting. Effects
+change presentation only; they never delay focus or submit task transactions.
 
 ## Automation
 
-MCP and the generated CLI use the same store and validator:
+All scoped operations accept optional `workspaceKey`. Omit it for global defaults;
+confirm/cancel must use the same scope as the exact returned `previewId`.
 
-- `appearance.schema`: published JSON Schema; observation.
-- `appearance.validate`: validate and resolve `document` without applying it; observation.
-- `appearance.get`: effective and committed documents, revision, preview ID and presets; observation.
-- `appearance.apply`: replace with `document`, superseding an active preview; control permission.
-- `appearance.preview`: apply without persistence, returning an exact `previewId`; control permission.
-- `appearance.confirm` / `appearance.cancel`: commit or discard that exact preview; control permission.
-- `appearance.preset`: apply `name` without changing geometry; control permission.
-- `appearance.reset`: restore default style and geometry; control permission.
+- `appearance.schema`: schema; observation.
+- `appearance.validate`: resolve `document` without mutation; observation.
+- `appearance.get`: effective and committed documents, sparse patches, known
+  override keys, revision and preview ID; observation.
+- `appearance.apply`: replace `document` or selected patch; control.
+- `appearance.preview`: temporary `document` or patch; control.
+- `appearance.confirm` / `appearance.cancel`: commit/discard exact preview; control.
+- `appearance.preset`: apply `name` while retaining geometry/resources/motion; control.
+- `appearance.reset`: reset global appearance or remove selected override; control.
+- `appearance.import`: `path`, optional `format` (`zip` default, `json`), returning
+  an unconfirmed preview; requires **control and files_read**.
+- `appearance.export`: existing `directory`, optional `name` and `format`,
+  returning an actual new file `path`; requires **files_write**. Existing files
+  are not overwritten. Use `files.download_begin` on the returned path.
+- `appearance.prune`: explicitly remove unused app-private bundles; control.
+  Returns removed digests and count, without changing external files.
 
-`AppearanceTransaction` retains one process-local preview. Overlapping previews
-are rejected. A stale ID cannot undo a later apply or another preview. Confirmed
-preferences use the normal asynchronous app-private preferences persistence;
-preview state is never persisted. Results identify accepted configuration, not
-an acknowledgement of displayed pixels or completed disk I/O.
-These operations do not start Desktop or acquire display input.
+MCP file operations reuse verified shared Files descriptors and require file
+service availability; SAF operations use the user's document grant. Neither path
+provisions Desktop. One preview may be active per scope. Stale IDs cannot revert
+later changes. A changed revision rejects a delayed import rather than silently
+replacing a newer edit. Results identify accepted configuration, not completed
+pixel presentation or durable disk I/O.
 
-Example documents: [compact dock](themes/compact-dock.json),
+Examples: [multiple panels](themes/multi-panel.json), [compact dock](themes/compact-dock.json),
 [light workspace](themes/light-workspace.json), [quiet controls](themes/quiet-controls.json).

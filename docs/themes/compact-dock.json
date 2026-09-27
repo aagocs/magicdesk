@@ -1,9 +1,13 @@
 {
-  "version": 2,
+  "version": 3,
   "preset": "dark",
-  "taskbar": { "width": "content", "maxWidthDp": 900, "bottomGapDp": 12, "sideGapDp": 12, "radiusDp": 8, "opacity": 0.9 },
   "composition": {
-    "taskbar": [ { "type": "start" }, { "type": "tasks" }, { "type": "quick_controls" }, { "type": "clock" } ],
+    "panels": [{
+      "id": "dock",
+      "edge": "bottom",
+      "style": { "length": "content", "maxLengthDp": 900, "edgeGapDp": 12, "sideGapDp": 12, "radiusDp": 8, "opacity": 0.9 },
+      "components": [ { "type": "start" }, { "type": "tasks" }, { "type": "quick_controls" }, { "type": "clock" } ]
+    }],
     "start": { "sections": ["apps", "recent", "tools"] }
   },
   "motion": { "panels": "fade", "taskbar": "fade", "durationMs": 160, "feedbackMs": 60 }

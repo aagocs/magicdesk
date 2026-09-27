@@ -143,7 +143,8 @@ final class NotificationCenterController {
                 Math.min(dp(420), Math.max(dp(280), areaWidth - dp(16)));
         final int height = Math.max(
                 dp(180), areaHeight - dp(16));
-        if (!panels.show(mPanel, panels.aboveTaskbar(width, height, true, dp(8), dp(8)),
+        if (!panels.show(mPanel, panels.besideComponent(ShellComposition.Kind.NOTIFICATIONS,
+                width, height, true, dp(8), dp(8)),
                 false, "MagicDesk notifications")) {
             mActivity.setErrorStatus("PANEL-001", mActivity.getString(
                     R.string.status_desktop_panel_unavailable));
@@ -522,7 +523,8 @@ final class NotificationCenterController {
                         View.MeasureSpec.AT_MOST));
         final int height = Math.max(dp(92), popup.getMeasuredHeight());
         if (!panels.showTransient(
-                popup, panels.aboveTaskbar(width, height, true, dp(12), dp(12)), 7000L,
+                popup, panels.besideComponent(ShellComposition.Kind.NOTIFICATIONS,
+                        width, height, true, dp(12), dp(12)), 7000L,
                 "MagicDesk notification")) {
             Log.w(TAG, "notification popup panel unavailable");
         }

@@ -1,12 +1,19 @@
 {
-  "version": 2,
+  "version": 3,
   "preset": "light",
   "colors": { "accent": "#14665B", "attention": "#923F72" },
   "composition": {
-    "taskbar": [
-      { "type": "start" }, { "type": "tasks" }, { "type": "open_tasks" },
-      { "type": "notifications" }, { "type": "quick_controls" },
-      { "type": "battery", "minViewportDp": 700 }, { "type": "clock", "clock": "date_time" }
+    "panels": [
+      {
+        "id": "applications", "edge": "bottom",
+        "components": [ { "type": "start" }, { "type": "tasks" }, { "type": "open_tasks" } ]
+      },
+      {
+        "id": "status", "edge": "top",
+        "style": { "thicknessDp": 48 },
+        "components": [ { "type": "notifications" }, { "type": "quick_controls" }, { "type": "spacer" },
+          { "type": "battery", "minViewportDp": 700 }, { "type": "clock", "clock": "date_time" } ]
+      }
     ],
     "start": { "sections": ["apps", "running", "recent", "tools"], "presentation": "list", "iconSizeDp": 32 }
   },

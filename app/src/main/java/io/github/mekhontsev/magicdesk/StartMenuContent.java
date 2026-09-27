@@ -78,7 +78,7 @@ final class StartMenuContent {
     private int mColumns = 3;
     private int mRows = 3;
     private boolean mPrepared, mReleased;
-    private ShellComposition.Start mAppearance = AppearanceStore.current().composition().start();
+    private ShellComposition.Start mAppearance;
     private final Runnable mAppearanceChanged = this::appearanceChanged;
 
     StartMenuContent(
@@ -88,6 +88,7 @@ final class StartMenuContent {
             final Host host) {
         mHost = host;
         mScope = scope;
+        mAppearance = AppearanceStore.current(activity).composition().start();
         mMode = scope == StartMenuScope.APPLICATIONS ? MENU_APPS : MENU_RECENT;
         if (mAppearance.sections().stream().noneMatch(section -> sectionMode(section) == mMode)) mMode = MENU_APPS;
         mActivity = activity;
@@ -393,7 +394,7 @@ final class StartMenuContent {
     }
 
     private void appearanceChanged() {
-        final var next = AppearanceStore.current().composition().start();
+        final var next = AppearanceStore.current(mActivity).composition().start();
         if (next.equals(mAppearance)) return;
         mAppearance = next;
         if (next.sections().stream().noneMatch(section -> sectionMode(section) == (mMode == MENU_CAPTURE ? MENU_TOOLS : mMode))) mMode = MENU_APPS;

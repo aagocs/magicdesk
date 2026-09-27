@@ -11,6 +11,11 @@ public final class StartEntryAppearanceTest {
                 } } static class R { static class attr {
                     static final int state_selected=1, state_focused=2, state_pressed=3, state_enabled=4, state_hovered=5;
                 } } }
+                static class Context {}
+                static class AppearanceScopeSource {
+                    AppearanceScopeSource(Context context) {}
+                    ShellAppearance current() { return AppearanceStore.current(); }
+                }
                 static class AppearanceStore { static ShellAppearance current() { return ShellAppearance.defaults(); } }
                 static class GradientDrawable {
                     int fill, stroke, border; float radius;
@@ -26,7 +31,7 @@ public final class StartEntryAppearanceTest {
                 }
                 public static void verify() {
                     for (int radius : new int[] {7, 12}) {
-                        var states = new UiFeedbackDrawable(1f, radius).states;
+                        var states = new UiFeedbackDrawable(null, 1f, radius).states;
                         check(states.size() == 6, "missing interactive state");
                         int accent = AppearanceStore.current().palette().color(UiColor.ACCENT);
                         for (int state : new int[] {1, 2}) check(states.get(state).stroke == 1 && states.get(state).border == accent, "focus/selection lost outline");
@@ -37,7 +42,7 @@ public final class StartEntryAppearanceTest {
                 }
                 """ + RuntimeSourceFixture.nestedClass("UiFeedbackDrawable", "UiFeedbackDrawable")
                         .replace("final class UiFeedbackDrawable", "static final class UiFeedbackDrawable"),
-                "ShellAppearance", "ShellComposition", "ShellMotion", "ShellResources", "UiColor");
+                "ShellAppearance", "ShellComposition", "ShellPanel", "ShellMotion", "ShellResources", "UiColor");
     }
     @Test public void gridAndSearchShareAppearanceIndependentOfLaunchBackend() throws Exception {
         final String tile = RuntimeSourceFixture.methods("StartMenuContent", "createAppTile");

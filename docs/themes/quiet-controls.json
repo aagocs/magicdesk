@@ -1,9 +1,12 @@
 {
-  "version": 2,
+  "version": 3,
   "preset": "contrast",
-  "taskbar": { "width": "content", "alignment": "end", "sideGapDp": 16, "bottomGapDp": 8 },
   "composition": {
-    "taskbar": [ { "type": "start", "label": "Apps" }, { "type": "tasks" }, { "type": "quick_controls" } ],
+    "panels": [{
+      "id": "rail", "edge": "left",
+      "style": { "length": "content", "alignment": "start", "sideGapDp": 16, "edgeGapDp": 8 },
+      "components": [ { "type": "start", "label": "Apps" }, { "type": "tasks" }, { "type": "quick_controls" } ]
+    }],
     "start": { "sections": ["apps", "recent"], "tileWidthDp": 120, "iconSizeDp": 48 }
   },
   "resources": { "icons": { "controls": "settings" } },

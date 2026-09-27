@@ -4,223 +4,101 @@ import android.graphics.Rect;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
-
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-/** Connects desktop-owned taskbar UI to the shared desktop chrome task. */
+/** One workspace owner binds every native panel to the existing chrome token. */
 final class DesktopTaskbarHost {
-    interface BoundsListener {
-        void onBoundsChanged(Rect bounds);
+    record Panel(String id, View view, ShellPanel.Edge edge, Rect content, Rect paint, Rect output) {
+        Panel {
+            java.util.Objects.requireNonNull(id); java.util.Objects.requireNonNull(view); java.util.Objects.requireNonNull(edge);
+            content = new Rect(content); paint = new Rect(paint); output = new Rect(output);
+            if (content.isEmpty() || !paint.contains(content)) throw new IllegalArgumentException("Invalid native panel bounds");
+        }
     }
-
-    interface EdgeInputListener {
-        void onEdgeInput(MotionEvent event);
-    }
-
+    interface BoundsListener { void onBoundsChanged(List<Rect> bounds); }
+    interface EdgeInputListener { void onEdgeInput(MotionEvent event); }
     private static final Object REGISTRY_LOCK = new Object();
-    private static final Map<Integer, DesktopTaskbarHost> HOSTS =
-            new HashMap<>();
-    private static final Map<Integer, DesktopChromeActivity> ACTIVITIES =
-            new HashMap<>();
-
+    private static final Map<Integer, DesktopTaskbarHost> HOSTS = new HashMap<>();
+    private static final Map<Integer, DesktopChromeActivity> ACTIVITIES = new HashMap<>();
     private final int mDisplayId;
     private final BoundsListener mBoundsListener;
-    private final Rect mTaskbarBounds = new Rect();
-    private final Rect mSurfaceBounds = new Rect();
-    private final Rect mOutputBounds = new Rect();
-    private final Rect mAppliedBounds = new Rect();
-
-    private View mTaskbar;
-    private boolean mPresented = true;
-    private boolean mEdgeHidden;
+    private List<Panel> mPanels = List.of();
+    private boolean mPresented = true, mEdgeHidden, mReleased;
     private int mEdgeHeight = 1;
     private EdgeInputListener mEdgeInputListener;
-    private boolean mReleased;
 
-    DesktopTaskbarHost(
-            final int displayId,
-            final BoundsListener boundsListener) {
-        if (displayId == Display.INVALID_DISPLAY) {
-            throw new IllegalArgumentException(
-                    "desktop taskbar requires a display");
-        }
-        mDisplayId = displayId;
-        mBoundsListener = boundsListener;
+    DesktopTaskbarHost(int displayId, BoundsListener boundsListener) {
+        if (displayId == Display.INVALID_DISPLAY) throw new IllegalArgumentException("Native panels require a display");
+        mDisplayId = displayId; mBoundsListener = boundsListener;
     }
-
-    boolean attachTaskbar(
-            final View taskbar,
-            final Rect taskbarBounds,
-            final Rect surfaceBounds, final Rect outputBounds) {
-        if (mReleased || taskbar == null
-                || taskbarBounds == null || taskbarBounds.isEmpty()
-                || surfaceBounds == null || surfaceBounds.isEmpty()
-                || !surfaceBounds.contains(taskbarBounds)) {
-            return false;
-        }
-        mTaskbar = taskbar;
-        mTaskbarBounds.set(taskbarBounds);
-        mSurfaceBounds.set(surfaceBounds);
-        mOutputBounds.set(outputBounds);
-        final DesktopChromeActivity activity;
-        synchronized (REGISTRY_LOCK) {
-            HOSTS.put(Integer.valueOf(mDisplayId), this);
-            activity = ACTIVITIES.get(Integer.valueOf(mDisplayId));
-        }
-        apply(activity);
-        updateAppliedBounds();
+    boolean attachPanels(List<Panel> panels) {
+        if (mReleased || panels.isEmpty()) return false;
+        synchronized (REGISTRY_LOCK) { HOSTS.put(mDisplayId, this); }
+        if (mPanels.equals(panels)) apply(currentActivity());
+        else updatePanels(panels);
         return true;
     }
-
-    void updateBounds(
-            final Rect taskbarBounds,
-            final Rect surfaceBounds, final Rect outputBounds) {
-        if (mReleased
-                || taskbarBounds == null || taskbarBounds.isEmpty()
-                || surfaceBounds == null || surfaceBounds.isEmpty()
-                || !surfaceBounds.contains(taskbarBounds)
-                || (mTaskbarBounds.equals(taskbarBounds)
-                        && mSurfaceBounds.equals(surfaceBounds) && mOutputBounds.equals(outputBounds))) {
-            return;
-        }
-        mTaskbarBounds.set(taskbarBounds);
-        mSurfaceBounds.set(surfaceBounds);
-        mOutputBounds.set(outputBounds);
+    void updatePanels(List<Panel> panels) {
+        if (mReleased || mPanels.equals(panels)) return;
+        mPanels = List.copyOf(panels);
         apply(currentActivity());
-        updateAppliedBounds();
+        if (mBoundsListener != null) mBoundsListener.onBoundsChanged(boundsList());
     }
-
-    void setPresented(final boolean presented) {
-        if (mReleased || mPresented == presented) {
-            return;
+    List<Rect> boundsList() { return mPanels.stream().map(p -> new Rect(p.content())).toList(); }
+    List<Panel> panels() { return mPanels; }
+    Rect appliedBounds() { return mPanels.isEmpty() ? new Rect() : new Rect(mPanels.get(0).content()); }
+    boolean contains(float x, float y, boolean edgeHidden, int edgeHeight) {
+        for (var panel : mPanels) {
+            ShellBounds bounds = PanelGeometry.presented(bounds(panel.output()), bounds(panel.paint()),
+                    panel.edge(), true, edgeHidden, edgeHeight);
+            if (x >= bounds.left() && x < bounds.right() && y >= bounds.top() && y < bounds.bottom()) return true;
         }
-        mPresented = presented;
-        apply(currentActivity());
+        return false;
     }
-
-    void setEdgeHidden(final boolean hidden, final int edgeHeight) {
-        if (mReleased) {
-            return;
-        }
-        final int normalizedHeight = Math.max(1, edgeHeight);
-        if (mEdgeHidden == hidden && mEdgeHeight == normalizedHeight) {
-            return;
-        }
-        mEdgeHidden = hidden;
-        mEdgeHeight = normalizedHeight;
-        apply(currentActivity());
+    private static ShellBounds bounds(Rect r) { return new ShellBounds(r.left, r.top, r.right, r.bottom); }
+    void setPresented(boolean presented) {
+        if (mReleased || mPresented == presented) return;
+        mPresented = presented; apply(currentActivity());
     }
-
-    void setEdgeInputListener(final EdgeInputListener listener) {
-        if (!mReleased) {
-            mEdgeInputListener = listener;
-        }
+    void setEdgeHidden(boolean hidden, int edgeHeight) {
+        if (mReleased) return;
+        int height = Math.max(1, edgeHeight);
+        if (mEdgeHidden == hidden && mEdgeHeight == height) return;
+        mEdgeHidden = hidden; mEdgeHeight = height; apply(currentActivity());
     }
-
+    void setEdgeInputListener(EdgeInputListener listener) { if (!mReleased) mEdgeInputListener = listener; }
     void release() {
-        if (mReleased) {
-            return;
-        }
+        if (mReleased) return;
         mReleased = true;
-        final DesktopChromeActivity activity;
+        DesktopChromeActivity activity = null;
         synchronized (REGISTRY_LOCK) {
-            if (HOSTS.get(Integer.valueOf(mDisplayId)) == this) {
-                HOSTS.remove(Integer.valueOf(mDisplayId));
-                activity = ACTIVITIES.get(Integer.valueOf(mDisplayId));
-            } else {
-                // A replacement host owns the attached taskbar now.
-                activity = null;
-            }
+            if (HOSTS.get(mDisplayId) == this) { HOSTS.remove(mDisplayId); activity = ACTIVITIES.get(mDisplayId); }
         }
-        if (activity != null) {
-            activity.detachTaskbar();
-        }
-        mTaskbar = null;
-        mEdgeInputListener = null;
-        mTaskbarBounds.setEmpty();
-        mSurfaceBounds.setEmpty();
-        mAppliedBounds.setEmpty();
+        if (activity != null) activity.detachPanels();
+        mPanels = List.of(); mEdgeInputListener = null;
     }
-
-    Rect appliedBounds() {
-        return mAppliedBounds.isEmpty()
-                ? new Rect(mTaskbarBounds) : new Rect(mAppliedBounds);
-    }
-
-    static void registerActivity(
-            final int displayId,
-            final DesktopChromeActivity activity) {
-        if (displayId == Display.INVALID_DISPLAY || activity == null) {
-            return;
-        }
+    static void registerActivity(int displayId, DesktopChromeActivity activity) {
+        if (displayId == Display.INVALID_DISPLAY || activity == null) return;
         final DesktopTaskbarHost host;
-        synchronized (REGISTRY_LOCK) {
-            ACTIVITIES.put(Integer.valueOf(displayId), activity);
-            host = HOSTS.get(Integer.valueOf(displayId));
-        }
-        if (host != null) {
-            host.apply(activity);
-        }
+        synchronized (REGISTRY_LOCK) { ACTIVITIES.put(displayId, activity); host = HOSTS.get(displayId); }
+        if (host != null) host.apply(activity);
     }
-
-    static void unregisterActivity(
-            final int displayId,
-            final DesktopChromeActivity activity) {
-        synchronized (REGISTRY_LOCK) {
-            if (ACTIVITIES.get(Integer.valueOf(displayId)) == activity) {
-                ACTIVITIES.remove(Integer.valueOf(displayId));
-            }
-        }
+    static void unregisterActivity(int displayId, DesktopChromeActivity activity) {
+        synchronized (REGISTRY_LOCK) { if (ACTIVITIES.get(displayId) == activity) ACTIVITIES.remove(displayId); }
     }
-
-    static void dispatchEdgeInput(
-            final int displayId,
-            final MotionEvent event) {
+    static void dispatchEdgeInput(int displayId, MotionEvent event) {
         final DesktopTaskbarHost host;
-        synchronized (REGISTRY_LOCK) {
-            host = HOSTS.get(Integer.valueOf(displayId));
-        }
-        if (host != null) {
-            host.onEdgeInput(event);
-        }
+        synchronized (REGISTRY_LOCK) { host = HOSTS.get(displayId); }
+        if (host != null && !host.mReleased && host.mEdgeInputListener != null && event != null) host.mEdgeInputListener.onEdgeInput(event);
     }
-
     private DesktopChromeActivity currentActivity() {
-        synchronized (REGISTRY_LOCK) {
-            return HOSTS.get(Integer.valueOf(mDisplayId)) == this
-                    ? ACTIVITIES.get(Integer.valueOf(mDisplayId)) : null;
-        }
+        synchronized (REGISTRY_LOCK) { return HOSTS.get(mDisplayId) == this ? ACTIVITIES.get(mDisplayId) : null; }
     }
-
-    private void onEdgeInput(final MotionEvent event) {
-        final EdgeInputListener listener = mEdgeInputListener;
-        if (!mReleased && listener != null && event != null) {
-            listener.onEdgeInput(event);
-        }
-    }
-
-    private void apply(final DesktopChromeActivity activity) {
-        if (activity == null || activity != currentActivity()
-                || mReleased || mTaskbar == null) {
-            return;
-        }
-        activity.attachTaskbar(
-                mTaskbar,
-                mTaskbarBounds, mSurfaceBounds, mOutputBounds);
+    private void apply(DesktopChromeActivity activity) {
+        if (activity == null || activity != currentActivity() || mReleased) return;
+        activity.attachPanels(mPanels);
         activity.setPresentation(mPresented, mEdgeHidden, mEdgeHeight);
-    }
-
-    private void updateAppliedBounds() {
-        if (mReleased || mTaskbarBounds.isEmpty() || mSurfaceBounds.isEmpty()) {
-            return;
-        }
-        if (!mAppliedBounds.equals(mTaskbarBounds)) {
-            mAppliedBounds.set(mTaskbarBounds);
-            if (mBoundsListener != null) {
-                mBoundsListener.onBoundsChanged(
-                        new Rect(mTaskbarBounds));
-            }
-        }
     }
 }

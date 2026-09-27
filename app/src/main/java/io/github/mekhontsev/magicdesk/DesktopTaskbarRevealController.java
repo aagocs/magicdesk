@@ -1,6 +1,5 @@
 package io.github.mekhontsev.magicdesk;
 
-import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Display;
@@ -38,6 +37,7 @@ final class DesktopTaskbarRevealController {
     private boolean mInteractionHold;
     private boolean mStarted;
     private boolean mReleased;
+    private ShellPanel.Edge mTouchEdge;
 
     private final Runnable mRevealTimeout = () -> {
         if (!mReleased && mPointerState.onRevealTimeout()) {
@@ -169,11 +169,12 @@ final class DesktopTaskbarRevealController {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE:
             case MotionEvent.ACTION_UP:
-                applyTimerAction(mPointerState.onPointerEntered());
-                break;
             case MotionEvent.ACTION_HOVER_EXIT:
-            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_OUTSIDE:
+                applyTimerAction(contains(event.getRawX(), event.getRawY())
+                        ? mPointerState.onPointerEntered() : mPointerState.onPointerExited());
+                break;
+            case MotionEvent.ACTION_CANCEL:
                 applyTimerAction(mPointerState.onPointerExited());
                 break;
             default:
@@ -224,13 +225,49 @@ final class DesktopTaskbarRevealController {
             taskbarHost.setEdgeHidden(false, 1);
         } else {
             taskbar.setEdgeHidden(true);
-            final Rect normalBounds = mActivity.getTaskbarBounds();
-            final int hiddenEdgeHeight = mTouchEdgeEnabled
-                    ? Math.max(1, Math.min(
-                            normalBounds.height(), mTouchEdgeHeight))
-                    : EDGE_STRIP_HEIGHT_PX;
-            taskbarHost.setEdgeHidden(true, hiddenEdgeHeight);
+            taskbarHost.setEdgeHidden(true, edgeThickness());
         }
+    }
+
+    private int edgeThickness() {
+        return mTouchEdgeEnabled ? Math.max(1, mTouchEdgeHeight) : EDGE_STRIP_HEIGHT_PX;
+    }
+
+    private boolean contains(final float x, final float y) {
+        final DesktopTaskbarHost host = mActivity.taskbarHost();
+        final Presentation presentation = currentPresentation();
+        return host != null && presentation != Presentation.UNAVAILABLE
+                && host.contains(x, y, presentation == Presentation.EDGE, edgeThickness());
+    }
+
+    private ShellPanel.Edge edgeAt(final float x, final float y) {
+        final DesktopTaskbarHost host = mActivity.taskbarHost();
+        if (host == null || currentPresentation() == Presentation.UNAVAILABLE) return null;
+        for (DesktopTaskbarHost.Panel panel : host.panels()) {
+            final var output = panel.output();
+            final var paint = panel.paint();
+            final var bounds = PanelGeometry.presented(
+                    new ShellBounds(output.left, output.top, output.right, output.bottom),
+                    new ShellBounds(paint.left, paint.top, paint.right, paint.bottom), panel.edge(),
+                    true, currentPresentation() == Presentation.EDGE, edgeThickness());
+            if (x >= bounds.left() && x < bounds.right() && y >= bounds.top() && y < bounds.bottom()) {
+                return panel.edge();
+            }
+        }
+        return null;
+    }
+
+    static float gestureX(final ShellPanel.Edge edge, final float x, final float y) {
+        return edge.vertical() ? y : x;
+    }
+
+    static float gestureY(final ShellPanel.Edge edge, final float x, final float y) {
+        return switch (edge) {
+            case TOP -> -y;
+            case BOTTOM -> y;
+            case LEFT -> -x;
+            case RIGHT -> x;
+        };
     }
 
     private void cancelTimers() {
@@ -288,6 +325,12 @@ final class DesktopTaskbarRevealController {
     private boolean handleTouchEdgeInput(final MotionEvent event) {
         final int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_OUTSIDE) {
+            // Sibling native windows receive outside notifications for the same touch.
+            // A touch inside another panel is neither a dismissal nor pointer dwell.
+            if (contains(event.getRawX(), event.getRawY())) {
+                return mTouchEdgeEnabled && event.isFromSource(InputDevice.SOURCE_TOUCHSCREEN);
+            }
+            mTouchEdge = null;
             final TouchEdgeRevealState.Action result =
                     mTouchState.dismiss();
             applyTouchAction(result, false);
@@ -301,17 +344,24 @@ final class DesktopTaskbarRevealController {
         }
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+                mTouchEdge = edgeAt(event.getRawX(), event.getRawY());
+                if (mTouchEdge == null) return false;
                 applyTouchAction(mTouchState.onDown(
-                        event.getRawX(), event.getRawY()), false);
+                        gestureX(mTouchEdge, event.getRawX(), event.getRawY()),
+                        gestureY(mTouchEdge, event.getRawX(), event.getRawY())), false);
                 break;
             case MotionEvent.ACTION_MOVE:
+                if (mTouchEdge == null) return false;
                 applyTouchAction(mTouchState.onMove(
-                        event.getRawX(), event.getRawY(), mTouchSlop), false);
+                        gestureX(mTouchEdge, event.getRawX(), event.getRawY()),
+                        gestureY(mTouchEdge, event.getRawX(), event.getRawY()), mTouchSlop), false);
                 break;
             case MotionEvent.ACTION_UP:
+                mTouchEdge = null;
                 applyTouchAction(mTouchState.onUp(), true);
                 break;
             case MotionEvent.ACTION_CANCEL:
+                mTouchEdge = null;
                 applyTouchAction(mTouchState.onCancel(), false);
                 break;
             default:

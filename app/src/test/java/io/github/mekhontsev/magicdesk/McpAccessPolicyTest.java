@@ -8,10 +8,18 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 public final class McpAccessPolicyTest {
+    @Test public void themeFileImportRequiresControlAndFileReadTogether() {
+        for (var grants : java.util.List.of(Set.<String>of(), Set.of("control"), Set.of("files_read"), Set.of("content"), Set.of("files_write"))) {
+            assertFalse(new McpAccessPolicy(grants).allows("appearance.import"));
+        }
+        assertTrue(new McpAccessPolicy(Set.of("control", "files_read")).allows("appearance.import"));
+        assertTrue(new McpAccessPolicy(Set.of("files_write")).allows("appearance.export"));
+        assertFalse(new McpAccessPolicy(Set.of("control", "files_read")).allows("appearance.export"));
+    }
     @Test public void appearanceSchemaAndValidationDoNotGrantMutation() {
         var observe = new McpAccessPolicy(Set.of());
         for (String name : Set.of("appearance.schema", "appearance.validate", "appearance.get")) assertTrue(observe.allows(name));
-        for (String name : Set.of("appearance.preview", "appearance.confirm", "appearance.cancel", "appearance.apply")) {
+        for (String name : Set.of("appearance.preview", "appearance.confirm", "appearance.cancel", "appearance.apply", "appearance.prune")) {
             assertFalse(observe.allows(name));
             assertTrue(new McpAccessPolicy(Set.of("control")).allows(name));
         }
@@ -62,7 +70,8 @@ public final class McpAccessPolicyTest {
             final String permission = McpAccessPolicy.permissionName(name);
             assertTrue(tool.getString("description").contains("Required permission: " + permission));
             assertEquals(name, "observe".equals(permission), observe.allows(name));
-            assertTrue(name, new McpAccessPolicy(Set.of(permission)).allows(name));
+            assertTrue(name, new McpAccessPolicy(name.equals("appearance.import")
+                    ? Set.of(permission, "files_read") : Set.of(permission)).allows(name));
         }
         final McpAccessPolicy privileged = new McpAccessPolicy(Set.of("control", "input_tests",
                 "content", "files_read", "files_write", "shell", "update"));

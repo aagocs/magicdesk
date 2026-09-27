@@ -112,7 +112,7 @@ final class CalendarPanelController {
                 Math.max(1, areaHeight - dp(16));
         final int height = Math.min(dp(430), availableHeight);
         if (!panels.show(
-                mPanel, panels.aboveTaskbar(width, height, true, dp(8), 0),
+                mPanel, panels.besideComponent(ShellComposition.Kind.CLOCK, width, height, true, dp(8), 0),
                 false, "MagicDesk calendar")) {
             mPanelUnavailable.run();
         }

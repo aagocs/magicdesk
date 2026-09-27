@@ -17,6 +17,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextClock;
 import android.widget.TextView;
 
@@ -25,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import static io.github.mekhontsev.magicdesk.ShellComposition.Kind;
 
 final class TaskbarController {
@@ -40,17 +42,16 @@ final class TaskbarController {
     private final ContentRequestScope mContentRequests =
             AndroidDesktopActionDispatcher.createContentScope();
 
-    private LinearLayout mTaskbar;
-    private LinearLayout mComponentRow;
+    private final LinkedHashMap<String, PanelView> mPanels = new LinkedHashMap<>();
+    private boolean mCreated;
     private final EnumMap<Kind, View> mComponents = new EnumMap<>(Kind.class);
     private final EnumMap<Kind, Integer> mNaturalWidths = new EnumMap<>(Kind.class);
-    private List<ShellComposition.Component> mComposition;
-    private final List<View> mSpacers = new ArrayList<>();
     private TextClock mClock;
     private boolean mPhoneActionVisible;
     private Button mStartButton;
     private LinearLayout mPins;
-    private HorizontalScrollView mTaskViewport;
+    private FrameLayout mTaskViewport;
+    private boolean mTasksVertical;
     private TextView mKeyboardLayout;
     private final InputMethodMenuController mInputMethodMenu;
     private final TaskbarOverflowController mOverflow;
@@ -74,7 +75,7 @@ final class TaskbarController {
                 activity, ui, this::activate);
     }
 
-    LinearLayout create() {
+    private LinearLayout createPanelContainer() {
         final LinearLayout taskbar = new LinearLayout(mActivity) {
             private final int mTouchSlop = ViewConfiguration.get(
                     mActivity).getScaledTouchSlop();
@@ -99,7 +100,7 @@ final class TaskbarController {
                 }
                 if (action == MotionEvent.ACTION_DOWN) {
                     cancelBlankLongPress();
-                    if (!isActionAt(event.getX(), event.getY())) {
+                    if (!isActionAt(this, event.getX(), event.getY())) {
                         mActivity.hideAllPanels();
                         mActivity.clearInteractionVisibleTasks();
                         mBlankDownX = event.getRawX();
@@ -149,12 +150,18 @@ final class TaskbarController {
                 desktopDp(8, 4),
                 desktopDp(10, 4),
                 desktopDp(8, 4));
+        return taskbar;
+    }
+
+    void create() {
+        final LinearLayout taskbar = new LinearLayout(mActivity);
 
         final Button start = mUi.actionButton(
                 R.string.action_start,
                 UiColor.ACCENT);
         start.setTextSize(14);
         start.setBackground(mUi.flatButtonBackground(desktopDp(8, 6)));
+        start.setPadding(mUi.dp(4), 0, mUi.dp(4), 0);
         start.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         start.setOnClickListener(view -> mActivity.toggleStartMenu());
         start.setOnLongClickListener(view -> {
@@ -177,14 +184,11 @@ final class TaskbarController {
                 desktopDp(108, 72),
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
-        final HorizontalScrollView taskScroll =
-                new HorizontalScrollView(mActivity);
-        taskScroll.setHorizontalScrollBarEnabled(false);
-        taskScroll.setFillViewport(true);
+        final FrameLayout taskScroll = new FrameLayout(mActivity);
         taskScroll.addOnLayoutChangeListener((view,
                 left, top, right, bottom,
                 oldLeft, oldTop, oldRight, oldBottom) -> {
-            if (right - left != oldRight - oldLeft && mPins != null) {
+            if ((right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) && mPins != null) {
                 renderPins(mActivity.getLauncherApps());
             }
         });
@@ -192,9 +196,7 @@ final class TaskbarController {
         mPins = new LinearLayout(mActivity);
         mPins.setOrientation(LinearLayout.HORIZONTAL);
         mPins.setGravity(Gravity.CENTER_VERTICAL);
-        taskScroll.addView(mPins, new HorizontalScrollView.LayoutParams(
-                HorizontalScrollView.LayoutParams.WRAP_CONTENT,
-                HorizontalScrollView.LayoutParams.MATCH_PARENT));
+        taskScroll.addView(mPins, new FrameLayout.LayoutParams(-1, -1));
         final LinearLayout.LayoutParams pinsParams =
                 new LinearLayout.LayoutParams(
                         0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
@@ -326,32 +328,19 @@ final class TaskbarController {
         addComponent(taskbar, Kind.CLOCK, clock, new LinearLayout.LayoutParams(
                 desktopDp(72, 50),
                 LinearLayout.LayoutParams.MATCH_PARENT));
-        mComponentRow = new LinearLayout(mActivity);
-        mComponentRow.setGravity(Gravity.CENTER_VERTICAL);
         taskbar.removeAllViews();
-        final HorizontalScrollView components = new HorizontalScrollView(mActivity);
-        components.setHorizontalScrollBarEnabled(false);
-        components.setFillViewport(true);
-        components.addView(mComponentRow, new HorizontalScrollView.LayoutParams(-2, -1));
-        taskbar.addView(components, new LinearLayout.LayoutParams(-1, -1));
-        taskbar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-            if (r - l != or - ol) applyComposition();
-        });
-        mTaskbar = taskbar;
+        mCreated = true;
         AppearanceStore.listen(mAppearanceChanged);
         applyAppearance();
-        mActivity.registerAutomationUiElement(
-                taskbar, "taskbar", "taskbar", "Taskbar");
-        return taskbar;
     }
 
     void release() {
         AppearanceStore.unlisten(mAppearanceChanged);
         mContentRequests.close();
         mEdgeHidden = false;
-        mTaskbar = null;
-        mComponentRow = null;
-        mComponents.clear(); mNaturalWidths.clear(); mSpacers.clear(); mComposition = null; mClock = null;
+        mCreated = false;
+        mPanels.clear();
+        mComponents.clear(); mNaturalWidths.clear(); mClock = null;
         mStartButton = null;
         mPins = null;
         mTaskViewport = null;
@@ -365,7 +354,7 @@ final class TaskbarController {
 
     void setVisible(final boolean visible) {
         final DesktopTaskbarHost taskbarHost = mActivity.taskbarHost();
-        if (taskbarHost != null && mTaskbar != null) {
+        if (taskbarHost != null && mCreated) {
             taskbarHost.setPresented(visible);
         }
     }
@@ -374,10 +363,10 @@ final class TaskbarController {
         final boolean changed = hidden != mEdgeHidden;
         if (!changed) return;
         mEdgeHidden = hidden;
-        if (mTaskbar != null) {
-            UiMotion.cancel(mTaskbar);
-            mTaskbar.setAlpha(hidden ? 0f : 1f);
-            if (changed && !hidden) UiMotion.reveal(mTaskbar, false);
+        for (var panel : mPanels.values()) {
+            UiMotion.cancel(panel.root);
+            panel.root.setAlpha(hidden ? 0f : 1f);
+            if (!hidden) UiMotion.reveal(panel.root, false);
         }
     }
 
@@ -400,7 +389,7 @@ final class TaskbarController {
         }
         final int itemWidth = desktopDp(48, 36);
         final int availableWidth = mTaskViewport == null
-                ? 0 : mTaskViewport.getWidth();
+                ? 0 : mTasksVertical ? mTaskViewport.getHeight() : mTaskViewport.getWidth();
         final int visibleCount = TaskbarOverflowPolicy.visibleItemCount(
                 items.size(), availableWidth, itemWidth);
         mOverflow.setItems(items.subList(visibleCount, items.size()));
@@ -412,15 +401,15 @@ final class TaskbarController {
         }
     }
 
-    int minimumWidth() { return contentWidth(false); }
-    int preferredWidth() { return contentWidth(true); }
+    View panelView(String id) { final var panel = mPanels.get(id); return panel == null ? null : panel.root; }
+    int minimumLength(ShellPanel panel) { return contentLength(panel, false); }
+    int preferredLength(ShellPanel panel) { return contentLength(panel, true); }
 
-    private int contentWidth(boolean preferred) {
-        if (mTaskbar == null) return 0;
-        int width = mTaskbar.getPaddingLeft() + mTaskbar.getPaddingRight();
-        for (var item : AppearanceStore.current().composition().taskbar()) {
+    private int contentLength(ShellPanel panel, boolean preferred) {
+        int width = 2 * panelPadding(panel);
+        for (var item : panel.components()) {
             if (!componentVisible(item)) continue;
-            width += componentWidth(item);
+            width += componentLength(item, panel.edge().vertical());
             if (preferred && item.type() == Kind.TASKS && item.widthDp() == 0) {
                 width += desktopDp(48, 36) * Math.max(0, mItemCount - 1);
             }
@@ -429,13 +418,30 @@ final class TaskbarController {
     }
 
     private void applyAppearance() {
-        if (mTaskbar == null) return;
-        final int padding = AppearanceStore.current().taskbar().paddingDp();
-        final int px = desktopDp(padding, padding / 2);
-        mTaskbar.setPadding(px, px, px, px);
-        applyComposition();
+        if (!mCreated) return;
+        var definitions = AppearanceStore.current(mActivity).composition().panels();
+        var ids = definitions.stream().map(ShellPanel::id).toList();
+        mPanels.keySet().removeIf(id -> !ids.contains(id));
+        // Detach only moved/removed components, preserving live controls and their service bindings.
+        for (var entry : mComponents.entrySet()) {
+            var destination = definitions.stream().filter(p -> p.components().stream().anyMatch(c -> c.type() == entry.getKey()))
+                    .findFirst().orElse(null);
+            var host = destination == null ? null : mPanels.get(destination.id());
+            if (entry.getValue().getParent() instanceof ViewGroup current && (host == null || current != host.row)) {
+                current.removeView(entry.getValue());
+            }
+        }
+        for (int i = 0; i < definitions.size(); i++) {
+            ShellPanel definition = definitions.get(i);
+            PanelView panel = mPanels.computeIfAbsent(definition.id(), id -> new PanelView());
+            panel.update(definition);
+            mActivity.registerAutomationUiElement(panel.root, i == 0 ? "taskbar" : "shell.panel." + definition.id(),
+                    "taskbar", definition.id());
+        }
         mActivity.onTaskbarContentChanged();
     }
+
+    private int panelPadding(ShellPanel panel) { return desktopDp(panel.style().paddingDp(), panel.style().paddingDp() / 2); }
 
     private boolean componentVisible(ShellComposition.Component item) {
         final var metrics = mActivity.getResources().getDisplayMetrics();
@@ -444,27 +450,53 @@ final class TaskbarController {
                 && (item.type() != Kind.PHONE_SCREEN || mPhoneActionVisible);
     }
 
-    private int componentWidth(ShellComposition.Component item) {
+    private int componentLength(ShellComposition.Component item, boolean vertical) {
         if (item.widthDp() != 0) return dp(item.widthDp());
         if (item.type() == Kind.TASKS) return desktopDp(48, 36);
         if (item.type() == Kind.SPACER) return 0;
+        if (vertical) return desktopDp(48, 36);
         if (item.type() == Kind.CLOCK && item.clock() != ShellComposition.Clock.TIME) {
             return dp(item.clock() == ShellComposition.Clock.DATE ? 110 : 170);
         }
         return mNaturalWidths.getOrDefault(item.type(), 0);
     }
 
-    private void applyComposition() {
-        if (mComponentRow == null || mTaskbar == null) return;
-        final var composition = AppearanceStore.current().composition().taskbar();
-        if (!composition.equals(mComposition)) {
+    private final class PanelView {
+        final LinearLayout root = createPanelContainer();
+        final LinearLayout row = new LinearLayout(mActivity);
+        final List<View> spacers = new ArrayList<>();
+        ShellPanel definition;
+        Boolean vertical;
+        PanelView() {
+            root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+                if (r - l != or - ol || b - t != ob - ot) allocate();
+            });
+        }
+        void update(ShellPanel value) {
+            boolean axis = value.edge().vertical();
+            if (vertical == null || vertical != axis) {
+                if (row.getParent() instanceof ViewGroup parent) parent.removeView(row);
+                root.removeAllViews();
+                row.setOrientation(axis ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER);
+                if (axis) {
+                    ScrollView scroll = new ScrollView(mActivity); scroll.setVerticalScrollBarEnabled(false); scroll.setFillViewport(true);
+                    scroll.addView(row, new FrameLayout.LayoutParams(-1, -2)); root.addView(scroll, new LinearLayout.LayoutParams(-1, -1));
+                } else {
+                    HorizontalScrollView scroll = new HorizontalScrollView(mActivity); scroll.setHorizontalScrollBarEnabled(false); scroll.setFillViewport(true);
+                    scroll.addView(row, new FrameLayout.LayoutParams(-2, -1)); root.addView(scroll, new LinearLayout.LayoutParams(-1, -1));
+                }
+                vertical = axis;
+            }
+            definition = value;
+            int pad = panelPadding(value); root.setPadding(pad, pad, pad, pad);
             final List<View> ordered = new ArrayList<>();
             int spacer = 0;
-            for (var item : composition) {
+            for (var item : value.components()) {
                 final View view;
                 if (item.type() == Kind.SPACER) {
-                    if (spacer == mSpacers.size()) mSpacers.add(new View(mActivity));
-                    view = mSpacers.get(spacer++);
+                    if (spacer == spacers.size()) spacers.add(new View(mActivity));
+                    view = spacers.get(spacer++);
                 } else view = mComponents.get(item.type());
                 ordered.add(view);
                 if (item.type() == Kind.START) mStartButton.setText(item.label().isEmpty()
@@ -473,31 +505,41 @@ final class TaskbarController {
                     String format = switch (item.clock()) { case TIME -> "HH:mm"; case DATE -> "EEE, d MMM"; case DATE_TIME -> "d MMM  HH:mm"; };
                     mClock.setFormat12Hour(format); mClock.setFormat24Hour(format);
                 }
+                if (item.type() == Kind.TASKS && mTasksVertical != axis) {
+                    mTasksVertical = axis;
+                    mPins.setOrientation(axis ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
+                    renderPins(mActivity.getLauncherApps());
+                }
             }
             // Retain Views and their service bindings; reorder only changed positions.
-            for (int i = mComponentRow.getChildCount() - 1; i >= 0; i--) {
-                if (!ordered.contains(mComponentRow.getChildAt(i))) mComponentRow.removeViewAt(i);
+            for (int i = row.getChildCount() - 1; i >= 0; i--) {
+                if (!ordered.contains(row.getChildAt(i))) row.removeViewAt(i);
             }
             for (int i = 0; i < ordered.size(); i++) {
                 View view = ordered.get(i);
-                if (mComponentRow.indexOfChild(view) == i) continue;
-                mComponentRow.removeView(view);
-                mComponentRow.addView(view, i, new LinearLayout.LayoutParams(0, -1));
+                if (row.indexOfChild(view) == i) continue;
+                if (view.getParent() instanceof ViewGroup parent) parent.removeView(view);
+                row.addView(view, i, new LinearLayout.LayoutParams(axis ? -1 : 0, axis ? 0 : -1));
             }
-            mComposition = composition;
+            while (spacers.size() > spacer) spacers.remove(spacers.size() - 1);
+            allocate();
         }
-        final List<ShellComponentLayout.Slot> slots = new ArrayList<>();
-        for (var item : composition) {
-            boolean visible = componentVisible(item);
-            slots.add(new ShellComponentLayout.Slot(visible ? componentWidth(item) : 0,
-                    visible && item.widthDp() == 0 && (item.type() == Kind.TASKS || item.type() == Kind.SPACER)));
-        }
-        int[] widths = ShellComponentLayout.widths(slots, mTaskbar.getWidth() - mTaskbar.getPaddingLeft() - mTaskbar.getPaddingRight());
-        for (int i = 0; i < composition.size(); i++) {
-            View view = mComponentRow.getChildAt(i);
-            view.setVisibility(componentVisible(composition.get(i)) ? View.VISIBLE : View.GONE);
-            var params = (LinearLayout.LayoutParams) view.getLayoutParams();
-            if (params.width != widths[i]) { params.width = widths[i]; view.setLayoutParams(params); }
+        void allocate() {
+            if (definition == null) return;
+            final List<ShellComponentLayout.Slot> slots = new ArrayList<>();
+            for (var item : definition.components()) {
+                boolean visible = componentVisible(item);
+                slots.add(new ShellComponentLayout.Slot(visible ? componentLength(item, vertical) : 0,
+                        visible && item.widthDp() == 0 && (item.type() == Kind.TASKS || item.type() == Kind.SPACER)));
+            }
+            int[] lengths = ShellComponentLayout.widths(slots, (vertical ? root.getHeight() : root.getWidth()) - 2 * panelPadding(definition));
+            for (int i = 0; i < definition.components().size(); i++) {
+                View view = row.getChildAt(i);
+                view.setVisibility(componentVisible(definition.components().get(i)) ? View.VISIBLE : View.GONE);
+                var params = (LinearLayout.LayoutParams) view.getLayoutParams();
+                int width = vertical ? -1 : lengths[i], height = vertical ? lengths[i] : -1;
+                if (params.width != width || params.height != height) { params.width = width; params.height = height; view.setLayoutParams(params); }
+            }
         }
     }
 
@@ -662,7 +704,7 @@ final class TaskbarController {
         mPhoneScreenButton.setAlpha(phoneScreenControl ? 1f : 0.45f);
         if (mPhoneActionVisible != visible) {
             mPhoneActionVisible = visible;
-            applyComposition();
+            applyAppearance();
             mActivity.onTaskbarContentChanged();
         }
     }
@@ -753,8 +795,8 @@ final class TaskbarController {
         mPins.addView(
                 createPin(taskbarItem),
                 new LinearLayout.LayoutParams(
-                        desktopDp(48, 36),
-                        LinearLayout.LayoutParams.MATCH_PARENT));
+                        mTasksVertical ? -1 : desktopDp(48, 36),
+                        mTasksVertical ? desktopDp(48, 36) : -1));
     }
 
     private View createPin(
@@ -903,8 +945,8 @@ final class TaskbarController {
     private void addOverflowButton() {
         mPins.addView(mOverflow.createButton(),
                 new LinearLayout.LayoutParams(
-                desktopDp(48, 36),
-                LinearLayout.LayoutParams.MATCH_PARENT));
+                mTasksVertical ? -1 : desktopDp(48, 36),
+                mTasksVertical ? desktopDp(48, 36) : -1));
     }
 
     private void activate(final TaskbarOverflowController.Entry taskbarItem) {
@@ -944,14 +986,11 @@ final class TaskbarController {
                 mActivity.isCompactDesktopPreview());
     }
 
-    private boolean isActionAt(final float localX, final float localY) {
-        if (mTaskbar == null) {
-            return false;
-        }
-        for (int index = 0; index < mTaskbar.getChildCount(); index++) {
+    private boolean isActionAt(final LinearLayout panel, final float localX, final float localY) {
+        for (int index = 0; index < panel.getChildCount(); index++) {
             if (isActionViewAt(
-                    mTaskbar,
-                    mTaskbar.getChildAt(index),
+                    panel,
+                    panel.getChildAt(index),
                     localX,
                     localY)) {
                 return true;
@@ -961,17 +1000,16 @@ final class TaskbarController {
     }
 
     ContextArea contextAreaAt(final float screenX, final float screenY) {
-        if (!containsOnScreen(mTaskbar, screenX, screenY)) {
-            return ContextArea.NONE;
-        }
         if (containsOnScreen(mStartButton, screenX, screenY)) {
             return ContextArea.START;
         }
         final int[] location = new int[2];
-        mTaskbar.getLocationOnScreen(location);
-        return isActionAt(screenX - location[0], screenY - location[1])
-                ? ContextArea.ACTION
-                : ContextArea.BLANK;
+        for (var panel : mPanels.values()) {
+            if (!containsOnScreen(panel.root, screenX, screenY)) continue;
+            panel.root.getLocationOnScreen(location);
+            return isActionAt(panel.root, screenX - location[0], screenY - location[1]) ? ContextArea.ACTION : ContextArea.BLANK;
+        }
+        return ContextArea.NONE;
     }
 
     private static boolean containsOnScreen(

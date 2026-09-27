@@ -111,6 +111,50 @@ public final class WaylandShellLayoutTest {
         }
     }
 
+    @Test public void higherLayerReservationSuppressesNativeInsetPaintUntilUnmapped() {
+        final var viewport = new DesktopViewport(100, 200, 1100, 1000, 30, 30, 30, 30);
+        for (ShellPanel.Edge edge : ShellPanel.Edge.values()) {
+            final var desktop = new DesktopShellLayout();
+            final var geometry = ShellLayoutTestSupport.geometry(ShellLayoutTestSupport.panel("main", edge,
+                    ShellAppearance.PanelStyle.defaults(), ShellComposition.Kind.START), viewport, 40);
+            desktop.update(viewport, List.of(geometry), false);
+            final var paint = desktop.taskbar().paint();
+            try (var adapter = new WaylandShellLayout(desktop.scope())) {
+                final var request = new WaylandShellSurface(1, 1, "panel", true, false,
+                        WaylandShellSurface.Layer.OVERLAY, WaylandShellSurface.Keyboard.NONE,
+                        geometry.anchors(), edge.vertical() ? 24 : 0, edge.vertical() ? 0 : 24, 0, 0, 0, 0, 24);
+                adapter.update(List.of(request), 160);
+                assertEquals(desktop.taskbar().content(), desktop.taskbar().paint());
+                assertTrue(desktop.taskbar().input().intersect(adapter.surface(1).input()).isEmpty());
+                adapter.update(List.of(new WaylandShellSurface(request.id(), 2, request.name(), false, false,
+                        request.layer(), request.keyboard(), request.anchors(), request.width(), request.height(),
+                        0, 0, 0, 0, 24)), 160);
+                assertEquals(paint, desktop.taskbar().paint());
+            }
+        }
+    }
+
+    @Test public void waybarStylePanelAvoidsNativeShellSpaceDuringAutoHideAndReveal() {
+        final var viewport = new DesktopViewport(100, 200, 1100, 1000, 30, 30, 30, 30);
+        for (ShellPanel.Edge edge : ShellPanel.Edge.values()) {
+            final var desktop = new DesktopShellLayout();
+            final var geometry = ShellLayoutTestSupport.geometry(ShellLayoutTestSupport.panel("main", edge,
+                    ShellAppearance.PanelStyle.defaults(), ShellComposition.Kind.START), viewport, 40);
+            desktop.update(viewport, List.of(geometry), false);
+            try (var adapter = new WaylandShellLayout(desktop.scope())) {
+                adapter.update(List.of(new WaylandShellSurface(1, 1, "waybar", true, false,
+                        WaylandShellSurface.Layer.TOP, WaylandShellSurface.Keyboard.NONE,
+                        geometry.anchors(), edge.vertical() ? 24 : 0, edge.vertical() ? 0 : 24, 0, 0, 0, 0, 24)), 160);
+                final var before = adapter.surface(1).content();
+                desktop.update(viewport, List.of(geometry), true);
+                assertEquals(before, adapter.surface(1).content());
+                assertTrue(desktop.taskbar().input().intersect(adapter.surface(1).input()).isEmpty());
+                desktop.update(viewport, List.of(geometry), false);
+                assertEquals(before, adapter.surface(1).content());
+            }
+        }
+    }
+
     private static WaylandShellSurface panel(long id, long revision, boolean mapped, boolean configure,
             int anchors, int height, int zone) {
         return new WaylandShellSurface(id, revision, "panel", mapped, configure,

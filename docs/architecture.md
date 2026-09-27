@@ -1051,19 +1051,25 @@ runtime integration and are not distributed through the same release path.
 
 ### Desktop UI
 
-- `ShellAppearance` separates semantic colors, typography and control shapes
-  from taskbar layout. `AppearanceStore` persists app-private defaults without
-  Desktop or privileged services; Settings, MCP and the CLI share its validator.
-  `UiAppearance` updates existing native Views and drawables. `TaskbarGeometry`
+- `ShellAppearance` separates semantic colors, typography, resources and control
+  shapes from panel layout. `AppearanceStore` persists app-private defaults and
+  sparse workspace overrides without Desktop or privileged services; Settings,
+  MCP and the CLI share its validator. Workspace keys use stable identities,
+  while live host bindings resolve the appearance for Views on each display.
+  `UiAppearance` updates existing native Views and drawables. `PanelGeometry`
   resolves density-independent dimensions through `DesktopShellLayout`, retaining
   the existing focus, input and task-area owners. See [Native appearance](appearance.md).
-- `ShellComposition` declares native taskbar components and Start sections.
+- `ShellComposition` declares native panels at each edge, their components and Start sections.
   `ShellComponentLayout` allocates fixed and flexible slots; UI reconciliation
   retains component Views and the existing action/service owners. `ShellMotion`
   and state feedback are presentation-only. `ShellAppearanceSchema` supplies the
   machine-readable contract and validation, while `AppearanceTransaction` owns
   non-persisted preview leases shared by Settings, MCP and CLI. No theme creates
   a window manager, execution backend or service authorization.
+- `ThemeBundleStore` validates bounded, data-only archives and atomically installs
+  immutable content-addressed assets. `ThemeAssets` prepares decoded resources off
+  the UI thread; `AppearanceStore` publishes the resolved document and resources
+  together. Rendering borrows cached resources and never reads bundle files.
 - `StartMenuController`, `TaskbarController`, `TaskOverviewController`, and
   `NotificationCenterController` own the persistent desktop controls.
 - `DesktopWorkspaceController` composes the fixed Android `Desktop` directory,
