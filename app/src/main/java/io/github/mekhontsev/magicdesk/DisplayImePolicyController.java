@@ -1,15 +1,9 @@
 package io.github.mekhontsev.magicdesk;
 
-import android.os.IBinder;
-
-import java.lang.reflect.Method;
-
 /** Owns one controlled display's temporary Android IME placement and restoration. */
 final class DisplayImePolicyController implements AutoCloseable {
     private static final int LOCAL = 0;
     private static final int FALLBACK_TO_DEFAULT_DISPLAY = 1;
-
-    private static volatile Access sAccess;
 
     interface Api {
         int get(int displayId) throws ReflectiveOperationException;
@@ -26,17 +20,13 @@ final class DisplayImePolicyController implements AutoCloseable {
         this(new Api() {
             @Override
             public int get(final int displayId) throws ReflectiveOperationException {
-                final Access access = access();
-                return ((Integer) access.get.invoke(
-                        access.windowManager, Integer.valueOf(displayId))).intValue();
+                return FrameworkRuntime.current().displayIme().get(displayId);
             }
 
             @Override
             public void set(final int displayId, final int policy)
                     throws ReflectiveOperationException {
-                final Access access = access();
-                access.set.invoke(access.windowManager,
-                        Integer.valueOf(displayId), Integer.valueOf(policy));
+                FrameworkRuntime.current().displayIme().set(displayId, policy);
             }
         });
     }
@@ -72,8 +62,10 @@ final class DisplayImePolicyController implements AutoCloseable {
         if (current != policy) {
             mApi.set(target, policy);
         }
-        if (mApi.get(target) != policy) {
-            throw new IllegalStateException("display IME placement was not applied");
+        final int actual = mApi.get(target);
+        if (actual != policy) {
+            throw new IllegalStateException("display IME placement was not applied: display="
+                    + target + ", requested=" + policy + ", actual=" + actual);
         }
         mAppliedPolicy = policy;
         mPendingPolicy = -1;
@@ -102,49 +94,4 @@ final class DisplayImePolicyController implements AutoCloseable {
         }
     }
 
-    private static Access access() throws ReflectiveOperationException {
-        Access access = sAccess;
-        if (access != null) {
-            return access;
-        }
-        synchronized (DisplayImePolicyController.class) {
-            access = sAccess;
-            if (access == null) {
-                access = new Access();
-                sAccess = access;
-            }
-        }
-        return access;
-    }
-
-    private static final class Access {
-        final Object windowManager;
-        final Method get;
-        final Method set;
-
-        Access() throws ReflectiveOperationException {
-            final IBinder binder = (IBinder) Class
-                    .forName("android.os.ServiceManager")
-                    .getMethod("getService", String.class)
-                    .invoke(null, "window");
-            if (binder == null) {
-                throw new IllegalStateException(
-                        "window service is unavailable");
-            }
-            final Class<?> interfaceType = Class.forName(
-                    "android.view.IWindowManager");
-            windowManager = Class
-                    .forName("android.view.IWindowManager$Stub")
-                    .getMethod("asInterface", IBinder.class)
-                    .invoke(null, binder);
-            if (windowManager == null) {
-                throw new IllegalStateException(
-                        "window manager interface is unavailable");
-            }
-            get = interfaceType.getMethod(
-                    "getDisplayImePolicy", int.class);
-            set = interfaceType.getMethod(
-                    "setDisplayImePolicy", int.class, int.class);
-        }
-    }
 }

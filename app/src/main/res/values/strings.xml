@@ -96,6 +96,9 @@
     <string name="display_move_task">Move from display %1$d (task %2$d)</string>
     <string name="display_no_tasks">No running applications</string>
     <string name="display_control">Control this display</string>
+    <string name="display_input_setup">External display input</string>
+    <string name="display_input_setup_enable">Enable system option</string>
+    <string name="display_input_setup_confirm">Android 14 uses one system pointer display. Enable System desktop mode on external displays to allow the pointer on an external screen. This changes Android policy for all external displays, not just MagicDesk.\n\nAfter enabling it, you may need to disconnect and reconnect the screen, then select Control this display again. With several displays connected, Android chooses the pointer target.\n\nYou can turn this option off in Settings. This does not start a MagicDesk Desktop.</string>
     <string name="display_release_input">Release input</string>
     <string name="display_input_active">Input connected</string>
     <string name="display_input_starting">Connecting input...</string>
@@ -808,7 +811,8 @@
     <string name="settings_open_files_single_click">Open desktop and Files items with a single click</string>
     <string name="settings_open_touchpad_automatically">Open touchpad automatically</string>
     <string name="settings_keyboard_on_app_display">Show keyboard on app display</string>
-    <string name="keyboard_placement_failed">Could not change keyboard placement: %1$s</string>
+    <string name="keyboard_placement_failed">Screen keyboard placement unavailable; input routing remains active. %1$s</string>
+    <string name="settings_section_input">Display input</string>
     <string name="settings_keep_desktop_awake">Keep session active</string>
     <string name="settings_keep_screen_on">Keep phone screen on</string>
     <string name="settings_phone_fullscreen_default">New windows fullscreen on phone</string>

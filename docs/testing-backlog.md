@@ -10,6 +10,7 @@ fingerprints and reproduction details belong in compatibility reports.
 | --- | --- | --- |
 | RedMagic 11 Pro NX809J EEA | Android 16 / API 36, build `20260204.221845` | Direct phone/simulated/HDMI/Miracast testing, physical and phone input, recording, HOME lifecycle, task cleanup |
 | OnePlus 5 (`ONEPLUS A5000`) | LineageOS 22.2 / Android 15 / API 35, build `2ed70c6518` | Maintainer-verified phone/simulated and Miracast testing on the Standard Android provider, physical mouse/keyboard, focus and Alt+Tab, HOME/task/display cleanup, remote MCP and APK updates |
+| Samsung Galaxy A52s (`SM-A528B`) | Android 14 / API 34, build `A528BXXSBGYI3` | Maintainer-verified independent shared services under Shizuku UID 2000: network MCP, headless shell, UI inspection/actions, display screenshots, debug APK updates/reconnect, Miracast input and phone touchpad |
 | RedMagic 11 Pro NX809J-UN | Android 16, build `20260625.022314` | Community desktop startup, external sizing, task recovery, output modes, recording and optional launch targets |
 | nubia Z80 Ultra NX741J | Android 16, build `20251229.234747` | Community wired/freeform, `2560x1080@75`, focus, keyboard, phone-screen-off, recovery and simulated cleanup |
 
@@ -22,12 +23,32 @@ confirmed physical modes remain usable through Android. Hardware controls vary.
 
 See [Compatibility](compatibility.md) for profile confidence and limitations.
 
+### Android 14 Shared Services
+
+On Samsung SM-A528B, the verified workflows run without Desktop or a HOME lease:
+
+- Network MCP state, diagnostics and headless shell commands.
+- Same-signature debug APK upload/replacement, exact installer receipt and
+  connection to the new process without resetting app data.
+- Android UI inspection by display and task, semantic actions and phone-display
+  screenshots.
+- Miracast input acquisition, release and reacquisition; the phone touchpad's
+  native uinput helper emits events with the system pointer targeting that output.
+- Live screen-keyboard placement changes without restarting the mouse. A rejected
+  fallback policy is a separate warning and leaves input ready.
+
+These checks do not cover Termux, PTY, X11/Wayland, physical keyboard/mouse
+hotplug, or the complete virtual-display and ordinary task-operation lifecycle.
+The tested Google Cast output exposes no input viewport; it is not covered by
+the successful Miracast direct-pointer path.
+
 ## Automated Coverage
 
 - JVM tests cover state models, parsers, resource ownership, task/display policy,
   shell quoting, files, content, profile identities and platform isolation.
 - Lint and assembly validate the APK's API 34 minimum and module boundaries.
-  Native artifacts target API 34 but still need device validation; see
+  Native artifacts target API 34; device coverage remains per helper, not implied
+  by the build. See
   [Runtime API levels](runtime-api-levels.md).
 - Linux and Windows CI build artifacts. Linux also runs native protocol/PTY
   fixtures. These jobs do not run Android emulators.
@@ -80,8 +101,13 @@ Run these without Desktop; managed Desktop self-tests cannot prove isolation:
   [graphics fixtures](graphics.md) and [Wayland tests](wayland.md#verification).
 - [ ] Create a virtual display, launch/capture fullscreen tools there and remove
   it without Desktop; verify viewer/display/session lifetimes separately.
-- [ ] Verify APK update, exact installer receipt and reconnect on API 34/35/36,
-  without retrying an accepted installation after transport loss.
+- [ ] On API 34, verify ordinary task transfer/closure, task-surface capture and
+  physical input hotplug. Investigate `task moved or closed before placement`
+  responses for live Samsung tasks; input-route success does not validate these
+  separate operations.
+- [ ] Exercise failed/interrupted APK updates and reconnect on API 34/35/36,
+  without retrying an accepted installation after transport loss. Successful
+  replacement and exact-receipt coverage on Samsung/API 34 is recorded above.
 - [ ] Validate local/network grant changes, interface loss, wrong tokens,
   transfer retries and digest checks independently of Desktop.
 
@@ -118,7 +144,8 @@ Run these without Desktop; managed Desktop self-tests cannot prove isolation:
 
 ## Additional Hardware And Release Coverage
 
-- [ ] Validate the API-34-targeted native helpers on an actual Android 14 device.
+- [ ] Complete API 34 native-helper coverage beyond the verified phone
+  mouse/uinput path, including PTY and graphical runtimes.
   Any future x86_64 emulator matrix requires matching native artifacts first.
 - [ ] Test supported stock Pixel, Samsung and Xiaomi Android 15+ firmware;
   shared architecture is not a substitute for this coverage.

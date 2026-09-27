@@ -36,7 +36,7 @@ final class ShellInputRoutingHandle implements Closeable {
         try {
             mService.refreshInputRouting(mOwnerToken);
         } catch (RemoteException | RuntimeException error) {
-            throw new IOException("input routing refresh failed", error);
+            throw new IOException("input routing refresh failed: " + ShellAccess.usefulMessage(error), error);
         }
     }
 
@@ -47,7 +47,7 @@ final class ShellInputRoutingHandle implements Closeable {
         try {
             mService.setInputKeyboardPlacement(mOwnerToken, onAppDisplay);
         } catch (RemoteException | RuntimeException error) {
-            throw new IOException("keyboard placement failed", error);
+            throw new IOException("keyboard placement failed: " + ShellAccess.usefulMessage(error), error);
         }
     }
 

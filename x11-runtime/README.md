@@ -31,8 +31,8 @@ From the repository root:
 sh scripts/verify-native.sh
 ```
 
-Build checks do not replace device testing; Android 14 device coverage remains
-pending. See the [verification procedure](../docs/x11.md#verification).
+Build checks do not replace device testing; embedded X11 coverage on Android 14
+remains pending. See the [verification procedure](../docs/x11.md#verification).
 
 ## Licensing
 

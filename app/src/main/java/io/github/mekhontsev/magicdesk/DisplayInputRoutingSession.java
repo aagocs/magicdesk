@@ -26,14 +26,12 @@ public final class DisplayInputRoutingSession implements AutoCloseable {
         mImePolicy = new DisplayImePolicyController();
     }
 
-    static DisplayInputRoutingSession open(final int displayId, final boolean desktop,
-            final boolean keyboardOnAppDisplay) throws Exception {
+    static DisplayInputRoutingSession open(final int displayId, final boolean desktop) throws Exception {
         final DisplayInputRoutingSession session = new DisplayInputRoutingSession(displayId, desktop);
         try {
             session.mLease.recover();
             session.refresh();
             if (session.mShortcuts != null) { session.mShortcuts.acquire(); }
-            session.setKeyboardPlacement(keyboardOnAppDisplay);
             return session;
         } catch (Exception error) {
             try {
@@ -60,7 +58,10 @@ public final class DisplayInputRoutingSession implements AutoCloseable {
         try {
             mImePolicy.configure(mDisplayId, onAppDisplay);
         } catch (ReflectiveOperationException | RuntimeException error) {
-            throw new IOException("cannot change display IME placement", error);
+            final Throwable cause = error instanceof java.lang.reflect.InvocationTargetException
+                    && error.getCause() != null ? error.getCause() : error;
+            throw new IOException("cannot change display IME placement: "
+                    + ShellAccess.usefulMessage(cause), error);
         }
     }
 
@@ -80,6 +81,10 @@ public final class DisplayInputRoutingSession implements AutoCloseable {
         }
         final Set<String> ports = selectPorts(dump);
         if (mDisplayId == 0) ports.remove(VIRTUAL_MOUSE_LOCATION);
+        if (FrameworkInputRoutingApi.usesGlobalPointerRouting(android.os.Build.VERSION.SDK_INT)) {
+            FrameworkInputRoutingApi.requirePointerTarget(android.os.Build.VERSION.SDK_INT, mDisplayId,
+                    FrameworkInputRoutingSnapshot.parse(dump));
+        }
         mLease.reconcile(mDisplayUniqueId, ports);
     }
 

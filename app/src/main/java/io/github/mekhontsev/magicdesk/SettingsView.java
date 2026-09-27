@@ -171,6 +171,12 @@ final class SettingsView {
         addAction(content, R.drawable.ic_font_size, R.string.settings_console_font_size,
                 mActions::configureConsoleFontSize, mConsoleFontSize);
 
+        addSection(content, R.string.settings_section_input);
+        mKeyboardOnAppDisplay = addSwitch(content, R.string.settings_keyboard_on_app_display);
+        mKeyboardOnAppDisplay.setOnCheckedChangeListener((button, checked) -> {
+            if (!mRendering) mActions.setKeyboardOnAppDisplay(checked);
+        });
+
         addSection(content, R.string.settings_section_session);
         mOpenTouchpadAutomatically = addSwitch(
                 content, R.string.settings_open_touchpad_automatically);
@@ -180,10 +186,6 @@ final class SettingsView {
                         mActions.setOpenTouchpadAutomatically(checked);
                     }
                 });
-        mKeyboardOnAppDisplay = addSwitch(content, R.string.settings_keyboard_on_app_display);
-        mKeyboardOnAppDisplay.setOnCheckedChangeListener((button, checked) -> {
-            if (!mRendering) mActions.setKeyboardOnAppDisplay(checked);
-        });
         mKeepScreenOn = addSwitch(content, R.string.settings_keep_screen_on);
         mKeepScreenOn.setOnCheckedChangeListener((button, checked) -> {
             if (!mRendering) mActions.setKeepScreenOn(checked);
@@ -420,12 +422,13 @@ final class SettingsView {
         mDesktopSettingsStatus.setText(!RuntimeCapabilities.supportsDesktop(android.os.Build.VERSION.SDK_INT)
                 ? R.string.capability_android_15_required : !RuntimeLimits.active().desktopAllowed()
                 ? R.string.limit_desktop_disabled : R.string.capability_access_required);
-        for (final Switch control : new Switch[] {mTaskbarAutoHide, mKeyboardOnAppDisplay,
+        for (final Switch control : new Switch[] {mTaskbarAutoHide,
                 mOpenTouchpadAutomatically, mKeepDesktopAwake, mKeepScreenOn,
                 mPhoneFullscreenByDefault, mDisableAdaptiveBrightness}) {
             control.setEnabled(mDesktopSettingsAvailable);
         }
         mOpenFilesWithSingleClick.setEnabled(settings != null);
+        mKeyboardOnAppDisplay.setEnabled(settings != null);
         mSystemThemeAction.setEnabled(mDesktopSettingsAvailable);
         mSystemThemeAction.setAlpha(mDesktopSettingsAvailable ? 1f : 0.5f);
         if (mProjectionDesktopOption != null) {
@@ -475,11 +478,11 @@ final class SettingsView {
         if (enabled != null) {
             mSystemDesktopMode.setChecked(enabled);
         }
-        final boolean editable = mDesktopSettingsAvailable && enabled != null && canChange && !busy;
+        final boolean editable = enabled != null && canChange && !busy;
         mSystemDesktopMode.setEnabled(editable);
         mSystemDesktopMode.setAlpha(editable ? 1f : 0.5f);
-        mResetCompatibilityDefaults.setEnabled(editable);
-        mResetCompatibilityDefaults.setAlpha(editable ? 1f : 0.5f);
+        mResetCompatibilityDefaults.setEnabled(mDesktopSettingsAvailable && editable);
+        mResetCompatibilityDefaults.setAlpha(mDesktopSettingsAvailable && editable ? 1f : 0.5f);
         for (final Switch control : mCompatibility.values()) {
             control.setEnabled(mDesktopSettingsAvailable && !busy);
         }

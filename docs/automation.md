@@ -557,7 +557,9 @@ launch/self-test target still means the system default display.
 `get_state.homeLease` reports shared phase, closing display and membership;
 it is not a fresh Android role-holder query. `get_state.inputControl` independently reports
 `requestedDisplayId`, `readyDisplayId`, `transitioning` and `error`, including
-manual control without Desktop or on a different display.
+manual control without Desktop or on a different display. `keyboardPlacementError`
+reports an optional screen-keyboard placement failure without invalidating
+`input_ready` or `pointer_ready`; physical input and the touchpad remain independent.
 Launch, task, UI and injected-input commands continue to address logical Android
 displays. Viewer presentation bindings are separate from these task targets.
 
@@ -721,6 +723,12 @@ Viewer launch and attachment errors remain authoritative.
   the same display ID (including `-1`); `pointer_ready` separately verifies the
   phone mouse transport. No HOME or Desktop is acquired. Desktop shortcuts are
   enabled only when the selected display hosts its prepared workspace.
+  On Android 14, routing additionally requires Android's global pointer target
+  to match. A failure includes the observed target and preparation instructions;
+  the command does not change system desktop policy or display configuration.
+  After enabling **System desktop mode on external displays** and reconnecting
+  the screen if needed, repeat the request with its current display ID. Repeating
+  a failed selection retries acquisition; repeating a ready selection is a no-op.
 - `move_task(taskId, displayId, placement, mode, uniqueId)` reuses an existing
   current-profile app task. `placement=auto` follows Desktop availability;
   `desktop` requires a workspace and `display` selects independent fullscreen.

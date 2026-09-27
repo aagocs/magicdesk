@@ -56,7 +56,7 @@ final class FrameworkInputRoutingApi implements InputRoutingLease.Api {
     }
 
     int[] keyboardDeviceIds(final int displayId) throws ReflectiveOperationException {
-        // Public in API 37, hidden but present on the API 35 baseline. Resolve
+        // Public in API 37, hidden but present on the API 34 baseline. Resolve
         // here under shell identity, never from the accessibility key callback.
         final Method associatedDisplay = InputDevice.class.getMethod("getAssociatedDisplayId");
         final java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
@@ -71,6 +71,32 @@ final class FrameworkInputRoutingApi implements InputRoutingLease.Api {
             }
         }
         return ids.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    static boolean usesGlobalPointerRouting(final int sdk) {
+        return sdk == 34;
+    }
+
+    static void requirePointerTarget(final int sdk, final int displayId,
+            final FrameworkInputRoutingSnapshot state) throws IOException {
+        if (!usesGlobalPointerRouting(sdk)) return;
+        // API 34 drops mouse events when the associated viewport differs from
+        // its shared pointer controller. An association alone is not readiness.
+        // Before the first mouse exists, only the system's requested target exists;
+        // the device-added refresh also verifies the instantiated controller.
+        if (state.requestedPointerDisplayId != null
+                && state.requestedPointerDisplayId == displayId
+                && (!state.pointerControllerPresent
+                        || state.pointerDisplayId != null && state.pointerDisplayId == displayId)) return;
+        throw new IOException("Android 14 system pointer target does not match display " + displayId
+                + " (requested=" + state.requestedPointerDisplayId
+                + ", controller=" + state.pointerDisplayId + "). "
+                + (displayId > 0
+                        ? "Enable System desktop mode on external displays in Settings, reconnect the display, "
+                                + "then select Control this display again. Android chooses one pointer display; "
+                                + "another connected display may take priority."
+                        : "Release external input and disconnect the external display or disable System desktop "
+                                + "mode on external displays before reconnecting it."));
     }
 
     @Override

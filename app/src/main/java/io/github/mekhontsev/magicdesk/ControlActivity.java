@@ -470,6 +470,54 @@ public final class ControlActivity extends Activity
         selectInput(display.id);
     }
 
+    private void showInputPreparation(final int displayId, final String failure) {
+        if (FrameworkInputRoutingApi.usesGlobalPointerRouting(android.os.Build.VERSION.SDK_INT)
+                && displayId > 0 && !isFinishing() && !isDestroyed()) {
+            try {
+                if (!SystemDesktopModeSetting.read(this) && SystemDesktopModeSetting.canChange()) {
+                    new android.app.AlertDialog.Builder(this)
+                            .setTitle(R.string.display_input_setup)
+                            .setMessage(failure + "\n\n" + getString(R.string.display_input_setup_confirm))
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .setPositiveButton(R.string.display_input_setup_enable,
+                                    (dialog, which) -> prepareDisplayInput(displayId))
+                            .show();
+                }
+            } catch (java.io.IOException error) {
+                mStatus = failure + "\n" + ShellAccess.usefulMessage(error);
+                refresh();
+            }
+        }
+    }
+
+    private void prepareDisplayInput(final int displayId) {
+        if (mDisplayOperation) return;
+        mDisplayOperation = true;
+        refresh();
+        final android.content.Context context = getApplicationContext();
+        new Thread(() -> {
+            String failure = null;
+            try {
+                SystemDesktopModeSetting.setEnabled(context, true);
+            } catch (java.io.IOException | RuntimeException error) {
+                failure = ShellAccess.usefulMessage(error);
+                CompatibilityDiagnostics.record("INPUT-SETUP-001",
+                        "Could not prepare external display input", failure, error);
+            }
+            final String result = failure;
+            runOnUiThread(() -> {
+                mDisplayOperation = false;
+                if (isFinishing() || isDestroyed()) return;
+                if (result != null) {
+                    mStatus = result;
+                    refresh();
+                } else {
+                    selectInput(displayId);
+                }
+            });
+        }, "MagicDeskInputSetup").start();
+    }
+
     @Override public void openApplications(final DesktopDisplayInfo display) {
         if (display == null) StartActivity.open(this);
         else StartActivity.open(this, display);
@@ -483,8 +531,9 @@ public final class ControlActivity extends Activity
 
     private void selectInput(final int displayId) {
         MagicDeskRuntime.selectInputDisplay(displayId, result -> runOnUiThread(() -> {
-            if (!result.success) { mStatus = result.message; }
+            mStatus = result.success ? "" : result.message;
             refresh();
+            if (!result.success) showInputPreparation(displayId, result.message);
         }));
     }
 

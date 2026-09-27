@@ -190,6 +190,9 @@ public final class MagicDeskRuntimeService extends Service
     }
     @Override public boolean inputTransitioning() { return mDisplayInput != null && mDisplayInput.transitioning(); }
     @Override public String inputError() { return mDisplayInput == null ? "" : mDisplayInput.error(); }
+    @Override public String inputKeyboardPlacementError() {
+        return mDisplayInput == null ? "" : mDisplayInput.keyboardPlacementError();
+    }
 
     private final DisplayInputRequests mInputRequests = new DisplayInputRequests();
 

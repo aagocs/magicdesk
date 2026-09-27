@@ -23,6 +23,8 @@ final class DesktopInputReportSnapshot {
     final Set<String> missingAssociations;
     final Set<String> unexpectedAssociations;
     final String inputStateError;
+    final FrameworkInputRoutingSnapshot routing;
+    final String keyboardPlacementError;
 
     private DesktopInputReportSnapshot(
             final InputSessionDiagnostics.Snapshot lifecycle,
@@ -36,7 +38,9 @@ final class DesktopInputReportSnapshot {
             final Map<String, String> activeAssociations,
             final Set<String> missingAssociations,
             final Set<String> unexpectedAssociations,
-            final String inputStateError) {
+            final String inputStateError,
+            final FrameworkInputRoutingSnapshot routing,
+            final String keyboardPlacementError) {
         this.lifecycle = lifecycle;
         this.runtime = runtime;
         this.touchpadRequested = touchpadRequested;
@@ -49,6 +53,8 @@ final class DesktopInputReportSnapshot {
         this.missingAssociations = missingAssociations;
         this.unexpectedAssociations = unexpectedAssociations;
         this.inputStateError = inputStateError;
+        this.routing = routing;
+        this.keyboardPlacementError = keyboardPlacementError;
     }
 
     static DesktopInputReportSnapshot capture() {
@@ -69,6 +75,7 @@ final class DesktopInputReportSnapshot {
         Set<String> missingAssociations = new LinkedHashSet<>();
         Set<String> unexpectedAssociations = new LinkedHashSet<>();
         String inputStateError = "";
+        FrameworkInputRoutingSnapshot routing = null;
         if (!ShellAccess.isReady()) {
             inputStateError = "Privileged runtime unavailable";
         } else {
@@ -85,8 +92,8 @@ final class DesktopInputReportSnapshot {
                 physicalMice = mice.size() - virtualMice;
                 physicalKeyboards = keyboards.size();
                 ownedPorts = ShellAccess.ownedInputPorts();
-                final Map<String, String> allAssociations =
-                        FrameworkInputRoutingSnapshot.parse(inputDump).labels();
+                routing = FrameworkInputRoutingSnapshot.parse(inputDump);
+                final Map<String, String> allAssociations = routing.labels();
                 final AssociationState associationState =
                         classifyAssociations(ownedPorts, allAssociations);
                 activeAssociations = associationState.active;
@@ -108,7 +115,9 @@ final class DesktopInputReportSnapshot {
                 activeAssociations,
                 missingAssociations,
                 unexpectedAssociations,
-                inputStateError);
+                inputStateError,
+                routing,
+                MagicDeskRuntime.inputKeyboardPlacementError());
     }
 
     void appendReport(final StringBuilder report) {
@@ -136,7 +145,14 @@ final class DesktopInputReportSnapshot {
         if (!inputStateError.isEmpty()) {
             report.append(", error=").append(inputStateError);
         }
+        if (routing != null && FrameworkInputRoutingApi.usesGlobalPointerRouting(android.os.Build.VERSION.SDK_INT)) {
+            report.append(", systemPointerRequested=").append(routing.requestedPointerDisplayId)
+                    .append(", systemPointerController=").append(routing.pointerDisplayId);
+        }
         report.append('\n')
+                .append("Screen keyboard placement: error=")
+                .append(keyboardPlacementError.isEmpty() ? "none" : keyboardPlacementError)
+                .append('\n')
                 .append("Pointer snapshot: provider=")
                 .append(runtime.pointerProvider)
                 .append(", display=").append(runtime.displayId)

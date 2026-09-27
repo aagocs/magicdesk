@@ -42,14 +42,14 @@ final class RuntimeDisplayInputCoordinator {
         mHardwareKeyboardChanged = hardwareKeyboardChanged;
         mInputDevices = new RuntimeInputCoordinator(
                 context, handler, this::handleInputStateChanged);
-        mInputSession = new DisplayInputSession(context, handler, this::handleInputSessionStateChanged);
+        mInputSession = new DisplayInputSession(context, handler, this::handleInputSessionStateChanged,
+                error -> android.widget.Toast.makeText(mContext,
+                        mContext.getString(R.string.keyboard_placement_failed, error),
+                        android.widget.Toast.LENGTH_LONG).show());
     }
 
     void refreshSettings(final MagicDeskSettings.Values settings, final Runnable completion) {
-        mInputSession.setKeyboardOnAppDisplay(settings.keyboardOnAppDisplay,
-                error -> android.widget.Toast.makeText(mContext,
-                        mContext.getString(R.string.keyboard_placement_failed, error),
-                        android.widget.Toast.LENGTH_LONG).show(), completion);
+        mInputSession.setKeyboardOnAppDisplay(settings.keyboardOnAppDisplay, completion);
     }
 
     void start() {
@@ -101,6 +101,7 @@ final class RuntimeDisplayInputCoordinator {
         completeSelection(false, "input selection was superseded");
         mSelectionCompletion = completion;
         updateInputBridges();
+        mInputSession.retryFailedSelection();
         updateShowImeOverride();
         finishSelectionIfSettled();
     }
@@ -123,6 +124,7 @@ final class RuntimeDisplayInputCoordinator {
     int readyDisplay() { return mInputSession.readyDisplay(); }
     boolean transitioning() { return mInputSession.transitioning(); }
     String error() { return mInputSession.error(); }
+    String keyboardPlacementError() { return mInputSession.keyboardPlacementError(); }
 
     void reconcileSoftwareKeyboardPolicy() {
         if (!mDestroyed) {

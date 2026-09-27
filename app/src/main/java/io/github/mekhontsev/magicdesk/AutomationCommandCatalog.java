@@ -1615,7 +1615,7 @@ final class AutomationCommandCatalog {
                         .put("connection", openObjectProperty("Listener scope and current granted permissions."))
                         .put("workspaces", arrayProperty("Desktop workspace residencies and their local UI state.", openObjectProperty("Workspace.")))
                         .put("graphics", arrayProperty("Same session catalog as graphics.list.", graphicalSessionSchema()))
-                        .put("inputControl", openObjectProperty("Independent input target: requestedDisplayId, readyDisplayId, transitioning and error."))
+                        .put("inputControl", openObjectProperty("Independent input target: requestedDisplayId, readyDisplayId, transitioning, error; keyboardPlacementError reports optional screen-keyboard placement separately from input readiness."))
                         .put("services", openObjectProperty("Service prerequisites, independent of MCP grants."))
                         .put("limits", openObjectProperty("Active and configured startup limits: maximumAccess (root/shell/app_only), termux, desktop; restartRequired."))
                         .put("runtime", openObjectProperty("Runtime state."));

@@ -507,8 +507,9 @@ A viewer, display and Desktop session have independent lifetimes:
   displays. Their connection is managed by Android and the external device.
 
 Display creation and ordinary tool placement do not require WMShell Desktop.
-Android 14 execution coverage remains pending; additional built-in screens on
-dual-screen/foldable devices are not yet verified Desktop targets.
+Android 14 has [partial independent-service coverage](docs/testing-backlog.md#device-coverage);
+additional built-in screens on dual-screen/foldable devices are not yet verified
+Desktop targets.
 
 ## Automation
 
@@ -576,8 +577,9 @@ Include its full version from Diagnostics when reporting a problem.
 ## Requirements And Setup
 
 The APK requires **Android 14+**; managed **Desktop requires Android 15+**.
-The native helpers currently target ARM64. Android 14 device validation is
-pending. Windowing capabilities, external video support and firmware behavior
+The native helpers currently target ARM64. Android 14 shared services have
+partial device coverage on Samsung SM-A528B; Linux graphical runtimes still need
+testing on that release. Windowing capabilities, external video support and firmware behavior
 vary by device; see [tested coverage and limitations](docs/compatibility.md)
 and the [API-level contract](docs/runtime-api-levels.md).
 
@@ -598,7 +600,7 @@ X11 and Wayland on the phone or an Android-allowed secondary display;
 and display control; **root** can additionally enter prepared chroots in Console
 or Linux graphics without Termux. Enable both integrations to combine them. Managed
 Desktop adds window management on Android 15+; it is not a prerequisite for
-the independent tools. Android 14 device coverage remains pending.
+the independent tools.
 
 1. Install MagicDesk and open Phone Control Panel.
 2. For privileged features, start Shizuku and authorize MagicDesk, or select
@@ -785,7 +787,7 @@ git submodule update --init --recursive
 ```
 
 Host builds do not replace device testing. Native helpers are currently ARM64;
-API 34 native validation and other ABIs remain in the
+Remaining API 34 native validation and other ABIs are tracked in the
 [validation plan](docs/testing-backlog.md).
 
 > **Development note:** MagicDesk is a vibe-coded project, built primarily through

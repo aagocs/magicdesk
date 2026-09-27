@@ -2,8 +2,8 @@
 
 The APK minimum is Android 14 / API 34. Managed Desktop requires Android 15 /
 API 35. Independent tools, automation and display resources have separate
-runtime prerequisites. Android 14 device validation is pending; see the
-[API-level contract](runtime-api-levels.md).
+runtime prerequisites. Android 14 has partial shared-service coverage on Samsung
+SM-A528B, not managed Desktop coverage; see the [API-level contract](runtime-api-levels.md).
 
 The core is vendor-independent: shared Android adapters own tasks, input routing,
 IME policy, HOME, displays, files and automation. Vendor extensions are not
@@ -180,6 +180,7 @@ and monitor waits are rejected by repository tests.
 | --- | --- | --- | --- | --- |
 | RedMagic 11 Pro (`NX809J`, EEA) | `20260204.221845` | Maintainer-verified | Wired and Miracast desktops, windows, physical and phone-side input, display modes, recording, hardware controls, and task recovery | The optional XR hot-plug kernel fix remains device and kernel specific |
 | OnePlus 5 (`ONEPLUS A5000`) | LineageOS 22.2, Android 15 / API 35, `2ed70c6518` | Maintainer-verified | Phone and simulated desktops, Miracast, freeform and explicit fullscreen, focus, Alt+Tab, physical mouse/keyboard and layout switching, HOME/task/display cleanup, and remote MCP including APK updates | Application-requested immersive fullscreen remains unavailable (`WINDOW-015`); native caption snap is not part of this firmware's self-test scenario |
+| Samsung Galaxy A52s (`SM-A528B`) | Android 14 / API 34, `A528BXXSBGYI3` | Maintainer-verified shared services | Shizuku UID 2000, network MCP, headless shell, display screenshots, UI inspection/actions, debug APK replacement/reconnect, Miracast input acquisition/release and phone touchpad | Desktop requires API 35; Linux hosts and the complete display lifecycle remain unverified. Android's global pointer target must match the output; IME fallback can be overridden by system policy without disabling input |
 | RedMagic 11 Pro (`NX809J-UN`) | `20260625.022314` | Community-tested | Desktop startup, external sizing, task recovery, Mora discovery, output modes, and external-display recording | Not run through the complete maintainer hardware matrix |
 | nubia Z80 Ultra (`NX741J`) | `20251229.234747` | Community-tested | Wired desktop, `2560x1080@75` output and wide external sizing on the physical display, multiple freeform windows, focus and keyboard input, phone-screen-off operation, task recovery, and simulated self-test cleanup | The vendor HDMI timing node is unavailable to shell UID 2000; Android's reported physical-display mode is sufficient for the confirmed wide output |
 
@@ -187,13 +188,14 @@ Exact tested fingerprints:
 
 - `REDMAGIC/NX809J-EEA/NX809J:16/BQ2A.250705.001-BP2A.250605.031.A3/20260204.221845:user/release-keys`
 - OnePlus 5 LineageOS build `2ed70c6518` reports `OnePlus/OnePlus5/OnePlus5:10/QKQ1.191014.012/2010292059:user/release-keys`. This reused stock fingerprint does not identify the installed ROM by itself: the verified target is LineageOS 22.2 / API 35 with that incremental build, not stock Android 10 or other Lineage builds.
+- `samsung/a52sxqxx/a52sxq:14/UP1A.231005.007/A528BXXSBGYI3:user/release-keys`
 - `REDMAGIC/NX809J-UN/NX809J:16/BQ2A.250705.001-BP2A.250605.031.A3/20260625.022314:user/release-keys`
 - `nubia/PQ85A01-UN/PQ85A01:16/BQ2A.250705.001-BP2A.250605.031.A3/20251229.234747:user/release-keys`
 
-Unverified reports and partially completed test matrices remain in
-[`testing-backlog.md`](testing-backlog.md). They are promoted here only after a
-user confirms the relevant desktop, window, input, and cleanup workflows on the
-exact fingerprint.
+Unverified workflows and partially completed test matrices remain in
+[`testing-backlog.md`](testing-backlog.md). Each entry above covers only the
+confirmed workflows on that firmware. Shared-service verification does not
+establish Desktop, Linux-runtime or complete display-lifecycle compatibility.
 
 The OnePlus profile uses the Standard Android provider without a firmware
 extension. Its maintainer-verified scope documents direct testing, not a claim
@@ -231,9 +233,11 @@ in-APK catalog recognition must not use its reused stock fingerprint alone.
   outputs. It reuses a compatible available virtual display before creating one.
   Google Cast receivers can expose this kind of public, untrusted display;
   it is distinct from a Miracast connection.
-- Android 14 installation is the chosen APK baseline, but device and native
-  helper validation remain pending. The current helpers are ARM64-only; see
-  [Runtime API levels](runtime-api-levels.md).
+- Android 14 coverage is partial. Miracast input on the tested Samsung requires
+  Android's shared pointer target to select the external display. Its Google Cast
+  output has no input viewport and cannot use the same direct-pointer path.
+  X11/Wayland, PTY and remaining native workflows still need API 34 validation.
+  The current helpers are ARM64-only; see [Runtime API levels](runtime-api-levels.md).
 - Application-requested immersive state may be unavailable on Android 15
   firmware, including the tested Lineage path. Explicit fullscreen remains a
   separate operation; unsupported observation is not a negative app request.

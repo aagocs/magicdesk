@@ -3,8 +3,8 @@
 MagicDesk has independent tools and automation on Android 14+, with managed
 Desktop on Android 15+. These instructions describe the current development
 build. See [Compatibility](compatibility.md) for tested devices and
-[runtime API levels](runtime-api-levels.md) for unverified boundaries, including
-Android 14 native execution.
+[runtime API levels](runtime-api-levels.md) for per-service coverage and remaining
+device checks.
 
 ## Install
 

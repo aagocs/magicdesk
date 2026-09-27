@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class DisplayInputSession {
     private final Handler mHandler;
     private final Runnable mChanged;
+    private final java.util.function.Consumer<String> mKeyboardFailure;
     private final DesktopMouseBridge mMouse;
     private final ExecutorService mWorker = Executors.newSingleThreadExecutor(r -> {
         final Thread thread = new Thread(r, "MagicDeskInputSession");
@@ -28,11 +29,14 @@ final class DisplayInputSession {
     private boolean mDesktopShortcuts;
     private volatile boolean mTransitioning;
     private volatile String mError = "";
+    private volatile String mKeyboardError = "";
     private volatile boolean mKeyboardOnAppDisplay;
 
-    DisplayInputSession(final Context context, final Handler handler, final Runnable changed) {
+    DisplayInputSession(final Context context, final Handler handler, final Runnable changed,
+            final java.util.function.Consumer<String> keyboardFailure) {
         mHandler = handler;
         mChanged = changed;
+        mKeyboardFailure = keyboardFailure;
         mMouse = new DesktopMouseBridge(context, () -> mHandler.post(changed));
     }
 
@@ -46,6 +50,7 @@ final class DisplayInputSession {
         final long generation = ++mGeneration;
         mTransitioning = true;
         mError = "";
+        mKeyboardError = "";
         mReadyDisplay = Display.INVALID_DISPLAY;
         DesktopShortcutService.setTargetDisplay(Display.INVALID_DISPLAY);
         mWorker.execute(() -> {
@@ -54,8 +59,7 @@ final class DisplayInputSession {
                     return;
                 }
                 InputSessionDiagnostics.noteAttempt(displayId);
-                mRouting = ShellAccess.openInputRouting(
-                        displayId, true, mKeyboardOnAppDisplay);
+                mRouting = ShellAccess.openInputRouting(displayId, true);
                 if (mGeneration != generation) {
                     release();
                     return;
@@ -65,6 +69,7 @@ final class DisplayInputSession {
                 if (displayId > Display.DEFAULT_DISPLAY) {
                     mMouse.start();
                 }
+                applyKeyboardPlacement(generation);
                 mHandler.post(() -> {
                     if (mGeneration == generation && mReadyDisplay == displayId) {
                         DesktopShortcutService.setTargetDisplay(displayId, desktopShortcuts);
@@ -83,8 +88,15 @@ final class DisplayInputSession {
         });
     }
 
-    void setKeyboardOnAppDisplay(final boolean enabled,
-            final java.util.function.Consumer<String> failure, final Runnable completion) {
+    void retryFailedSelection() {
+        if (mDestroyed || mTransitioning || mRequestedDisplay < 0
+                || isRoutingReady(mRequestedDisplay)) return;
+        final int displayId = mRequestedDisplay;
+        mRequestedDisplay = Display.INVALID_DISPLAY;
+        reconcile(displayId, mDesktopShortcuts);
+    }
+
+    void setKeyboardOnAppDisplay(final boolean enabled, final Runnable completion) {
         if (mDestroyed) {
             if (completion != null) completion.run();
             return;
@@ -96,19 +108,33 @@ final class DisplayInputSession {
         // shortcut ownership. Rapid toggles apply the latest preference.
         mWorker.execute(() -> {
             try {
-                if (mGeneration != generation || mRouting == null
-                        || mRouting.displayId() != mRequestedDisplay) return;
-                mRouting.setKeyboardPlacement(mKeyboardOnAppDisplay);
-            } catch (IOException error) {
-                CompatibilityDiagnostics.record("INPUT-IME-001",
-                        "Could not change keyboard placement", error.getMessage(), error);
-                mHandler.post(() -> {
-                    if (mGeneration == generation) failure.accept(ShellAccess.usefulMessage(error));
-                });
+                applyKeyboardPlacement(generation);
             } finally {
+                mHandler.post(() -> { if (mGeneration == generation) mChanged.run(); });
                 if (completion != null) mHandler.post(completion);
             }
         });
+    }
+
+    private void applyKeyboardPlacement(final long generation) {
+        if (mGeneration != generation || mRouting == null
+                || mRouting.displayId() != mRequestedDisplay) return;
+        try {
+            mRouting.setKeyboardPlacement(mKeyboardOnAppDisplay);
+            if (mGeneration == generation) mKeyboardError = "";
+        } catch (IOException error) {
+            if (mGeneration != generation) return;
+            final String message = ShellAccess.usefulMessage(error);
+            mKeyboardError = message;
+            CompatibilityDiagnostics.record("INPUT-IME-001",
+                    "Could not change keyboard placement", message, error);
+            // IME placement is optional; keep the acquired physical routes and pointer.
+            mHandler.post(() -> {
+                if (mGeneration == generation && mKeyboardError.equals(message)) {
+                    mKeyboardFailure.accept(message);
+                }
+            });
+        }
     }
 
     void refreshDevices() {
@@ -142,6 +168,7 @@ final class DisplayInputSession {
 
     void stop(final Runnable completion) {
         mError = "";
+        mKeyboardError = "";
         mRequestedDisplay = Display.INVALID_DISPLAY;
         final long generation = ++mGeneration;
         mTransitioning = true;
@@ -179,6 +206,7 @@ final class DisplayInputSession {
     int readyDisplay() { return mReadyDisplay; }
     boolean transitioning() { return mTransitioning; }
     String error() { return mError; }
+    String keyboardPlacementError() { return mKeyboardError; }
 
     boolean movePointer(final float x, final float y) { return mMouse.movePointer(x, y); }
     boolean clickPointer(final int button) { return mMouse.clickPointer(button); }

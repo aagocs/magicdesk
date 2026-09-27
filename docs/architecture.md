@@ -255,7 +255,17 @@ and mice remain Android InputReader devices; MagicDesk does not read or forward
 their event streams. `DisplayInputRoutingSession`, hosted by the privileged service, binds
 their input locations to the selected display's stable unique ID through
 `FrameworkInputRoutingApi`. It selects the Android 14 association signatures or
-the Android 15+ port-specific names; API 34 device validation remains pending.
+the Android 15+ port-specific names. On API 34, the framework adapter also
+checks Android's global pointer target before acquiring associations. A matching
+port map with a pointer controller on another display is not ready input.
+Before the first mouse exists, the system's requested pointer target is checked;
+the device-added refresh verifies the instantiated controller as well.
+
+Android 14 external pointer preparation uses the existing **System desktop mode
+on external displays** setting, with explicit user confirmation. It may require
+reconnecting the display. Android selects one pointer display, so enabling the
+option does not guarantee selection of an arbitrary connected screen. Acquisition
+never changes this global setting, display geometry, HOME or Desktop state.
 
 `DisplayInputTarget` separates Desktop preparation from manual input selection.
 Desktop claims input only after preparation. Manual control can select an
@@ -263,7 +273,9 @@ ordinary display or release input without closing applications or Desktop.
 Closing Desktop releases its own selected input, not a later manual selection
 on another display. Removing a controlled display releases input first. Runtime
 state publishes requested and ready display IDs, transition state and errors;
-request acceptance does not imply readiness.
+request acceptance does not imply readiness. The control panel marks only the
+ready target as controlled. An explicit selection can retry a failed acquisition
+of the same target; routine reconciliation does not retry it in a loop.
 
 A composite keyboard/mouse sharing one location receives one association.
 `InputRoutingLease` journals previous runtime port and unique-ID associations
@@ -322,19 +334,25 @@ tap also becomes a secondary click. These decisions stay in the phone UI;
 display-targeted event injection stays inside the shell UserService.
 
 The user's Android IME connects directly to the focused display editor through
-its normal `InputConnection`. `DisplayImePolicyController` temporarily applies
+its normal `InputConnection`. `DisplayImePolicyController`, through the lazily
+resolved `FrameworkDisplayImeApi`, temporarily applies
 Android's fallback-to-default-display policy on controlled external displays by
 default. The shared `keyboardOnAppDisplay` preference selects Android's local IME
 policy instead, so the installed keyboard appears beside the editor on the
 controlled display (including a portable workspace's logical source display).
-Settings and the taskbar context menu expose the same live switch. It does not
+Settings' **Display input** section and the taskbar context menu expose the same
+live switch. Settings availability requires shell access, not Desktop. It does not
 select an IME, relay text, or restart pointer, device-route or shortcut ownership.
 `DisplayInputRoutingSession` owns the policy together with device routes:
 release, close, and owner Binder death restore the previous policy if it still
 has our value. Repeated configuration of the same display does not query or
 write the policy. A live change retains the original policy for release, including
-an unacknowledged write. Phone desktop leaves display-0 policy unchanged. A failed
-live policy change reports an error without releasing otherwise working input.
+an unacknowledged write. Display-0 policy remains unchanged. IME placement is an
+optional operation after route acquisition on every supported Android release.
+A failed initial or live policy change reports `keyboardPlacementError` separately
+from routing readiness and leaves physical input and the phone touchpad active.
+Control panel and compatibility diagnostics expose that warning; a successful
+policy change or input release clears it.
 Settings refresh completes after the input worker finishes applying the policy,
 not when the change is queued. Taskbar checkboxes dismiss their menu only after
 that completion; stale callbacks cannot dismiss a replacement menu. Context

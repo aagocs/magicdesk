@@ -150,12 +150,35 @@ public final class DisplayImePolicyControllerTest {
         assertEquals(Integer.valueOf(2), api.values.get(2));
     }
 
+    @Test public void enforcedSystemPolicyReportsEffectiveValueAndAllowsRetry() throws Exception {
+        final FakeApi api = new FakeApi();
+        final DisplayImePolicyController policy = new DisplayImePolicyController(api);
+        api.enforcedPolicy = 0;
+        final IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> policy.configure(2, false));
+        assertEquals("display IME placement was not applied: display=2, requested=1, actual=0",
+                error.getMessage());
+        policy.configure(2, true);
+        policy.close();
+        assertEquals(Integer.valueOf(0), api.values.get(2));
+    }
+
+    @Test public void rejectedInitialPolicyCanBeReleasedWithoutAnotherWrite() throws Exception {
+        final FakeApi api = new FakeApi();
+        final DisplayImePolicyController policy = new DisplayImePolicyController(api);
+        api.enforcedPolicy = 0;
+        assertThrows(IllegalStateException.class, () -> policy.configure(2, false));
+        policy.close();
+        assertEquals(List.of("2=1"), api.writes);
+    }
+
     private static final class FakeApi implements DisplayImePolicyController.Api {
         final Map<Integer, Integer> values = new HashMap<>();
         final List<String> writes = new ArrayList<>();
         int reads;
         boolean failBeforeWrite;
         boolean failAfterWrite;
+        int enforcedPolicy = -1;
 
         @Override
         public int get(final int displayId) {
@@ -170,7 +193,7 @@ public final class DisplayImePolicyControllerTest {
                 failBeforeWrite = false;
                 throw new ReflectiveOperationException("write failed");
             }
-            values.put(displayId, policy);
+            values.put(displayId, enforcedPolicy >= 0 ? enforcedPolicy : policy);
             writes.add(displayId + "=" + policy);
             if (failAfterWrite) {
                 failAfterWrite = false;

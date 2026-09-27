@@ -31,6 +31,7 @@ public final class RuntimeDisplayInputCoordinatorTest {
                     boolean transitioning() { return pending; }
                     int readyDisplay() { return ready; }
                     String error() { return failure; }
+                    void retryFailedSelection() {}
                 }
                 void updateInputBridges() { mInputSession.pending = true; }
                 void updateShowImeOverride() {}

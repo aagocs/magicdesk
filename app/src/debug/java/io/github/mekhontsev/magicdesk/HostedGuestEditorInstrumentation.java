@@ -68,7 +68,10 @@ public final class HostedGuestEditorInstrumentation extends Instrumentation impl
         awake.acquire(180000);
         ShellInputRoutingHandle routing = null;
         try {
-            if (actualIme) routing = ShellAccess.openInputRouting(displayId, false, true);
+            if (actualIme) {
+                routing = ShellAccess.openInputRouting(displayId, false);
+                routing.setKeyboardPlacement(true);
+            }
             try {
                 runOnMainSync(() -> {
                     session = WaylandSessions.start(context, "GTK editor fixture", command, "", DesktopExecBackend.TERMUX, "");

@@ -158,7 +158,13 @@ final class PhoneControlPanelController {
 
     void render(final State state) {
         mStatus.setText(state.status);
-        if (!MagicDeskRuntime.inputError().isEmpty()) { mStatus.setText(MagicDeskRuntime.inputError()); }
+        final String inputError = MagicDeskRuntime.inputError();
+        final String keyboardError = MagicDeskRuntime.inputKeyboardPlacementError();
+        if (!inputError.isEmpty()) {
+            mStatus.setText(inputError);
+        } else if (!keyboardError.isEmpty()) {
+            mStatus.setText(mActivity.getString(R.string.keyboard_placement_failed, keyboardError));
+        }
         mRuntime.setText(mActivity.getString(
                 R.string.control_runtime_status, state.runtime));
         mTermux.setText(mActivity.getString(R.string.control_termux_status,

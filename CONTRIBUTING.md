@@ -55,7 +55,9 @@ provide an exported ARM64 runtime from a Linux/Termux build through
 its Linux and Windows jobs. See [Wayland build details](docs/wayland.md#build).
 
 The current native helpers are ARM64-only. Both helper compiler paths target the
-APK's minimum SDK, API 34; actual device validation at that floor remains pending.
+APK's minimum SDK, API 34. Device coverage is per helper: the virtual mouse/uinput
+path is verified on Samsung SM-A528B/API 34; PTY and graphical runtime validation
+at that floor remains pending.
 Windows build smoke is not emulator coverage; an x86_64 emulator
 matrix needs matching helper binaries. See the API-level document for the
 remaining validation contract.

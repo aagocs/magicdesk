@@ -94,12 +94,29 @@ public final class PhoneControlPanelControllerTest {
         final String commands = RuntimeSourceFixture.methods("DisplayTableView", "renderCommands");
         assertTrue(commands.contains("final boolean enabled = display != null && shellReady && !busy;"));
         assertTrue(commands.contains("R.string.display_independent_apps, enabled,"));
-        assertTrue(commands.contains("R.string.display_control, enabled && !input,"));
+        assertTrue(commands.contains("input ? R.string.display_input_active : R.string.display_control"));
+        assertTrue(commands.contains("MagicDeskRuntime.readyInputDisplayId() == display.id"));
+        assertTrue(commands.contains("enabled && !input && !inputPending"));
         assertTrue(commands.contains("enabled && display.canRemove()"));
         assertTrue(RuntimeSourceFixture.methods("PhoneControlPanelController", "createHeader")
                 .contains("mActions.openSettings()"));
         assertTrue(RuntimeSourceFixture.methods("PhoneControlPanelController", "addStatus")
                 .contains("mActions.showAccessInfo()"));
+    }
+
+    @Test public void legacyInputSetupUsesExistingSystemSettingOnlyAfterConfirmation() throws Exception {
+        final String action = RuntimeSourceFixture.methods("ControlActivity", "showInputPreparation");
+        assertTrue(action.contains("FrameworkInputRoutingApi.usesGlobalPointerRouting"));
+        assertTrue(action.contains("SystemDesktopModeSetting.read(this)"));
+        assertTrue(action.contains("setNegativeButton(android.R.string.cancel, null)"));
+        assertTrue(action.contains("prepareDisplayInput(displayId)"));
+        final String select = RuntimeSourceFixture.methods("ControlActivity", "selectInput");
+        assertTrue(select.contains("if (!result.success) showInputPreparation(displayId, result.message)"));
+        final String prepare = RuntimeSourceFixture.methods("ControlActivity", "prepareDisplayInput");
+        assertTrue(prepare.contains("SystemDesktopModeSetting.setEnabled(context, true)"));
+        assertFalse(prepare.contains("startDesktop"));
+        assertFalse(prepare.contains("wm size"));
+        assertFalse(prepare.contains("reboot"));
     }
 
     @Test

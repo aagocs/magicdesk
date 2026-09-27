@@ -336,6 +336,11 @@ public final class MagicDeskRuntime {
         return backend == null ? "" : backend.inputError();
     }
 
+    static String inputKeyboardPlacementError() {
+        final MagicDeskRuntimeBackend backend = backend();
+        return backend == null ? "" : backend.inputKeyboardPlacementError();
+    }
+
     static long inputSelectionVersion() {
         final MagicDeskRuntimeBackend backend = backend();
         return backend == null ? -1 : backend.inputSelectionVersion();

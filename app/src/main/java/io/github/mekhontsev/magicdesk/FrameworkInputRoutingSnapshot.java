@@ -6,13 +6,16 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Typed association state from the existing one-shot InputManager snapshot. */
+/** Typed routing state from the existing one-shot InputManager snapshot. */
 final class FrameworkInputRoutingSnapshot {
     private static final Pattern PORT = Pattern.compile("port:\\s+(.+?)\\s+display:\\s+(\\d+)");
     private static final Pattern UNIQUE = Pattern.compile("port:\\s+(.+?)\\s+uniqueId:\\s+(.+)");
     final Map<String, Integer> staticPorts = new LinkedHashMap<>();
     final Map<String, Integer> runtimePorts = new LinkedHashMap<>();
     final Map<String, String> uniqueIds = new LinkedHashMap<>();
+    Integer requestedPointerDisplayId;
+    Integer pointerDisplayId;
+    boolean pointerControllerPresent;
 
     static FrameworkInputRoutingSnapshot parse(final String dump) throws IOException {
         if (dump == null || !dump.contains("Input Manager State:")
@@ -23,6 +26,13 @@ final class FrameworkInputRoutingSnapshot {
         String section = "";
         for (final String line : dump.split("\\r?\\n")) {
             final String text = line.trim();
+            if ("PointerController:".equals(text)) state.pointerControllerPresent = true;
+            if (text.startsWith("mRequestedPointerDisplayId=")) {
+                state.requestedPointerDisplayId = displayId(text.substring(text.indexOf('=') + 1));
+            } else if (text.startsWith("Pointer Display ID:")) {
+                state.pointerControllerPresent = true;
+                state.pointerDisplayId = displayId(text.substring(text.indexOf(':') + 1));
+            }
             if (text.endsWith(":")) {
                 section = text;
                 continue;
@@ -48,6 +58,15 @@ final class FrameworkInputRoutingSnapshot {
             }
         }
         return state;
+    }
+
+    private static Integer displayId(final String text) {
+        try {
+            final int id = Integer.parseInt(text.trim());
+            return id >= 0 ? id : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     Map<String, String> labels() {

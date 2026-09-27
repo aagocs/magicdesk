@@ -179,7 +179,7 @@ final class DisplayTableView {
                     ? mActivity.getString(R.string.display_independent_count, independent.tasks.size())
                     : mActivity.getString(R.string.display_tasks_unknown));
         }
-        if (MagicDeskRuntime.inputDisplayId() == display.id) {
+        if (MagicDeskRuntime.readyInputDisplayId() == display.id) {
             label.append("  |  ").append(mActivity.getString(R.string.display_input_active));
         }
         label.setSpan(new AppearanceTextSpan(mActivity, UiColor.MUTED), titleEnd, label.length(),
@@ -202,9 +202,12 @@ final class DisplayTableView {
                 () -> mActions.openApplications(display));
         updateButton(mIndependent, R.drawable.ic_history, R.string.display_independent_apps, enabled,
                 () -> mActions.openIndependentApplications(display));
-        final boolean input = display != null && MagicDeskRuntime.inputDisplayId() == display.id;
+        final boolean input = display != null && MagicDeskRuntime.readyInputDisplayId() == display.id;
+        final boolean inputPending = display != null && MagicDeskRuntime.inputDisplayId() == display.id
+                && MagicDeskRuntime.inputTransitioning();
         updateButton(mInput, R.drawable.ic_touchpad,
-                input ? R.string.display_input_active : R.string.display_control, enabled && !input,
+                input ? R.string.display_input_active : R.string.display_control,
+                enabled && !input && !inputPending,
                 () -> mActions.controlDisplay(display));
         updateButton(mOutput, R.drawable.ic_show_desktop, R.string.external_display_resolution,
                 enabled && hasOutputControls(display, outputAvailable), () -> mActions.openOutputSettings(display));
