@@ -134,7 +134,9 @@ options apply while Desktop is running and release their overrides when it ends.
 along any screen edge, including floating, translucent layouts and optional system
 background blur. Popups share the background style; individual panels can override it. Choose presets,
 import/export a [JSON theme](docs/appearance.md), or use a theme bundle containing
-icons, fonts and wallpaper. Global defaults can be overridden per workspace.
+icons, fonts and wallpaper. Wallpapers can be static, animated WebP/GIF, or silent
+MP4/WebM loops, with automatic pause for power saving and reduced motion.
+Global defaults can be overridden per workspace.
 Styles apply to open panels and built-in tools without restarting them, including
 when no Desktop is running. The declarative document controls panel contents,
 Start layout and native feedback effects, with a published JSON Schema and live

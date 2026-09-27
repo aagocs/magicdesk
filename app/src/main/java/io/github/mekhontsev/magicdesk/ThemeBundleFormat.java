@@ -51,6 +51,13 @@ final class ThemeBundleFormat {
             valid = data.length >= 20 && integer(data, 0) == 0x52494646
                     && integer(data, 8) == 0x57454250
                     && Integer.toUnsignedLong(Integer.reverseBytes(integer(data, 4))) == data.length - 8;
+        } else if (kind == ThemeBundle.Kind.WALLPAPER && path.endsWith(".gif")) {
+            valid = data.length >= 13 && integer(data, 0) == 0x47494638 && data[5] == 'a'
+                    && (data[4] == '7' || data[4] == '9');
+        } else if (kind == ThemeBundle.Kind.WALLPAPER && path.endsWith(".mp4")) {
+            valid = data.length >= 12 && integer(data, 4) == 0x66747970;
+        } else if (kind == ThemeBundle.Kind.WALLPAPER && path.endsWith(".webm")) {
+            valid = data.length >= 12 && integer(data, 0) == 0x1a45dfa3;
         } else {
             valid = data.length >= 12 && integer(data, 0) == (path.endsWith(".otf") ? 0x4f54544f : 0x00010000);
             if (valid) fontTables(data);

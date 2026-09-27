@@ -1096,6 +1096,7 @@
     <string name="appearance_tile_width">Tile width (dp)</string>
     <string name="appearance_icon_size">Start icon size (dp)</string>
     <string name="appearance_motion">Motion</string>
+    <string name="appearance_animate_wallpaper">Animate wallpaper</string>
     <string name="appearance_reduced_motion">Reduce motion</string>
     <string name="appearance_none">None</string>
     <string name="appearance_fade">Fade</string>

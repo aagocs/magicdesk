@@ -32,6 +32,8 @@ final class ThemeBundleFiles {
             if (path.startsWith("icons/")) return ThemeBundle.Kind.ICON;
             if (path.startsWith("wallpapers/")) return ThemeBundle.Kind.WALLPAPER;
         }
+        if (path.startsWith("wallpapers/") && (lower.endsWith(".gif")
+                || lower.endsWith(".mp4") || lower.endsWith(".webm"))) return ThemeBundle.Kind.WALLPAPER;
         throw new IOException("Non-allowlisted theme asset: " + path);
     }
 

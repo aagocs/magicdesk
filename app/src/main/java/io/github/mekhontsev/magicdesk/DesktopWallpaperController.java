@@ -3,10 +3,6 @@ package io.github.mekhontsev.magicdesk;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.RectF;
-import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
@@ -14,7 +10,6 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.widget.ImageView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,11 +23,10 @@ import java.util.function.BooleanSupplier;
 
 final class DesktopWallpaperController {
     private static final String TAG = "MagicDeskWallpaper";
-    private static final long MAX_DECODED_PIXELS = 16L * 1024 * 1024;
 
     private final DesktopShellActivity mActivity;
     private final Context mContext;
-    private final ImageView mWallpaperView;
+    private final WallpaperView mWallpaperView;
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
     private final AtomicInteger mLoadGeneration = new AtomicInteger();
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor(
@@ -52,13 +46,13 @@ final class DesktopWallpaperController {
         if (!themeWallpaperKey().equals(mThemeWallpaperKey)) reload();
     };
 
-    DesktopWallpaperController(
-            final DesktopShellActivity activity,
-            final ImageView wallpaperView) {
+    DesktopWallpaperController(final DesktopShellActivity activity) {
         mActivity = activity;
         mContext = activity.getApplicationContext();
-        mWallpaperView = wallpaperView;
+        mWallpaperView = new WallpaperView(activity, mExecutor);
     }
+
+    WallpaperView view() { return mWallpaperView; }
 
     void start() {
         if (mStarted) {
@@ -77,6 +71,7 @@ final class DesktopWallpaperController {
         AppearanceStore.unlisten(mAppearanceChanged);
         mRendered = false;
         mLoadGeneration.incrementAndGet();
+        mWallpaperView.close();
         mExecutor.shutdownNow();
     }
 
@@ -154,7 +149,7 @@ final class DesktopWallpaperController {
         }
         mRendered = false;
         mThemeWallpaperKey = themeWallpaperKey();
-        final Bitmap themeWallpaper = AppearanceStore.assets(mActivity).wallpaper();
+        final WallpaperAsset themeWallpaper = AppearanceStore.assets(mActivity).wallpaper();
         final int generation = mLoadGeneration.incrementAndGet();
         final DisplayMetrics metrics = mWallpaperView.getResources().getDisplayMetrics();
         final int targetWidth = Math.max(1, metrics.widthPixels);
@@ -165,27 +160,30 @@ final class DesktopWallpaperController {
             public void run() {
                 try {
                     ContentStreamCopy.checkCancelled(cancelled);
-                    final WallpaperResult source = themeWallpaper == null ? loadWallpaper(
-                            targetWidth, targetHeight, cancelled) : renderThemeWallpaper(themeWallpaper, targetWidth, targetHeight);
+                    final WallpaperResult result = themeWallpaper == null ? loadWallpaper(
+                            targetWidth, targetHeight, cancelled) : new WallpaperResult(themeWallpaper, true, false);
                     if (cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
-                        source.bitmap.recycle();
+                        if (themeWallpaper == null) result.asset.poster().recycle();
                         return;
                     }
-                    final WallpaperResult result = renderDisplayFrame(
-                            source,
-                            targetWidth,
-                            targetHeight);
                     mMainHandler.post(new Runnable() {
                         @Override
                         public void run() {
                             if (!mStarted || generation != mLoadGeneration.get()) {
-                                result.bitmap.recycle();
+                                if (themeWallpaper == null) result.asset.poster().recycle();
                                 return;
                             }
                             mUsingCustomWallpaper = result.custom;
                             mUsingFallbackWallpaper = result.fallback;
-                            mWallpaperView.setImageBitmap(result.bitmap);
-                            publishRenderedFrame(generation, result);
+                            mWallpaperView.show(result.asset, targetWidth, targetHeight, () -> {
+                                if (mStarted && generation == mLoadGeneration.get() && !mActivity.isActivityUnavailable()) {
+                                    mRendered = true;
+                                    recordRenderedEvent(result);
+                                }
+                            }, state -> recordPlaybackEvent(result, state), error -> {
+                                mUsingFallbackWallpaper = true;
+                                CompatibilityDiagnostics.record("WALLPAPER-004", "Wallpaper playback failed; showing static frame", usefulMessage(error), error);
+                            });
                         }
                     });
                 } catch (IOException | RuntimeException error) {
@@ -208,37 +206,7 @@ final class DesktopWallpaperController {
         return resources.wallpaper().isEmpty() ? "" : resources.bundle() + "/" + resources.wallpaper();
     }
 
-    private static WallpaperResult renderThemeWallpaper(Bitmap source, int width, int height) {
-        // Prepared resources are borrowed. This controller owns only the viewport-sized frame.
-        final Bitmap frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        try {
-            frame.setDensity(Bitmap.DENSITY_NONE);
-            final float scale = Math.max(width / (float) source.getWidth(), height / (float) source.getHeight());
-            final float w = source.getWidth() * scale, h = source.getHeight() * scale;
-            new Canvas(frame).drawBitmap(source, null, new RectF((width - w) / 2, (height - h) / 2,
-                    (width + w) / 2, (height + h) / 2), new Paint(Paint.FILTER_BITMAP_FLAG));
-            return new WallpaperResult(frame, true, false);
-        } catch (RuntimeException error) { frame.recycle(); throw error; }
-    }
-
-    private void publishRenderedFrame(
-            final int generation,
-            final WallpaperResult result) {
-        mWallpaperView.getViewTreeObserver().registerFrameCommitCallback(() ->
-                mWallpaperView.post(() -> {
-                    if (!mStarted
-                            || generation != mLoadGeneration.get()
-                            || mActivity.isActivityUnavailable()) {
-                        return;
-                    }
-                    mRendered = true;
-                    recordRenderedEvent(result);
-                }));
-        mWallpaperView.invalidate();
-    }
-
     private void recordRenderedEvent(final WallpaperResult result) {
-        final Drawable drawable = mWallpaperView.getDrawable();
         try {
             DesktopAutomationEventJournal.record(
                     "ui",
@@ -251,13 +219,10 @@ final class DesktopWallpaperController {
                             .put("fallback", result.fallback)
                             .put("source", result.fallback ? "fallback"
                                     : result.custom ? "custom" : "bundled")
-                            .put("bitmapWidth", result.bitmap.getWidth())
-                            .put("bitmapHeight", result.bitmap.getHeight())
-                            .put("bitmapDensity", result.bitmap.getDensity())
-                            .put("drawableWidth", drawable != null
-                                    ? drawable.getIntrinsicWidth() : -1)
-                            .put("drawableHeight", drawable != null
-                                    ? drawable.getIntrinsicHeight() : -1)
+                            .put("mediaKind", result.asset.kind().name().toLowerCase(java.util.Locale.ROOT))
+                            .put("bitmapWidth", result.asset.poster().getWidth())
+                            .put("bitmapHeight", result.asset.poster().getHeight())
+                            .put("bitmapDensity", result.asset.poster().getDensity())
                             .put("viewWidth", mWallpaperView.getWidth())
                             .put("viewHeight", mWallpaperView.getHeight())
                             .put("displayDensity", mWallpaperView.getResources()
@@ -267,6 +232,14 @@ final class DesktopWallpaperController {
                     "ui", "wallpaper_rendered", true,
                     "display=" + mActivity.getCurrentDisplayId());
         }
+    }
+
+    private void recordPlaybackEvent(WallpaperResult result, String state) {
+        try {
+            DesktopAutomationEventJournal.record("ui", "wallpaper_playback", true, state,
+                    new org.json.JSONObject().put("displayId", mActivity.getCurrentDisplayId())
+                            .put("mediaKind", result.asset.kind().name().toLowerCase(java.util.Locale.ROOT)).put("state", state));
+        } catch (org.json.JSONException ignored) { }
     }
 
     private WallpaperResult loadWallpaper(
@@ -326,13 +299,13 @@ final class DesktopWallpaperController {
             final int targetWidth, final int targetHeight,
             final BooleanSupplier cancelled) throws IOException {
         ContentStreamCopy.checkCancelled(cancelled);
-        final Bitmap wallpaper = decodeWallpaper(pendingFile, targetWidth, targetHeight);
+        final WallpaperAsset wallpaper = decodeWallpaper(pendingFile, targetWidth, targetHeight);
         try {
             ContentStreamCopy.checkCancelled(cancelled);
             replaceCachedWallpaper(pendingFile, cacheFile);
             return new WallpaperResult(wallpaper, true, false);
         } catch (IOException | RuntimeException | Error error) {
-            wallpaper.recycle();
+            wallpaper.poster().recycle();
             throw error;
         }
     }
@@ -342,51 +315,12 @@ final class DesktopWallpaperController {
         return File.createTempFile("desktop-wallpaper-", ".pending", directory);
     }
 
-    private static WallpaperResult renderDisplayFrame(
-            final WallpaperResult source,
-            final int targetWidth,
-            final int targetHeight) {
-        final Bitmap sourceBitmap = source.bitmap;
-        // The final frame uses display pixels, not density-scaled drawable units.
-        if (sourceBitmap.getWidth() == targetWidth
-                && sourceBitmap.getHeight() == targetHeight) {
-            sourceBitmap.setDensity(Bitmap.DENSITY_NONE);
-            return source;
-        }
-        final Bitmap frame = Bitmap.createBitmap(
-                targetWidth, targetHeight, Bitmap.Config.ARGB_8888);
-        try {
-            frame.setDensity(Bitmap.DENSITY_NONE);
-            final float scale = Math.max(
-                    targetWidth / (float) sourceBitmap.getWidth(),
-                    targetHeight / (float) sourceBitmap.getHeight());
-            final float width = sourceBitmap.getWidth() * scale;
-            final float height = sourceBitmap.getHeight() * scale;
-            final RectF destination = new RectF(
-                    (targetWidth - width) / 2.0f,
-                    (targetHeight - height) / 2.0f,
-                    (targetWidth + width) / 2.0f,
-                    (targetHeight + height) / 2.0f);
-            final Paint paint = new Paint(
-                    Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
-            new Canvas(frame).drawBitmap(
-                    sourceBitmap, null, destination, paint);
-            sourceBitmap.recycle();
-            return new WallpaperResult(
-                    frame, source.custom, source.fallback);
-        } catch (RuntimeException error) {
-            frame.recycle();
-            sourceBitmap.recycle();
-            throw error;
-        }
-    }
-
     private WallpaperResult defaultWallpaper(
             final int targetWidth,
             final int targetHeight) {
         try {
             return new WallpaperResult(
-                    loadBundledWallpaper(targetWidth, targetHeight),
+                    WallpaperAsset.image(loadBundledWallpaper(targetWidth, targetHeight)),
                     false,
                     false);
         } catch (RuntimeException error) {
@@ -398,7 +332,7 @@ final class DesktopWallpaperController {
                     error);
         }
         return new WallpaperResult(
-                createFallbackWallpaper(targetWidth, targetHeight),
+                WallpaperAsset.image(createFallbackWallpaper(targetWidth, targetHeight)),
                 false,
                 true);
     }
@@ -411,7 +345,7 @@ final class DesktopWallpaperController {
         BitmapFactory.decodeResource(mContext.getResources(), R.drawable.desktop_wallpaper, bounds);
         final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inScaled = false;
-        options.inSampleSize = calculateSampleSize(
+        options.inSampleSize = WallpaperPolicy.calculateSampleSize(
                 bounds.outWidth, bounds.outHeight, targetWidth, targetHeight);
         final Bitmap wallpaper = BitmapFactory.decodeResource(
                 mContext.getResources(), R.drawable.desktop_wallpaper, options);
@@ -421,26 +355,12 @@ final class DesktopWallpaperController {
         return wallpaper;
     }
 
-    private Bitmap decodeWallpaper(
+    private WallpaperAsset decodeWallpaper(
             final File cacheFile,
             final int targetWidth,
             final int targetHeight) throws IOException {
-        final BitmapFactory.Options bounds = new BitmapFactory.Options();
-        bounds.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(cacheFile.getAbsolutePath(), bounds);
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-            throw new IOException("custom wallpaper is not a decodable image");
-        }
-
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = calculateSampleSize(
-                bounds.outWidth, bounds.outHeight, targetWidth, targetHeight);
-        final Bitmap wallpaper = BitmapFactory.decodeFile(
-                cacheFile.getAbsolutePath(), options);
-        if (wallpaper == null) {
-            throw new IOException("custom wallpaper decode failed");
-        }
-        return wallpaper;
+        return WallpaperAsset.decode(ThemeBundleFiles.read(cacheFile.toPath(), ShellDesktopDirectory.MAX_WALLPAPER_BYTES),
+                targetWidth, targetHeight);
     }
 
     private static Bitmap createFallbackWallpaper(
@@ -489,36 +409,16 @@ final class DesktopWallpaperController {
                 : message.trim();
     }
 
-    static int calculateSampleSize(final int sourceWidth, final int sourceHeight,
-            final int targetWidth, final int targetHeight) {
-        if (sourceWidth <= 0 || sourceHeight <= 0
-                || targetWidth <= 0 || targetHeight <= 0) {
-            throw new IllegalArgumentException("wallpaper dimensions must be positive");
-        }
-        int sampleSize = 1;
-        while (sourceWidth / (sampleSize * 2L) >= targetWidth
-                && sourceHeight / (sampleSize * 2L) >= targetHeight) {
-            sampleSize *= 2;
-        }
-        // Encoded size and the short image edge do not bound decoded memory.
-        while (((sourceWidth + sampleSize - 1L) / sampleSize)
-                * ((sourceHeight + sampleSize - 1L) / sampleSize)
-                > MAX_DECODED_PIXELS) {
-            sampleSize *= 2;
-        }
-        return sampleSize;
-    }
-
     private static final class WallpaperResult {
-        final Bitmap bitmap;
+        final WallpaperAsset asset;
         final boolean custom;
         final boolean fallback;
 
         WallpaperResult(
-                final Bitmap bitmap,
+                final WallpaperAsset asset,
                 final boolean custom,
                 final boolean fallback) {
-            this.bitmap = bitmap;
+            this.asset = asset;
             this.custom = custom;
             this.fallback = fallback;
         }

@@ -178,11 +178,12 @@ existing launch destinations.
 `camera`, `video`. These are single-step substitutions, not recursive aliases or
 Android resource IDs.
 
-A theme ZIP contains `theme.json` and optional raster assets under `icons/` and
-`wallpapers/`, plus `.ttf` or `.otf` fonts under `fonts/`. `resources.iconAssets`
+A theme ZIP contains `theme.json`, optional images under `icons/`, media under
+`wallpapers/`, and `.ttf` or `.otf` fonts under `fonts/`. `resources.iconAssets`
 maps semantic symbols to bundle-relative image paths; `resources.font` and
-`resources.wallpaper` select a font and wallpaper. Supported images are static
-PNG, JPEG and WebP. The portable document omits `resources.bundle` or leaves it
+`resources.wallpaper` select a font and wallpaper. Icons accept static PNG,
+JPEG and WebP. Wallpapers also accept animated WebP/GIF and MP4/WebM video,
+using Android's installed decoders. The portable document omits `resources.bundle` or leaves it
 empty. Import attaches the verified content digest; a JSON-only document with
 assets therefore references an already-installed bundle.
 
@@ -208,6 +209,20 @@ content-addressed; validation never follows external paths or fetches URLs.
 global/workspace current, committed, preview and staged resources. Cleanup and
 appearance publication are coordinated by the shared store.
 
+Animated sources are limited to 4 megapixels. Videos must contain one unencrypted
+video track, have a duration of at most five minutes, and declare no more than
+60 fps when frame-rate metadata is present. Import validates a decodable poster;
+playback errors retain that poster. Compressed animation/video data and posters
+count toward the aggregate 96 MiB live appearance-media budget across workspaces.
+
+Wallpaper uses a fixed physical-display center crop, independent of system-bar
+insets and process density. Each workspace owns its playback instance. Video
+loops silently without requesting audio focus. Hidden or off-screen hosts,
+power saving, reduced motion and disabled Android animations release playback
+and display the static poster. Losing HOME focus alone does not stop playback.
+MagicDesk Files also offers **Set as desktop wallpaper** for local images and
+MP4/WebM files, with the same decoder and a 64 MiB source-file limit.
+
 ZIP export captures the effective edited document and its verified resource bundle,
 removing the installed digest from portable `theme.json`. It does not export an
 outdated original document. JSON export captures the global document, or the
@@ -227,6 +242,12 @@ content enters from below. Translation is bounded to half the content dimension.
 `durationMs` is 0-400, `feedbackMs` is 0-250, and `curve` is `linear`, `ease_out`
 or `smooth`. `reduced` disables effects, as does Android's disabled animator
 setting.
+
+`motion.wallpaper` (default `true`) controls animated wallpaper independently of
+panel effects. Settings exposes **Animate wallpaper** for the global appearance
+or the selected workspace. Disabling it keeps the source and shows its poster;
+re-enabling starts playback again. Wallpaper media is data, not executable theme
+code, and does not require Termux or a Linux graphics session.
 
 Window frames, background fills, blur and shell reservations stay at their final
 geometry. Transformed content remains a child of an Android ViewGroup, which

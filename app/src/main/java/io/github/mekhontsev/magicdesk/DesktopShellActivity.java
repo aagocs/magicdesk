@@ -990,17 +990,12 @@ public abstract class DesktopShellActivity extends Activity
 
         final FrameLayout desktopViewport = new FrameLayout(this);
 
-        final ImageView wallpaper = new ImageView(this);
-        // The controller renders one display-sized frame. Keeping the image
-        // matrix fixed prevents transient system bars from recropping it when
-        // the HOME window loses focus to a freeform task.
-        wallpaper.setScaleType(ImageView.ScaleType.MATRIX);
+        mDesktopWallpaperController = new DesktopWallpaperController(this);
+        final WallpaperView wallpaper = mDesktopWallpaperController.view();
         UiAppearance.background(wallpaper, BACKGROUND);
         root.addView(wallpaper, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
-        mDesktopWallpaperController = new DesktopWallpaperController(
-                this, wallpaper);
         mDesktopWallpaperController.start();
 
         final FrameLayout shellBackground = new FrameLayout(this);

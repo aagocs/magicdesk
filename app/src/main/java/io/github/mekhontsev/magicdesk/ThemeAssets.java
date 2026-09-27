@@ -26,6 +26,7 @@ public final class ThemeAssets {
     private static ThemeAssets shared;
     private final ThemeAssetsCache<Bitmap> bitmaps = new ThemeAssetsCache<>(128, 48L << 20);
     private final ThemeAssetsCache<FontFaces> fonts = new ThemeAssetsCache<>(8, 16L << 20);
+    private final ThemeAssetsCache<WallpaperAsset> wallpapers = new ThemeAssetsCache<>(8, 64L << 20);
     private final ThemeBundleStore store;
 
     public static synchronized ThemeAssets get(Context context) {
@@ -79,14 +80,14 @@ public final class ThemeAssets {
             pixels += (long) bitmap.getWidth() * bitmap.getHeight();
             icons.put(path, bitmap);
         }
-        Bitmap background = wallpaper.isEmpty() ? null : bitmap(wallpaper, ThemeBundle.Kind.WALLPAPER,
+        WallpaperAsset background = wallpaper.isEmpty() ? null : wallpaper(wallpaper,
                 bundle.readAsset(wallpaper, ThemeBundle.Kind.WALLPAPER), store.limits(), store.limits().totalPixels() - pixels);
         FontFaces faces = font.isEmpty() ? null : font(font, bundle.readAsset(font, ThemeBundle.Kind.FONT));
         return new Prepared(bundle.digest(), icons, faces, background);
     }
 
     /** Memory pressure hook. Existing prepared snapshots remain valid. */
-    public synchronized void clearCache() { bitmaps.clear(); fonts.clear(); }
+    public synchronized void clearCache() { bitmaps.clear(); fonts.clear(); wallpapers.clear(); }
 
     private void require(ThemeBundle bundle, String path, ThemeBundle.Kind kind) throws IOException {
         if (bundle.require(path, kind).bytes() > store.limits().bytes(kind)) {
@@ -101,8 +102,23 @@ public final class ThemeAssets {
             font(path, bytes);
             return ThemeBundle.ImageSize.NONE;
         }
+        if (kind == ThemeBundle.Kind.WALLPAPER) {
+            WallpaperAsset asset = wallpaper(path, bytes, limits, remainingPixels);
+            return new ThemeBundle.ImageSize(asset.width(), asset.height());
+        }
         Bitmap bitmap = bitmap(path, kind, bytes, limits, remainingPixels);
         return new ThemeBundle.ImageSize(bitmap.getWidth(), bitmap.getHeight());
+    }
+
+    private synchronized WallpaperAsset wallpaper(String path, byte[] bytes, ThemeBundleLimits limits,
+            long remainingPixels) throws IOException {
+        ThemeBundleFormat.signature(path, ThemeBundle.Kind.WALLPAPER, bytes);
+        String key = ThemeBundleFiles.sha256(bytes);
+        WallpaperAsset asset = wallpapers.get(key);
+        if (asset == null) asset = WallpaperAsset.decode(bytes, limits.imageDimension(), limits.imageDimension());
+        limits.checkImage(ThemeBundle.Kind.WALLPAPER, asset.width(), asset.height(), remainingPixels);
+        wallpapers.put(key, asset, asset.retainedBytes());
+        return asset;
     }
 
     private synchronized Bitmap bitmap(String path, ThemeBundle.Kind kind, byte[] bytes,
@@ -173,9 +189,9 @@ public final class ThemeAssets {
         private final String bundle;
         private final Map<String, Bitmap> icons;
         private final FontFaces font;
-        private final Bitmap wallpaper;
+        private final WallpaperAsset wallpaper;
 
-        private Prepared(String bundle, Map<String, Bitmap> icons, FontFaces font, Bitmap wallpaper) {
+        private Prepared(String bundle, Map<String, Bitmap> icons, FontFaces font, WallpaperAsset wallpaper) {
             this.bundle = bundle;
             this.icons = Map.copyOf(icons);
             this.font = font;
@@ -188,6 +204,6 @@ public final class ThemeAssets {
             if (style < 0 || style > Typeface.BOLD_ITALIC) throw new IllegalArgumentException("Invalid font style");
             return font == null ? null : font.styles()[style];
         }
-        public Bitmap wallpaper() { return wallpaper; }
+        WallpaperAsset wallpaper() { return wallpaper; }
     }
 }

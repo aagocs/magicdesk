@@ -162,6 +162,11 @@ final class AppearanceSettings implements AutoCloseable {
         slider(page, R.string.appearance_icon_size, 24, 64, () -> current().composition().start().iconSizeDp(),
                 v -> change("composition.start", "iconSizeDp", v));
         heading(page, R.string.appearance_motion);
+        CheckBox wallpaper = new CheckBox(mActivity);
+        wallpaper.setText(R.string.appearance_animate_wallpaper); UiAppearance.text(wallpaper, UiColor.TEXT);
+        mRefreshers.add(() -> wallpaper.setChecked(current().motion().wallpaper()));
+        wallpaper.setOnCheckedChangeListener((v, checked) -> { if (!mRendering) change("motion", "wallpaper", checked); });
+        page.addView(wallpaper);
         final Switch reduced = new Switch(mActivity);
         reduced.setText(R.string.appearance_reduced_motion); UiAppearance.text(reduced, UiColor.TEXT);
         mRefreshers.add(() -> reduced.setChecked(current().motion().reduced()));

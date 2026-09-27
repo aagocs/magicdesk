@@ -7,6 +7,20 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 public final class ThemeBundleFormatTest {
+    @Test public void movingMediaIsWallpaperOnlyAndMustMatchItsContainer() throws Exception {
+        for (String suffix : new String[] {"gif", "mp4", "webm"}) {
+            assertEquals(ThemeBundle.Kind.WALLPAPER, ThemeBundleFiles.kind("wallpapers/loop." + suffix));
+            assertThrows(IOException.class, () -> ThemeBundleFiles.kind("icons/loop." + suffix));
+            assertThrows(IOException.class, () -> ThemeBundleFormat.signature("wallpapers/loop." + suffix,
+                    ThemeBundle.Kind.WALLPAPER, new byte[0]));
+        }
+        byte[] gif = "GIF89a0000000".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        ThemeBundleFormat.signature("wallpapers/loop.gif", ThemeBundle.Kind.WALLPAPER, gif);
+        assertThrows(IOException.class, () -> ThemeBundleFormat.signature("wallpapers/loop.mp4", ThemeBundle.Kind.WALLPAPER, gif));
+        byte[] mp4 = new byte[16]; java.nio.ByteBuffer.wrap(mp4).putInt(16).putInt(0x66747970);
+        ThemeBundleFormat.signature("wallpapers/loop.mp4", ThemeBundle.Kind.WALLPAPER, mp4);
+        assertThrows(IOException.class, () -> ThemeBundleFormat.signature("wallpapers/loop.webm", ThemeBundle.Kind.WALLPAPER, mp4));
+    }
     @Test public void fontDirectoryRangesAreCheckedBeforePlatformDecoding() throws Exception {
         byte[] font = font();
         ThemeBundleFormat.signature("fonts/font.ttf", ThemeBundle.Kind.FONT, font);

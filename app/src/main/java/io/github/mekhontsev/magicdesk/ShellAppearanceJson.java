@@ -56,7 +56,7 @@ final class ShellAppearanceJson {
                 new ShellMotion(motion.optBoolean("reduced", false), value(ShellMotion.Effect.class, motion.optString("panels", "none")),
                         value(ShellMotion.Effect.class, motion.optString("taskbar", "none")), motion.optInt("durationMs", 160),
                         motion.optInt("feedbackMs", 0), value(ShellMotion.Curve.class, motion.optString("curve", "ease_out")),
-                        motion.optInt("distanceDp", 12), number(motion, "scaleFrom", .96f)),
+                        motion.optInt("distanceDp", 12), number(motion, "scaleFrom", .96f), motion.optBoolean("wallpaper", true)),
                 new ShellAppearance.Feedback(role(feedback, "normal", UiColor.TRANSPARENT), role(feedback, "hover", UiColor.SURFACE),
                         role(feedback, "pressed", UiColor.HOVER), role(feedback, "selected", UiColor.SURFACE),
                         role(feedback, "focused", UiColor.HOVER), role(feedback, "disabled", UiColor.TRANSPARENT),
@@ -149,7 +149,7 @@ final class ShellAppearanceJson {
                         .put("sections", sections).put("presentation", name(s.presentation())).put("tileWidthDp", s.tileWidthDp()).put("iconSizeDp", s.iconSizeDp())))
                 .put("motion", new JSONObject().put("reduced", m.reduced()).put("panels", name(m.panels())).put("taskbar", name(m.taskbar()))
                         .put("durationMs", m.durationMs()).put("feedbackMs", m.feedbackMs()).put("curve", name(m.curve()))
-                        .put("distanceDp", m.distanceDp()).put("scaleFrom", Float.valueOf(m.scaleFrom())))
+                        .put("distanceDp", m.distanceDp()).put("scaleFrom", Float.valueOf(m.scaleFrom())).put("wallpaper", m.wallpaper()))
                 .put("feedback", new JSONObject().put("normal", name(f.normal())).put("hover", name(f.hover())).put("pressed", name(f.pressed()))
                         .put("selected", name(f.selected())).put("focused", name(f.focused())).put("disabled", name(f.disabled())).put("outline", name(f.outline())))
                 .put("resources", new JSONObject().put("icons", icons).put("bundle", value.resources().bundle())

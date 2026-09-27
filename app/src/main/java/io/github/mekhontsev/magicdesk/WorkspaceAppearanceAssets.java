@@ -22,6 +22,7 @@ final class WorkspaceAppearanceAssets {
         Map<ShellResources, ThemeAssets.Prepared> result = new LinkedHashMap<>();
         Set<Bitmap> images = Collections.newSetFromMap(new IdentityHashMap<>());
         Set<Typeface> fonts = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<WallpaperAsset> wallpapers = Collections.newSetFromMap(new IdentityHashMap<>());
         long bytes = 0;
         for (ShellResources resource : resources) {
             ThemeAssets.Prepared prepared = active.get(resource);
@@ -30,10 +31,10 @@ final class WorkspaceAppearanceAssets {
                     ? ThemeAssets.get(context).prepare(resource.bundle(), resource.iconAssets().values(), resource.font(), resource.wallpaper())
                     : ThemeAssets.Prepared.EMPTY;
             for (String path : resource.iconAssets().values()) bytes += imageBytes(prepared.icon(path), images);
-            bytes += imageBytes(prepared.wallpaper(), images);
+            if (prepared.wallpaper() != null && wallpapers.add(prepared.wallpaper())) bytes += prepared.wallpaper().retainedBytes();
             if (prepared.font() != null) fonts.add(prepared.font());
             if (bytes > MAX_IMAGE_BYTES || fonts.size() > MAX_FONTS) {
-                throw new IllegalArgumentException("Active appearance assets exceed 96 MiB of images or 8 fonts");
+                throw new IllegalArgumentException("Active appearance assets exceed 96 MiB of media or 8 fonts");
             }
             result.put(resource, prepared);
         }

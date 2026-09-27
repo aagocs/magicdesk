@@ -68,7 +68,7 @@ final class ShellAppearanceSchema {
                                     .put("presentation", enumeration(ShellComposition.Presentation.values()))
                                     .put("tileWidthDp", number(true, 80, 200)).put("iconSizeDp", number(true, 24, 64))))))
                     .put("feedback", object(feedback))
-                    .put("motion", object(new JSONObject().put("reduced", type("boolean"))
+                    .put("motion", object(new JSONObject().put("reduced", type("boolean")).put("wallpaper", type("boolean"))
                             .put("panels", enumeration(ShellMotion.Effect.values())).put("taskbar", enumeration(ShellMotion.Effect.values()))
                             .put("durationMs", number(true, 0, 400)).put("feedbackMs", number(true, 0, 250))
                             .put("distanceDp", number(true, 0, 32)).put("scaleFrom", number(false, .85, 1))

@@ -1,6 +1,5 @@
 package io.github.mekhontsev.magicdesk;
 
-import android.graphics.BitmapFactory;
 import android.os.ParcelFileDescriptor;
 
 import java.io.IOException;
@@ -18,23 +17,17 @@ final class DesktopWallpaperFileAction {
             final String mimeType, final boolean directory) {
         return !directory
                 && mimeType != null
-                && mimeType.startsWith("image/");
+                && (mimeType.startsWith("image/") || mimeType.equals("video/mp4") || mimeType.equals("video/webm"));
     }
 
     static void apply(final ShellFileInfo file) throws IOException {
         if (!supports(file)) {
-            throw new IOException("selected file is not an image");
+            throw new IOException("selected file is not wallpaper media");
         }
-        try (ParcelFileDescriptor source =
-                ShellAccess.openVerifiedShellFile(file, "r")) {
-            final BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeFileDescriptor(
-                    source.getFileDescriptor(), null, bounds);
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                throw new IOException(
-                        "selected file is not a decodable image");
-            }
+        try (var input = new ParcelFileDescriptor.AutoCloseInputStream(ShellAccess.openVerifiedShellFile(file, "r"))) {
+            WallpaperAsset asset = WallpaperAsset.decode(ThemeBundleFiles.read(input,
+                    ShellDesktopDirectory.MAX_WALLPAPER_BYTES), 1920, 1080);
+            asset.poster().recycle();
         }
         try (ParcelFileDescriptor source =
                 ShellAccess.openVerifiedShellFile(file, "r")) {

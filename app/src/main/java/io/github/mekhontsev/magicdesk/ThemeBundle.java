@@ -15,7 +15,7 @@ public final class ThemeBundle {
     }
     public record Entry(String path, Kind kind, long bytes, String sha256, ImageSize image) {}
 
-    /** Must fully decode media and reject invalid content, not merely accept its extension. */
+    /** Decode image/first video frame and validate bounded metadata, not merely the extension. */
     @FunctionalInterface public interface MediaValidator {
         ImageSize validate(String path, Kind kind, byte[] content,
                 ThemeBundleLimits limits, long remainingPixels) throws IOException;

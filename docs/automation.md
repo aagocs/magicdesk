@@ -1456,8 +1456,12 @@ journal. Events come from the existing production observers and include:
 - MagicDesk process and MCP server lifecycle plus action outcomes.
 
 The `wallpaper_rendered` event includes the selected source (`bundled`, `custom`,
-or `fallback`), bitmap/drawable/view dimensions, and bitmap/display density.
-These values are captured once after the selected frame commits.
+or `fallback`), `mediaKind` (`image`, `animated_image`, `video`), poster/view
+dimensions, and bitmap/display density. These values are captured once after
+the selected poster commits; readiness does not require active animation.
+`wallpaper_playback` reports `playing`, `paused` or `fallback` with the display
+and media kind. Playback is per output and obeys scoped `motion.wallpaper`,
+visibility, display power and reduced-motion policy.
 
 The journal keeps at most 256 entries and contains no keyboard text or user
 file contents. Compatibility reports include a 24 KiB bounded tail of at most

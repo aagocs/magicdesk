@@ -4,6 +4,14 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public final class ShellMotionTest {
+    @Test public void wallpaperPolicyRoundTripsIndependentlyOfPanelEffects() throws Exception {
+        assertTrue(ShellAppearanceJson.parse("{}").motion().wallpaper());
+        var theme = ShellAppearanceJson.parse("{\"motion\":{\"wallpaper\":false,\"panels\":\"slide\"}}");
+        assertFalse(theme.motion().wallpaper());
+        assertEquals(ShellMotion.Effect.SLIDE, theme.motion().panels());
+        assertEquals(theme, ShellAppearanceJson.parse(ShellAppearanceJson.encode(theme).toString()));
+        assertThrows(IllegalArgumentException.class, () -> ShellAppearanceJson.parse("{\"motion\":{\"wallpaper\":\"true\"}}"));
+    }
     @Test public void allEffectsRoundTripThroughPublishedSchema() throws Exception {
         for (var effect : ShellMotion.Effect.values()) {
             var theme = ShellAppearanceJson.parse("{\"motion\":{\"panels\":\"" + effect.name().toLowerCase(java.util.Locale.ROOT)
@@ -15,7 +23,7 @@ public final class ShellMotionTest {
             ShellAppearanceSchema.validate(encoded);
             assertEquals(theme, ShellAppearanceJson.parse(encoded.toString()));
             assertEquals(0, theme.motion().duration(effect, false));
-            var reduced = new ShellMotion(true, effect, effect, 400, 0, ShellMotion.Curve.LINEAR, 32, .85f);
+            var reduced = new ShellMotion(true, effect, effect, 400, 0, ShellMotion.Curve.LINEAR, 32, .85f, true);
             assertEquals(0, reduced.duration(effect, true));
         }
     }

@@ -12,6 +12,7 @@ public final class WorkspaceAppearanceAssetsTest {
                     int getAllocationByteCount() { return bytes; }
                 }
                 static class Typeface {}
+                record WallpaperAsset(long retainedBytes) {}
                 static class ThemeAssets {
                     static int calls;
                     static ThemeAssets get(Context context) { return new ThemeAssets(); }
@@ -23,9 +24,10 @@ public final class WorkspaceAppearanceAssetsTest {
                         static final Prepared EMPTY = new Prepared(null, null);
                         final Bitmap image;
                         final Typeface face;
+                        WallpaperAsset wallpaper;
                         Prepared(Bitmap image, Typeface face) { this.image = image; this.face = face; }
                         Bitmap icon(String path) { return image; }
-                        Bitmap wallpaper() { return image; }
+                        WallpaperAsset wallpaper() { return wallpaper; }
                         Typeface font() { return face; }
                     }
                 }
@@ -48,6 +50,17 @@ public final class WorkspaceAppearanceAssetsTest {
                             Map.of(first, prepared, second, new ThemeAssets.Prepared(new Bitmap(4), null)), Map.of());
                     } catch (IllegalArgumentException expected) { exceeded = true; }
                     check(exceeded && active.size() == 2, "aggregate retained images, not each bundle, must be bounded");
+                    var movie = new ThemeAssets.Prepared(null, null);
+                    movie.wallpaper = new WallpaperAsset(WorkspaceAppearanceAssets.MAX_IMAGE_BYTES);
+                    var sharedMovie = WorkspaceAppearanceAssets.prepare(null, List.of(first, second),
+                        Map.of(first, movie, second, movie), Map.of());
+                    check(sharedMovie.size() == 2, "shared poster and encoded media must count once");
+                    exceeded = false;
+                    try {
+                        WorkspaceAppearanceAssets.prepare(null, List.of(first, second),
+                            Map.of(first, movie, second, new ThemeAssets.Prepared(new Bitmap(4), null)), Map.of());
+                    } catch (IllegalArgumentException expected) { exceeded = true; }
+                    check(exceeded, "encoded wallpaper media and other images share one retained budget");
                     Map<ShellResources, ThemeAssets.Prepared> fonts = new LinkedHashMap<>();
                     for (int i = 0; i <= WorkspaceAppearanceAssets.MAX_FONTS; i++) {
                         fonts.put(resource(i + 10), new ThemeAssets.Prepared(null, new Typeface()));

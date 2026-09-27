@@ -3059,18 +3059,28 @@ desktop chrome into the workspace.
 
 The wallpaper is a full-display backdrop outside the inset-aware desktop
 content layer. Status-bar and viewport changes therefore reposition icons and
-windows without rescaling the wallpaper. The wallpaper controller center-crops
-the source once into a physical-display-sized frame with `Bitmap.DENSITY_NONE`.
-This pixel-sized frame must not inherit source or process density:
-`BitmapDrawable` otherwise scales its intrinsic size again for the target
-display, even with an identity image matrix. The view uses a fixed
-top-left image matrix, so a transient system-bar inset cannot recrop that frame
-when HOME loses focus. Wallpaper readiness is published only after the selected
-bitmap reaches a committed frame; reload generations discard stale callbacks
+windows without rescaling the wallpaper. `WallpaperAsset` owns validated source
+metadata, an immutable static poster with `Bitmap.DENSITY_NONE`, and encoded
+media when playback needs it. `WallpaperView` center-crops against fixed physical
+output dimensions, not its transient inset-adjusted viewport. Posters must not
+inherit process density: `BitmapDrawable` would scale their intrinsic size a
+second time on another display. Wallpaper readiness is published only after the
+selected poster reaches a committed frame; reload generations discard stale callbacks
 without a settling delay. On the phone display, opaque desktop-chrome backdrops
 cover the reserved status- and navigation-bar insets above the wallpaper.
 Android can therefore keep normal system-bar behavior for HOME and freeform
 tasks without exposing bright wallpaper strips around snapped windows.
+
+Each `WallpaperView` owns its animated-image decoder or muted `MediaPlayer` and
+`SurfaceView`. Immutable theme assets may be shared; playback never is. The
+existing wallpaper executor performs image decoding, while video preparation
+and first-frame readiness use Android callbacks with a bounded failure timeout.
+Visibility, attachment, display state, appearance, animator settings and power
+saving drive playback without polling or a Java frame loop. Loss of HOME focus
+does not stop animation. Stopping releases the decoder and restores the poster;
+stale completions cannot attach a previous source. Playback failure leaves the
+desktop usable and records a compatibility event. Wallpaper hosts own no input,
+focus, shell reservation or task transition.
 
 The desktop icon grid is a non-focusable container with the default View focus
 highlight disabled. Its click listener must not make the whole grid an
@@ -4470,12 +4480,11 @@ enabled MCP server remain alive. It is intentionally not run by host-only CI.
 
 Desktop wallpaper loading follows the same fail-open rule. By default MagicDesk
 decodes its bundled `drawable-nodpi/desktop_wallpaper.webp` resource. MagicDesk Files offers **Set as
-desktop wallpaper** only for local image files. The selected file is reopened
-through its verified device/inode identity, decoded far enough to validate the
-image, and atomically copied to
+desktop wallpaper** for local images and MP4/WebM video. The selected file is reopened
+through its verified device/inode identity, validated by `WallpaperAsset`, and atomically copied to
 `/storage/emulated/0/Desktop/.magicdesk/wallpaper`;
 selecting **Use MagicDesk wallpaper** removes that override. An unavailable or
-undecodable custom image falls back to the last valid custom cache or the
+undecodable custom media falls back to the last valid custom cache or the
 bundled background and
 records one compatibility event per distinct failure instead of changing
 desktop session state.
@@ -4485,14 +4494,15 @@ cannot be decoded. Wallpaper source selection belongs to the shared desktop UI;
 the shell boundary only reads and writes the optional Desktop file. The desktop
 folder observer owns custom wallpaper change notifications.
 The existing `wallpaper_rendered` event records the selected source (`bundled`,
-`custom`, or `fallback`), bitmap/drawable/view dimensions, and density after the
-frame commits. Bundled artwork provenance is documented in [Artwork](artwork.md).
+`custom`, or `fallback`), media kind, poster/view dimensions, and density after the
+frame commits. `wallpaper_playback` records playback state changes separately.
+Bundled artwork provenance is documented in [Artwork](artwork.md).
 Each background load owns a unique temporary cache file. The existing load
 generation cancels superseded work before provider reads, between transfer
 chunks, and before cache publication and rendering. Cancellation does not
 trigger fallback or a compatibility failure, and an already decoded but
 unused image is recycled. Temporary cache allocation failure still permits
-cached or bundled wallpaper. No extra worker, timer, or polling loop is added.
+cached or bundled wallpaper. Source observation adds no polling loop.
 
 `CommandConsoleActivity` is a permission-protected, multi-instance window
 over a retained `ConsoleTerminalSession`. The registry owns each independent
