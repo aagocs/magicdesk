@@ -945,7 +945,7 @@
     <string name="diagnostics_self_test_phone">Telefonbildschirm</string>
     <string name="diagnostics_self_test_preparing">Ausgewählter Desktop wird vorbereitet…</string>
     <string name="diagnostics_self_test_running">Desktop- und API-Selbsttest läuft…</string>
-    <string name="diagnostics_self_test_progress">Bildschirm: %1$s\n\nAktuell: %2$s\n%3$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\nNICHT GETESTET %7$d\n\nLetzte Prüfung: %8$s [%9$s]\n%10$s\n%11$s</string>
+    <string name="diagnostics_self_test_progress">Bildschirm: %1$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\nNICHT GETESTET %7$d\n\nAktuell: %2$s\n%3$s\n\nLetzte Prüfung: %8$s [%9$s]\n%10$s\n%11$s</string>
     <string name="diagnostics_self_test_complete">Selbsttest abgeschlossen: %1$s</string>
     <string name="diagnostics_self_test_cancelled">Selbsttest abgebrochen. Vorherige Ergebnisse bleiben erhalten.</string>
     <string name="diagnostics_onboarding">Kompatibilitätscheckliste</string>

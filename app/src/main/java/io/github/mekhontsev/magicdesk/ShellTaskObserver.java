@@ -203,6 +203,7 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
                 new FrameworkTaskObservationSource.Listener() {
                     @Override
                     public void onTasksSampled(
+                            final long sampleSequence,
                             final int displayId,
                             final java.util.List<?> tasks,
                             final java.util.List<
@@ -210,20 +211,15 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
                                     taskSnapshots) {
                         mProcessFailureTracker.observeTasks(
                                 displayId, taskSnapshots);
+                        mDesktopOwnership.observeTasks(displayId, tasks, sampleSequence);
+                        reportDesktopTaskOwnership();
                         final java.util.List<FrameworkTaskSnapshot> managed = taskSnapshots.stream()
                                 .filter(task -> mDesktopOwnership.isRememberedDesktopTask(task.taskId))
                                 .toList();
                         mTaskActivityModeGuard.observeTasks(displayId, managed);
                         mFocusController.onTasksSampled(taskSnapshots);
-                        for (final Integer taskId
-                                : mDesktopOwnership.observeTasks(
-                                        displayId, tasks)) {
-                            restoreUnexpectedPhoneFreeform(
-                                    displayId, taskId.intValue());
-                        }
                         reconcileFocusAfterTaskRemoval(
                                 displayId, taskSnapshots);
-                        reportDesktopTaskOwnership();
                         mFreeformCleanup.observeTasks(displayId,
                                 managed.stream().map(task -> task.task).toList());
                     }
@@ -405,6 +401,15 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
         mPhoneOverviewRouter.start(mCompatibility.enabled(
                 DesktopCompatibilityPolicy.Option.RECENTS_TO_HOME));
         mDesktopOwnership.configure(displayId);
+        if (mConfiguredDisplayId != displayId) {
+            try {
+                // Startup inventories hidden windows too, before the bounded active sampler.
+                mDesktopOwnership.observeTasks(displayId,
+                        HiddenTaskApi.getTasks(mService, displayId, Integer.MAX_VALUE), 0);
+            } catch (ReflectiveOperationException error) {
+                throw new IllegalStateException("cannot adopt desktop freeform tasks", error);
+            }
+        }
         if (desktopHostTaskId >= 0) {
             mDesktopOwnership.markDesktopHost(desktopHostTaskId);
         }
@@ -963,8 +968,8 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
         }
         // Suppress native re-adoption during this explicit ownership handoff.
         // Publish only after the topology owner completes or reconciles it.
+        mDesktopOwnership.beginRelease(taskIds);
         for (final int taskId : taskIds) {
-            mDesktopOwnership.forget(taskId);
             mMigrationGuard.forget(taskId);
             mTaskActivityModeGuard.onTaskRemoved(taskId);
             mFreeformCleanup.forget(taskId);
@@ -988,6 +993,8 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
             }
             throw new IllegalStateException("could not release desktop tasks", error);
         } finally {
+            // Ignore reads begun before handoff completion, without blocking the sampler.
+            mDesktopOwnership.finishRelease(taskIds, mTaskObservations.nextSampleSequence());
             reportDesktopTaskOwnership();
             signalChange("desktop task ownership released");
         }
@@ -1294,7 +1301,7 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
             mTaskLauncher.onTaskMovedToFront(
                     taskInfo.taskId,
                     HiddenTaskApi.getTaskTopComponent(taskInfo));
-            mDesktopOwnership.observeTask(taskInfo);
+            mDesktopOwnership.onTaskDisplayChanged(taskInfo.taskId, displayId);
             reportDesktopTaskOwnership();
             mMigrationGuard.onTaskMovedToFront(taskInfo);
             if (isPhoneTouchpadTask(taskInfo)) {
@@ -1322,6 +1329,8 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
         mFullscreenTaskArea.onTaskDisplayChanged(taskId, newDisplayId);
         mTaskActivityModeGuard.onTaskDisplayChanged(taskId, newDisplayId);
         mMigrationGuard.onTaskDisplayChanged(taskId, newDisplayId);
+        mDesktopOwnership.onTaskDisplayChanged(taskId, newDisplayId);
+        reportDesktopTaskOwnership();
         signalChange("display-changed");
     }
 
@@ -1497,30 +1506,6 @@ final class ShellTaskObserver extends TaskStackListener implements Closeable {
             cleanup.run();
         } catch (RuntimeException error) {
             Log.w(TAG, "failed to close " + component, error);
-        }
-    }
-
-    private void restoreUnexpectedPhoneFreeform(
-            final int displayId,
-            final int taskId) {
-        if (displayId != Display.DEFAULT_DISPLAY) {
-            return;
-        }
-        try {
-            final Object task = HiddenTaskApi.findTask(
-                    mService, Display.DEFAULT_DISPLAY, taskId);
-            if (task != null
-                    && TaskWindowingCommand.normalizeFullscreenTask(
-                            mService,
-                            Display.DEFAULT_DISPLAY,
-                            task,
-                            refreshFullscreenCaption())) {
-                Log.i(TAG, "restored unexpected phone freeform task="
-                        + taskId);
-            }
-        } catch (ReflectiveOperationException | RuntimeException error) {
-            Log.w(TAG, "could not restore phone fullscreen task="
-                    + taskId, error);
         }
     }
 

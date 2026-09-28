@@ -1,147 +1,104 @@
 package io.github.mekhontsev.magicdesk;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
 public final class ShellDesktopTaskOwnershipTest {
-    @Test
-    public void desktopHostIdentityFollowsSessionAndTaskLifecycle() {
-        final ShellDesktopTaskOwnership ownership =
-                new ShellDesktopTaskOwnership();
-
-        ownership.configure(4);
-        ownership.markDesktopHost(41);
-        assertTrue(ownership.isDesktopHostTask(41));
-        assertFalse(ownership.isDesktopHostTask(42));
-
-        ownership.forget(41);
-        assertFalse(ownership.isDesktopHostTask(41));
-
-        ownership.markDesktopHost(43);
-        ownership.configure(5);
-        assertFalse(ownership.isDesktopHostTask(43));
+    @Test public void freeformResidencyClaimsTasksOnEveryWorkspaceDisplay() {
+        for (int display : new int[]{0, 4, 61}) {
+            var ownership = new ShellDesktopTaskOwnership();
+            ownership.configure(display);
+            ownership.observeStandardTaskState(display, display, 41, 1, 1);
+            ownership.observeStandardTaskState(display, display, 42, 2, 1);
+            ownership.observeStandardTaskState(display, display, 43, 6, 1);
+            assertArrayEquals(new int[0], ownership.desktopTaskIds());
+            ownership.observeStandardTaskState(display, display, 41, 5, 2);
+            ownership.observeStandardTaskState(display, display, 44, 5, 2);
+            assertArrayEquals(new int[]{41, 44}, ownership.desktopTaskIds());
+            ownership.observeStandardTaskState(display, display, 41, 1, 3);
+            ownership.observeStandardTaskState(display, display, 44, 2, 3);
+            assertArrayEquals(new int[]{41, 44}, ownership.desktopTaskIds());
+        }
     }
 
-    @Test
-    public void taskIdSnapshotTracksExactOwnedSet() {
-        final ShellDesktopTaskOwnership ownership =
-                new ShellDesktopTaskOwnership();
+    @Test public void displayDepartureAndSessionStopReleaseOwnership() {
+        var ownership = new ShellDesktopTaskOwnership();
+        ownership.configure(4);
+        ownership.markDesktopHost(40);
+        ownership.observeStandardTaskState(4, 4, 41, 5, 1);
+        ownership.observeStandardTaskState(4, 0, 42, 5, 1);
+        ownership.observeStandardTaskState(0, 0, 43, 5, 1);
+        assertArrayEquals(new int[]{40, 41}, ownership.desktopTaskIds());
+        ownership.onTaskDisplayChanged(41, 0);
+        assertFalse(ownership.isRememberedDesktopTask(41));
+        ownership.observeStandardTaskState(4, 4, 41, 5, 2);
+        assertTrue(ownership.isRememberedDesktopTask(41));
+        ownership.configure(-1);
+        ownership.observeStandardTaskState(4, 4, 42, 5, 3);
+        assertArrayEquals(new int[0], ownership.desktopTaskIds());
+        assertFalse(ownership.isDesktopHostTask(40));
+    }
 
+    @Test public void hostIdentityAndMembershipSurviveBoundsReconfiguration() {
+        var ownership = new ShellDesktopTaskOwnership();
         ownership.configure(0);
         ownership.markDesktopHost(40);
         ownership.markDesktop(41);
+        ownership.configure(0);
+        assertTrue(ownership.isDesktopHostTask(40));
         assertArrayEquals(new int[]{40, 41}, ownership.desktopTaskIds());
-
         ownership.forget(40);
-        assertArrayEquals(new int[]{41}, ownership.desktopTaskIds());
-        ownership.configure(-1);
-        assertArrayEquals(new int[0], ownership.desktopTaskIds());
-    }
-
-    private static final int WINDOWING_MODE_FULLSCREEN = 1;
-    private static final int WINDOWING_MODE_FREEFORM = 5;
-
-    @Test
-    public void ownershipRequiresAnExplicitClaimOnItsDisplay() {
-        assertTrue(ShellDesktopTaskOwnership.isDesktopOwnedTask(
-                true, true));
-        assertFalse(ShellDesktopTaskOwnership.isDesktopOwnedTask(
-                false, false));
-    }
-
-    @Test
-    public void displayAndRememberedIdentityAloneCannotClaimTasks() {
-        assertFalse(ShellDesktopTaskOwnership.isDesktopOwnedTask(
-                true, false));
-        assertFalse(ShellDesktopTaskOwnership.isDesktopOwnedTask(
-                false, true));
-    }
-
-    @Test
-    public void unclaimedPhoneFreeformTaskIsNotAdopted() {
-        final ShellDesktopTaskOwnership ownership =
-                new ShellDesktopTaskOwnership();
-
-        ownership.configure(0);
-        assertNull(ownership.observeStandardTaskState(
-                0, 0, 42, WINDOWING_MODE_FREEFORM));
-        assertArrayEquals(new int[0], ownership.desktopTaskIds());
-    }
-
-    @Test
-    public void externalObservationNeverAdoptsIndependentTasks() {
-        final ShellDesktopTaskOwnership ownership =
-                new ShellDesktopTaskOwnership();
-
+        assertFalse(ownership.isDesktopHostTask(40));
         ownership.configure(4);
-        assertNull(ownership.observeStandardTaskState(
-                4, 4, 41, WINDOWING_MODE_FULLSCREEN));
-        assertNull(ownership.observeStandardTaskState(
-                4, 4, 42, WINDOWING_MODE_FREEFORM));
         assertArrayEquals(new int[0], ownership.desktopTaskIds());
+    }
+
+    @Test public void releaseIgnoresPreHandoffSamplesButAllowsNewFreeformResidency() {
+        var ownership = new ShellDesktopTaskOwnership();
+        ownership.configure(4);
         ownership.markDesktop(41);
-        assertArrayEquals(new int[]{41}, ownership.desktopTaskIds());
-        ownership.observeStandardTaskState(0, 0, 41, WINDOWING_MODE_FULLSCREEN);
-        assertArrayEquals(new int[0], ownership.desktopTaskIds());
+        ownership.beginRelease(new int[]{41});
+        ownership.observeStandardTaskState(4, 4, 41, 5, 10);
+        assertFalse(ownership.isRememberedDesktopTask(41));
+        ownership.finishRelease(new int[]{41}, 12);
+        ownership.observeStandardTaskState(4, 4, 41, 5, 11);
+        assertFalse(ownership.isRememberedDesktopTask(41));
+        ownership.observeStandardTaskState(4, 4, 41, 1, 12);
+        assertFalse(ownership.isRememberedDesktopTask(41));
+        ownership.observeStandardTaskState(4, 4, 41, 5, 13);
+        assertTrue(ownership.isRememberedDesktopTask(41));
     }
 
-    @Test
-    public void restoresEveryObservedUnownedPhoneFreeformState() {
-        assertTrue(shouldRestore(
-                true, true, false, true,
-                WINDOWING_MODE_FREEFORM));
-        assertFalse(shouldRestore(
-                true, true, true, true,
-                WINDOWING_MODE_FREEFORM));
-        assertFalse(shouldRestore(
-                false, true, false, true,
-                WINDOWING_MODE_FREEFORM));
-        assertFalse(shouldRestore(
-                true, false, false, true,
-                WINDOWING_MODE_FREEFORM));
-        assertFalse(shouldRestore(
-                true, true, false, false,
-                WINDOWING_MODE_FREEFORM));
-        assertFalse(shouldRestore(
-                true, true, false, true,
-                WINDOWING_MODE_FULLSCREEN));
-    }
-
-    @Test
-    public void explicitDesktopClaimPrecedesPhoneFreeformObservation() {
-        final ShellDesktopTaskOwnership ownership =
-                new ShellDesktopTaskOwnership();
-
+    @Test public void freshFreeformSampleIsAdoptedEvenWithoutIntermediateFullscreenSample() {
+        var ownership = new ShellDesktopTaskOwnership();
         ownership.configure(0);
-        assertNull(ownership.observeStandardTaskState(
-                0, 0, 42, WINDOWING_MODE_FULLSCREEN));
-        assertEquals(Integer.valueOf(42),
-                ownership.observeStandardTaskState(
-                        0, 0, 42, WINDOWING_MODE_FREEFORM));
-
-        ownership.markDesktop(42);
-
-        assertNull(ownership.observeStandardTaskState(
-                0, 0, 42, WINDOWING_MODE_FREEFORM));
-        assertArrayEquals(new int[]{42}, ownership.desktopTaskIds());
+        ownership.markDesktop(41);
+        ownership.beginRelease(new int[]{41});
+        ownership.finishRelease(new int[]{41}, 12);
+        ownership.observeStandardTaskState(0, 0, 41, 5, 12);
+        assertTrue(ownership.isRememberedDesktopTask(41));
     }
 
-    private static boolean shouldRestore(
-            final boolean localDesktop,
-            final boolean phoneDisplay,
-            final boolean desktopOwned,
-            final boolean knownPhoneFullscreen,
-            final int currentMode) {
-        return ShellDesktopTaskOwnership.shouldRestoreKnownPhoneFreeform(
-                localDesktop,
-                phoneDisplay,
-                desktopOwned,
-                knownPhoneFullscreen,
-                currentMode);
+    @Test public void failedReleaseAndExplicitLaunchClearTheAdmissionBarrier() {
+        var ownership = new ShellDesktopTaskOwnership();
+        ownership.configure(4);
+        ownership.markDesktop(41);
+        ownership.beginRelease(new int[]{41});
+        ownership.markDesktop(41);
+        ownership.finishRelease(new int[]{41}, 12);
+        assertTrue(ownership.isRememberedDesktopTask(41));
+        ownership.forget(41);
+        ownership.observeStandardTaskState(4, 4, 41, 5, 11);
+        assertTrue(ownership.isRememberedDesktopTask(41));
+    }
+
+    @Test public void rememberedIdentityStillRequiresTheOwningDisplay() {
+        assertTrue(ShellDesktopTaskOwnership.isDesktopOwnedTask(true, true));
+        assertFalse(ShellDesktopTaskOwnership.isDesktopOwnedTask(true, false));
+        assertFalse(ShellDesktopTaskOwnership.isDesktopOwnedTask(false, true));
+        assertFalse(ShellDesktopTaskOwnership.isDesktopOwnedTask(false, false));
     }
 }

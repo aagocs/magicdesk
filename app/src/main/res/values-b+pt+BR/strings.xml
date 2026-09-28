@@ -955,7 +955,7 @@
     <string name="diagnostics_self_test_phone">Tela do celular</string>
     <string name="diagnostics_self_test_preparing">Preparando a área de trabalho selecionada…</string>
     <string name="diagnostics_self_test_running">Executando autoteste da área de trabalho e API…</string>
-    <string name="diagnostics_self_test_progress">Tela: %1$s\n\nAtual: %2$s\n%3$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\nNÃO TESTADO %7$d\n\nÚltima verificação: %8$s [%9$s]\n%10$s\n%11$s</string>
+    <string name="diagnostics_self_test_progress">Tela: %1$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\nNÃO TESTADO %7$d\n\nAtual: %2$s\n%3$s\n\nÚltima verificação: %8$s [%9$s]\n%10$s\n%11$s</string>
     <string name="diagnostics_self_test_complete">Autoteste concluído: %1$s</string>
     <string name="diagnostics_self_test_cancelled">Autoteste cancelado. Os resultados anteriores foram preservados.</string>
     <string name="diagnostics_onboarding">Lista de compatibilidade</string>

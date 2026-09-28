@@ -4,14 +4,11 @@ import org.junit.Test;
 
 public final class DesktopSelfTestTransferOwnershipTest {
     @Test
-    public void nativeTransferAndDesktopAdmissionHaveSeparateAssertions() throws Exception {
+    public void activationVerifiesAutomaticOwnershipWithoutExplicitAdmission() throws Exception {
         RuntimeSourceFixture.verify("""
                 static final String FIXTURE_CLASS = "magicdesk.Fixture";
                 static final List<String> calls = new ArrayList<>();
-                static boolean managed, attachSucceeds = true, focusSucceeds = true, ownershipKnown = true;
-                static final Rect bounds = new Rect();
-                static class Rect {}
-                static class DesktopTaskDensity { static final int UNCHANGED = -1; }
+                static boolean managed, focusSucceeds = true, ownershipKnown = true;
                 static class TaskRepository {
                     static class TaskEntry {
                         int taskId = 41, displayId = 7;
@@ -37,15 +34,6 @@ public final class DesktopSelfTestTransferOwnershipTest {
                         return managed;
                     }
                 }
-                static class MagicDeskRuntime {
-                    static boolean attachWindowedTask(int display, int task, Rect b, int dpi) {
-                        check(display == 7 && task == 41 && b == bounds
-                                && dpi == DesktopTaskDensity.UNCHANGED, "admission changed fixture target");
-                        calls.add("admit");
-                        if (attachSucceeds) { managed = true; }
-                        return attachSucceeds;
-                    }
-                }
                 static class DesktopSelfTestInputSuite {
                     static void focusTaskThroughDesktop(int display, int task) throws IOException {
                         check(managed && display == 7 && task == 41, "focused an independent task");
@@ -60,18 +48,18 @@ public final class DesktopSelfTestTransferOwnershipTest {
                 }
                 public static void verify() throws Exception {
                     check(verifyFixtureOwnership(7, 41, false).endsWith("independent"),
-                            "raw transfer should remain independent");
+                            "initial independent identity missing");
                     check(calls.equals(List.of("observe")), "observation claimed the task");
                     fails(() -> verifyFixtureOwnership(7, 41, true));
                     calls.clear();
-                    check(admitTransferredFixture(7, 41, bounds).endsWith("desktop"), "admission missing");
-                    check(calls.equals(List.of("admit", "focus", "observe")), "admission/focus order");
+                    fails(() -> activateTransferredFixture(7, 41));
+                    check(calls.equals(List.of("observe")), "test itself admitted the task");
+                    managed = true; calls.clear();
+                    check(activateTransferredFixture(7, 41).endsWith("desktop"), "adoption missing");
+                    check(calls.equals(List.of("observe", "focus", "observe")), "ownership/focus order");
                     fails(() -> verifyFixtureOwnership(7, 41, false));
-                    managed = false; attachSucceeds = false; calls.clear();
-                    fails(() -> admitTransferredFixture(7, 41, bounds));
-                    check(calls.equals(List.of("admit")), "failed admission proceeded to focus");
-                    attachSucceeds = true; focusSucceeds = false;
-                    fails(() -> admitTransferredFixture(7, 41, bounds));
+                    focusSucceeds = false;
+                    fails(() -> activateTransferredFixture(7, 41));
                     ownershipKnown = false;
                     fails(() -> verifyFixtureOwnership(7, 41, true));
                     ownershipKnown = true;
@@ -86,6 +74,6 @@ public final class DesktopSelfTestTransferOwnershipTest {
                     fails(() -> verifyFixtureOwnership(7, 41, false));
                 }
                 """ + RuntimeSourceFixture.methods("DesktopSelfTestWindowSuite",
-                        "verifyFixtureOwnership", "admitTransferredFixture"));
+                        "verifyFixtureOwnership", "activateTransferredFixture"));
     }
 }

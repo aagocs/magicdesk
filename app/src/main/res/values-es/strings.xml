@@ -955,7 +955,7 @@
     <string name="diagnostics_self_test_phone">Pantalla del teléfono</string>
     <string name="diagnostics_self_test_preparing">Preparando el escritorio seleccionado…</string>
     <string name="diagnostics_self_test_running">Ejecutando autoprueba de escritorio y API…</string>
-    <string name="diagnostics_self_test_progress">Pantalla: %1$s\n\nActual: %2$s\n%3$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\nSIN PROBAR %7$d\n\nÚltima prueba: %8$s [%9$s]\n%10$s\n%11$s</string>
+    <string name="diagnostics_self_test_progress">Pantalla: %1$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\nSIN PROBAR %7$d\n\nActual: %2$s\n%3$s\n\nÚltima prueba: %8$s [%9$s]\n%10$s\n%11$s</string>
     <string name="diagnostics_self_test_complete">Autoprueba completada: %1$s</string>
     <string name="diagnostics_self_test_cancelled">Autoprueba cancelada. Se conservaron los resultados anteriores.</string>
     <string name="diagnostics_onboarding">Lista de compatibilidad</string>

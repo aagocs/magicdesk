@@ -169,7 +169,8 @@ task subject to the application's manifest, not another account or process.
 
 `ApplicationTaskPlacement` revalidates task identity and coordinates ownership
 handoffs. Android remains the source of all live tasks and their displays;
-MagicDesk tracks only its explicit Desktop membership. An unavailable membership
+MagicDesk tracks Desktop membership published by its task observer, including
+adopted freeform tasks. An unavailable membership
 snapshot is unknown, not independent. Leaving Desktop uses its existing topology
 owner to release the task; ordinary-to-ordinary placement uses
 `FrameworkActivityLaunchApi` without initializing an organizer. Same-display
@@ -3401,14 +3402,22 @@ closing the current one. Start and Close operations are serialized.
 **Close desktop** addresses only that row's workspace. Application placement
 and input selection remain independent.
 
-Neither task mode nor display identity is an ownership signal. MagicDesk claims a task
-before submitting a desktop launch or window transition, and only claimed
-tasks publish immersive, orientation, mode, and bounds changes to the desktop
-window controller. This prevents a SystemUI launch that briefly reports
-freeform from being restored or resized by MagicDesk. The same rule applies to
-phone, simulated, wired and wireless workspaces. Independent tasks remain
-visible to whole-display diagnostics and foreground/chrome policy, but are
-excluded from Desktop's taskbar, Alt+Tab, mode guard and cleanup.
+Desktop adopts ordinary freeform tasks on its display, including hidden windows
+present at startup. The same shell ownership registry also claims explicitly
+launched tasks and processes new freeform residency from the existing framework
+observer before publishing immersive, mode and bounds events. Adoption changes
+membership only, preserving geometry, focus and task hierarchy. SystemUI, HOME
+and shell infrastructure are not application candidates. Fullscreen and PiP
+tasks that have not been claimed remain independent. These rules are identical
+on phone, simulated, wired and wireless workspaces. Only members participate in
+the taskbar, Alt+Tab, mode guard and cleanup; whole-display diagnostics and chrome
+policy also see independent tasks.
+
+Explicit release blocks adoption for the selected tasks during the fullscreen
+handoff. A monotonically sequenced observation must have begun after completion
+before it may establish new freeform residency; an older in-flight read cannot
+reclaim released tasks. Failed release restores membership through the same
+registry. No additional sampler or settling delay is involved.
 
 Task snapshots and windowing commands issued through `TaskRepository` share a
 single `TaskCommandQueue` with phone-task recovery. Recovery checks session

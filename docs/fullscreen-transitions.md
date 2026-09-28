@@ -444,13 +444,18 @@ navigation-bar insets or enabling system Desktop.
 
 ## Window transition ownership
 
-Desktop membership is explicit on every display. Independent Android tasks may
-coexist with a workspace, but do not enter its taskbar or Alt+Tab. Moving between
-these ownership modes is an explicit placement operation, not a focus action.
+Desktop membership includes explicit launches and ordinary freeform tasks on
+the workspace display. Startup inventories existing windows, including hidden
+ones; the shared observer adopts later freeform arrivals before their window
+events reach Desktop policy. Adoption does not change focus, bounds or hierarchy.
+Unclaimed fullscreen and PiP tasks remain independent and do not enter Desktop's
+taskbar or Alt+Tab. This is the same policy on every display.
 `ApplicationTaskPlacement` asks the source observer to release membership;
 `ShellFullscreenTaskPlanes.releaseToAndroid` owns the fullscreen/bounds/density
 reset and plane departure transaction. The observer clears mode/migration guards
-for released tasks and reconciles ownership if submission fails.
+for released tasks and reconciles ownership if submission fails. Admission is
+blocked during release and resumes only for reads begun after its completion,
+so stale freeform samples cannot reclaim the task during handoff.
 
 Close Desktop releases managed applications together on their still-live
 display. It does not repeatedly focus them, include independent applications,

@@ -71,6 +71,19 @@ public class LocalizationResourcesTest {
         }
     }
 
+    @Test public void selfTestCountersPrecedeCurrentStageInEveryLanguage() throws Exception {
+        for (Element locale : children(parse(RES.resolve("xml/locales_config.xml")))) {
+            String tag = locale.getAttributeNS(ANDROID, "name");
+            String qualifier = tag.contains("-") ? "b+" + tag.replace('-', '+') : tag;
+            Path directory = RES.resolve(tag.equals("en") ? "values" : "values-" + qualifier);
+            String text = resources(directory).get("diagnostics_self_test_progress").getTextContent();
+            for (String argument : List.of("%4$d", "%5$d", "%6$d", "%7$d")) {
+                assertTrue(tag + ":" + argument, text.indexOf(argument) >= 0
+                        && text.indexOf(argument) < text.indexOf("%2$s"));
+            }
+        }
+    }
+
     private static Map<String, Element> resources(Path directory) throws Exception {
         Map<String, Element> result = new LinkedHashMap<>();
         try (var files = Files.list(directory)) {

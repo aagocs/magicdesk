@@ -3,21 +3,20 @@ package io.github.mekhontsev.magicdesk;
 import android.util.Log;
 import android.view.Display;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-/** Explicit workspace membership; a display and a windowing mode never claim a task. */
+/** Workspace membership from explicit launches and observed freeform residency. */
 final class ShellDesktopTaskOwnership {
     private static final String TAG = "MagicDeskTasks";
-    private static final int WINDOWING_MODE_FULLSCREEN = 1;
     private static final int WINDOWING_MODE_FREEFORM = 5;
     private static final String SYSTEM_UI_PACKAGE = "com.android.systemui";
 
     private final Set<Integer> mDesktopTaskIds = new LinkedHashSet<>();
-    private final Set<Integer> mPhoneFullscreenTaskIds =
-            new LinkedHashSet<>();
+    private final Map<Integer, Long> mReleaseBarriers = new HashMap<>();
 
     private int mDesktopDisplayId = Display.INVALID_DISPLAY;
     private int mDesktopHostTaskId = -1;
@@ -29,7 +28,7 @@ final class ShellDesktopTaskOwnership {
         mDesktopDisplayId = displayId;
         mDesktopHostTaskId = -1;
         mDesktopTaskIds.clear();
-        mPhoneFullscreenTaskIds.clear();
+        mReleaseBarriers.clear();
     }
 
     synchronized void markDesktopHost(final int taskId) {
@@ -45,12 +44,12 @@ final class ShellDesktopTaskOwnership {
             return;
         }
         mDesktopTaskIds.add(Integer.valueOf(taskId));
-        mPhoneFullscreenTaskIds.remove(Integer.valueOf(taskId));
+        mReleaseBarriers.remove(Integer.valueOf(taskId));
     }
 
     synchronized void forget(final int taskId) {
         mDesktopTaskIds.remove(Integer.valueOf(taskId));
-        mPhoneFullscreenTaskIds.remove(Integer.valueOf(taskId));
+        mReleaseBarriers.remove(Integer.valueOf(taskId));
         if (mDesktopHostTaskId == taskId) {
             mDesktopHostTaskId = -1;
         }
@@ -78,28 +77,38 @@ final class ShellDesktopTaskOwnership {
         return taskIds;
     }
 
-    synchronized List<Integer> observeTasks(
-            final int displayId,
-            final List<?> tasks) {
-        final List<Integer> unexpectedPhoneFreeformTasks = new ArrayList<>();
-        if (mDesktopDisplayId == Display.INVALID_DISPLAY || tasks == null) {
-            return unexpectedPhoneFreeformTasks;
+    synchronized void beginRelease(final int[] taskIds) {
+        for (final int taskId : taskIds) {
+            mDesktopTaskIds.remove(taskId);
+            mReleaseBarriers.put(taskId, Long.MAX_VALUE);
         }
-        for (final Object task : tasks) {
-            final Integer unexpectedTaskId = observeTaskLocked(
-                    displayId, task);
-            if (unexpectedTaskId != null) {
-                unexpectedPhoneFreeformTasks.add(unexpectedTaskId);
-            }
-        }
-        return unexpectedPhoneFreeformTasks;
     }
 
-    synchronized void observeTask(final Object task) {
-        if (task == null) {
+    synchronized void finishRelease(final int[] taskIds, final long nextSampleSequence) {
+        for (final int taskId : taskIds) {
+            // A failed handoff may already have restored explicit membership.
+            if (mReleaseBarriers.containsKey(taskId)) {
+                mReleaseBarriers.put(taskId, nextSampleSequence);
+            }
+        }
+    }
+
+    synchronized void onTaskDisplayChanged(final int taskId, final int displayId) {
+        if (displayId != mDesktopDisplayId) {
+            forget(taskId);
+        }
+    }
+
+    synchronized void observeTasks(
+            final int displayId,
+            final List<?> tasks,
+            final long sampleSequence) {
+        if (mDesktopDisplayId == Display.INVALID_DISPLAY || tasks == null) {
             return;
         }
-        observeTaskLocked(HiddenTaskApi.getTaskDisplayId(task), task);
+        for (final Object task : tasks) {
+            observeTaskLocked(displayId, task, sampleSequence);
+        }
     }
 
     synchronized boolean isDesktopTask(final Object task) {
@@ -125,67 +134,46 @@ final class ShellDesktopTaskOwnership {
         return onWorkspaceDisplay && rememberedDesktopTask;
     }
 
-    static boolean shouldRestoreKnownPhoneFreeform(
-            final boolean localDesktop,
-            final boolean phoneDisplay,
-            final boolean desktopOwned,
-            final boolean knownPhoneFullscreen,
-            final int currentMode) {
-        return localDesktop
-                && phoneDisplay
-                && !desktopOwned
-                && knownPhoneFullscreen
-                && currentMode == WINDOWING_MODE_FREEFORM;
-    }
-
-    private Integer observeTaskLocked(
+    private void observeTaskLocked(
             final int displayId,
-            final Object task) {
+            final Object task,
+            final long sampleSequence) {
         if (!isStandardTask(task)
                 || HiddenTaskApi.getTaskDisplayId(task) != displayId) {
-            return null;
+            return;
         }
         try {
-            return observeStandardTaskState(
+            observeStandardTaskState(
                     displayId,
                     HiddenTaskApi.getTaskDisplayId(task),
                     HiddenTaskApi.getTaskId(task),
-                    HiddenTaskApi.getTaskWindowingMode(task));
+                    HiddenTaskApi.getTaskWindowingMode(task), sampleSequence);
         } catch (ReflectiveOperationException | RuntimeException error) {
             Log.w(TAG, "could not classify desktop task", error);
         }
-        return null;
     }
 
-    synchronized Integer observeStandardTaskState(
+    synchronized void observeStandardTaskState(
             final int displayId,
             final int taskDisplayId,
             final int taskId,
-            final int mode) {
+            final int mode,
+            final long sampleSequence) {
         if (mDesktopDisplayId == Display.INVALID_DISPLAY
                 || taskId < 0 || taskDisplayId != displayId) {
-            return null;
+            return;
         }
         final Integer taskKey = Integer.valueOf(taskId);
-        if (taskDisplayId != mDesktopDisplayId) { mDesktopTaskIds.remove(taskKey); }
-        if (mode == WINDOWING_MODE_FREEFORM) {
-            final boolean restorePhoneTask =
-                    shouldRestoreKnownPhoneFreeform(
-                            mDesktopDisplayId == Display.DEFAULT_DISPLAY,
-                            displayId == Display.DEFAULT_DISPLAY,
-                            mDesktopTaskIds.contains(taskKey),
-                            mPhoneFullscreenTaskIds.contains(taskKey),
-                            mode);
-            // Display 0 is shared. An unclaimed task may pass through freeform
-            // during a SystemUI launch, so observation alone must not adopt
-            // it into the desktop workspace.
-            return restorePhoneTask ? taskKey : null;
-        } else if (displayId == Display.DEFAULT_DISPLAY
-                && mode == WINDOWING_MODE_FULLSCREEN
-                && !mDesktopTaskIds.contains(taskKey)) {
-            mPhoneFullscreenTaskIds.add(taskKey);
+        if (taskDisplayId != mDesktopDisplayId) {
+            forget(taskId);
+            return;
         }
-        return null;
+        final Long releaseBarrier = mReleaseBarriers.get(taskKey);
+        if (releaseBarrier != null) {
+            if (sampleSequence < releaseBarrier) return;
+            mReleaseBarriers.remove(taskKey);
+        }
+        if (mode == WINDOWING_MODE_FREEFORM) markDesktop(taskId);
     }
 
     private boolean isStandardTask(final Object task) {
@@ -197,9 +185,11 @@ final class ShellDesktopTaskOwnership {
         }
         try {
             return HiddenTaskApi.getTaskActivityType(task)
-                            == FrameworkTaskSnapshot.ACTIVITY_TYPE_STANDARD
+                    == FrameworkTaskSnapshot.ACTIVITY_TYPE_STANDARD
                     && !DesktopInfrastructureTasks.isComponent(
-                            HiddenTaskApi.getTaskComponent(task));
+                            HiddenTaskApi.getTaskComponent(task))
+                    && !DesktopInfrastructureTasks.isComponent(
+                            HiddenTaskApi.getTaskTopComponent(task));
         } catch (ReflectiveOperationException | RuntimeException error) {
             Log.w(TAG, "could not inspect desktop task type", error);
             return false;

@@ -71,6 +71,7 @@ final class FrameworkTaskObservationSource implements Closeable {
 
     interface Listener {
         void onTasksSampled(
+                long sampleSequence,
                 int displayId,
                 List<?> tasks,
                 List<FrameworkTaskSnapshot> taskSnapshots);
@@ -102,6 +103,7 @@ final class FrameworkTaskObservationSource implements Closeable {
     private final Object mLock = new Object();
     private final LatestOperationSerializer mPublications = new LatestOperationSerializer();
     private LatestOperationSerializer.Ticket mConfiguration;
+    private long mSampleSequence;
     private final Map<Integer, Integer> mLastVisibleTypes = new HashMap<>();
     private final Map<Integer, Integer> mLastProcessIds = new HashMap<>();
     private final Map<Integer, FreeformBoundsState> mLastFreeformBounds =
@@ -219,6 +221,11 @@ final class FrameworkTaskObservationSource implements Closeable {
         Sampler.request();
     }
 
+    /** First read that cannot contain state from an already completed mutation. */
+    long nextSampleSequence() {
+        synchronized (mLock) { return mSampleSequence + 1; }
+    }
+
     @Override
     public void close() {
         synchronized (mLock) {
@@ -245,17 +252,19 @@ final class FrameworkTaskObservationSource implements Closeable {
 
     private void sample() {
         final int displayId;
+        final long sampleSequence;
         final LatestOperationSerializer.Ticket configuration;
         synchronized (mLock) {
             if (mClosed || mDisplayId < 0) { return; }
             displayId = mDisplayId;
+            sampleSequence = ++mSampleSequence;
             configuration = mConfiguration;
         }
         try {
             final FrameworkTaskSnapshotSource.Sample sample = FrameworkTaskSnapshotSource.read(
                     mService, displayId, mCapabilities.taskLimit, mFrameworkCompat);
             if (!mPublications.executeIfCurrent(configuration, () ->
-                    mListener.onTasksSampled(displayId, sample.rawTasks, sample.snapshots))) {
+                    mListener.onTasksSampled(sampleSequence, displayId, sample.rawTasks, sample.snapshots))) {
                 return;
             }
             publishTaskStackChanges(configuration, displayId, sample.snapshots);

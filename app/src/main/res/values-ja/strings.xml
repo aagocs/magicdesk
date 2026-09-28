@@ -935,7 +935,7 @@
     <string name="diagnostics_self_test_phone">端末の画面</string>
     <string name="diagnostics_self_test_preparing">選択したデスクトップを準備中…</string>
     <string name="diagnostics_self_test_running">デスクトップと API のセルフテストを実行中…</string>
-    <string name="diagnostics_self_test_progress">画面：%1$s\n\n現在：%2$s\n%3$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\n未テスト %7$d\n\n前回の確認：%8$s [%9$s]\n%10$s\n%11$s</string>
+    <string name="diagnostics_self_test_progress">画面：%1$s\n\nPASS %4$d   WARN %5$d   FAIL %6$d\n未テスト %7$d\n\n現在：%2$s\n%3$s\n\n前回の確認：%8$s [%9$s]\n%10$s\n%11$s</string>
     <string name="diagnostics_self_test_complete">セルフテスト完了：%1$s</string>
     <string name="diagnostics_self_test_cancelled">セルフテストを中止しました。以前の結果は保持されています。</string>
     <string name="diagnostics_onboarding">互換性チェックリスト</string>

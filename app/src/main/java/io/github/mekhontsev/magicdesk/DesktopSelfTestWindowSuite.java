@@ -270,14 +270,14 @@ final class DesktopSelfTestWindowSuite {
             }
             require(result,
                     "WINDOW-OWNERSHIP-002",
-                    "Keep a direct freeform transfer independent",
-                    () -> verifyFixtureOwnership(
-                            targetDisplayId, targetFixtureTaskId, false));
+                    "Automatically adopt a direct freeform transfer",
+                    () -> awaitFixtureOwnership(
+                            targetDisplayId, targetFixtureTaskId));
             require(result,
                     "WINDOW-OWNERSHIP-003",
-                    "Admit the transferred window to Desktop",
-                    () -> admitTransferredFixture(
-                            targetDisplayId, targetFixtureTaskId, windowBounds));
+                    "Activate the automatically adopted window",
+                    () -> activateTransferredFixture(
+                            targetDisplayId, targetFixtureTaskId));
         }
         check(result,
                 "WINDOW-013",
@@ -1597,14 +1597,23 @@ final class DesktopSelfTestWindowSuite {
         throw new IOException("fixture " + taskId + " is unavailable on display " + displayId);
     }
 
-    private static String admitTransferredFixture(
-            final int displayId, final int taskId, final Rect bounds) throws IOException {
-        // The preceding instrumented transfer tests Android placement only.
-        // Desktop focus checks require the same explicit admission as Start.
-        if (!MagicDeskRuntime.attachWindowedTask(
-                displayId, taskId, bounds, DesktopTaskDensity.UNCHANGED)) {
-            throw new IOException("could not admit transferred fixture to Desktop");
-        }
+    private static String awaitFixtureOwnership(
+            final int displayId, final int taskId) throws IOException {
+        // Ownership reaches the application through the existing observer callback.
+        // This bounded test read must not explicitly attach the task it is verifying.
+        final String result = BoundedStateAwaiter.awaitIo(
+                BoundedStateAwaiter.Reason.TASK_HIERARCHY,
+                DesktopSelfTestTasks.STEP_TIMEOUT_MILLIS, DesktopSelfTestTasks.POLL_MILLIS,
+                () -> {
+                    try { return verifyFixtureOwnership(displayId, taskId, true); }
+                    catch (IOException pending) { return null; }
+                }, value -> value != null);
+        return result != null ? result : verifyFixtureOwnership(displayId, taskId, true);
+    }
+
+    private static String activateTransferredFixture(
+            final int displayId, final int taskId) throws IOException {
+        verifyFixtureOwnership(displayId, taskId, true);
         DesktopSelfTestInputSuite.focusTaskThroughDesktop(displayId, taskId);
         return verifyFixtureOwnership(displayId, taskId, true);
     }
