@@ -24,9 +24,10 @@ selection, and rendering; it does not package Termux's native `libtermux.so`.
 
 ## D-Bus Client Library
 
-The Linux appearance helper statically links libdbus 1.16.2 from unmodified,
-hash-verified upstream sources. The APK includes neither `dbus-daemon` nor the
-D-Bus command-line tools. Copyright and license texts are packaged under
+The Linux appearance helper statically links libdbus 1.16.2 from hash-verified
+upstream sources. A build-only patch omits test fixtures in the client-only
+configuration; the library sources are unchanged. The APK includes neither
+`dbus-daemon` nor the D-Bus command-line tools. Copyright and license texts are packaged under
 `assets/licenses/dbus`.
 
 - Source: https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz

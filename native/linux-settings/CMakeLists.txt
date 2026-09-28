@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 project(MagicDeskLinuxSettings LANGUAGES C)
 include(ExternalProject)
 find_program(MESON meson REQUIRED)
+find_program(PATCH patch REQUIRED)
 set(prefix "${CMAKE_BINARY_DIR}/prefix")
 set(compiler "${CMAKE_C_COMPILER}")
 if(CMAKE_C_COMPILER_TARGET)
@@ -31,6 +32,8 @@ ExternalProject_Add(dbus
     URL https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz
     URL_HASH SHA256=0ba2a1a4b16afe7bceb2c07e9ce99a8c2c3508e5dec290dbb643384bd6beb7e2
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    PATCH_COMMAND ${PATCH} --batch --forward -p1
+        -i ${CMAKE_CURRENT_SOURCE_DIR}/dbus-client-only.patch
     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env --unset=CFLAGS --unset=CPPFLAGS --unset=LDFLAGS
         ${MESON} setup --clearcache --reconfigure <BINARY_DIR> <SOURCE_DIR>
         --cross-file=${CMAKE_CURRENT_BINARY_DIR}/android.ini --prefix=${prefix} --libdir=lib
@@ -45,6 +48,7 @@ ExternalProject_Add(dbus
         COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/LICENSES ${prefix}/licenses/dbus/LICENSES
     BUILD_BYPRODUCTS ${prefix}/lib/libdbus-1.a)
 ExternalProject_Add_StepDependencies(dbus configure ${CMAKE_CURRENT_BINARY_DIR}/android.ini)
+ExternalProject_Add_StepDependencies(dbus patch ${CMAKE_CURRENT_SOURCE_DIR}/dbus-client-only.patch)
 add_executable(magicdesk-linux-settings main.c portal.c)
 add_dependencies(magicdesk-linux-settings dbus)
 target_include_directories(magicdesk-linux-settings PRIVATE ${prefix}/include/dbus-1.0 ${prefix}/lib/dbus-1.0/include)

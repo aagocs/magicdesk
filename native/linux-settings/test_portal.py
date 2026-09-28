@@ -169,6 +169,7 @@ assert "<uint32 1>" in p.stdout,p.stdout
         self.assertFalse(options["tools"])
         targets = json.loads((build / "dbus-prefix/src/dbus-build/meson-info/intro-targets.json").read_text())
         self.assertNotIn("dbus-daemon", [item["name"] for item in targets])
+        self.assertFalse(any("/test/" in item["defined_in"].replace("\\", "/") for item in targets))
         self.assertFalse((build / "prefix/bin").exists())
 
 

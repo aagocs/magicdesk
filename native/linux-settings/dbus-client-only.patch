@@ -1,0 +1,17 @@
+Skip test fixtures in a client-library-only build. Besides avoiding unused test
+targets, this avoids a test-data copy command exceeding Windows' argument limit.
+The library sources are unchanged.
+
+--- a/meson.build
++++ b/meson.build
+@@ -1242,7 +1242,9 @@
+ if tools
+     subdir('tools')
+ endif
+-subdir('test')
++if message_bus or tools or dbus_enable_modular_tests or intrusive_tests or get_option('installed_tests')
++    subdir('test')
++endif
+ subdir('doc')
+ subdir('cmake')
+ 
