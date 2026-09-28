@@ -13,6 +13,7 @@ shared tool.
 | Subsystem | Baseline and prerequisites |
 | --- | --- |
 | MCP and ordinary built-in UI | API 34; explicit client grants for automation. Network MCP additionally needs Android's local-network runtime permission on API 37+. Loopback is independent. UI startup does not require Desktop provisioning. |
+| Native appearance | API 34; app-private settings, JSON/ZIP themes, resource preparation and ordinary tool styling. Settings import/export uses document grants; automation file operations retain shared Files prerequisites and grants. Configuring a theme does not start Desktop; its workspace panels and wallpaper need an active API 35+ Desktop. |
 | Native panel background blur (optional) | API 34; public `Window.setBackgroundBlurRadius`, with system-controlled availability. Disabled or unsupported blur retains the configured translucent fill. No hidden APIs, shell access, captures or new window ownership. |
 | AGSL wallpaper signals (optional) | API 34. RAM and battery use public Android APIs; CPU uses aggregate counters from the already-authorized shell service and remains unknown without access. Only active, explicitly bound sources collect data. No Desktop startup, privilege request, Termux or process enumeration. |
 | Built-in CLI | API 34; an inherited MagicDesk shell channel. Each command retains its own prerequisites; MCP enablement and installed Termux are not required. |

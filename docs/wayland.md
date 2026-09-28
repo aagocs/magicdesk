@@ -540,7 +540,8 @@ minimum-size coordinate mapping, unchanged metadata, rendering backpressure and
 hidden-output suspend/resume.
 The shell fixture checks explicit admission, separate application/shell catalogs,
 logical output discovery, resizing, scale and removal without exposing render-only targets,
-configure deduplication, transparent pixels, pointer interaction without keyboard
+initial configure delivery before the client's sync roundtrip and asynchronous
+host placement, configure deduplication, transparent pixels, pointer interaction without keyboard
 capture, key release on policy revocation, idle-frame suppression, unmap/remap and scope teardown without
 application termination. The geometry fixture covers popup constraint adjustment,
 negative paint extents, synchronized subsurface movement, input holes and bounded

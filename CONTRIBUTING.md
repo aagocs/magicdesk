@@ -146,6 +146,15 @@ The launcher preserves a real ADB shell's identity, or uses local Magisk to
 establish it when invoked from Termux. It verifies UID 2000, the shell SELinux
 domain, and supplementary groups. An existing server is verified without being
 restarted. Keep the explicit ADB serial when more than one device is in use.
+For a compatible alternate manager such as Shevery, pass its configured package
+as the launcher's first argument:
+
+```sh
+adb -s SERIAL shell sh /data/local/tmp/magicdesk-start-shizuku-shell.sh com.hamondev.shevery
+```
+
+This selects the installed manager, not another service identity. Use the same
+package in MagicDesk's integration settings; see [setup](docs/getting-started.md#install).
 
 To test the Standard Android platform driver on ZTE/nubia hardware, build:
 

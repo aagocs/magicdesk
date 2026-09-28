@@ -154,6 +154,25 @@ Guest paths are never guessed as host paths or retried under another identity.
 An unavailable guest helper fails the transfer, without a host-filesystem fallback.
 Clipboard observation is scoped to a focused graphical host, not a global history.
 
+## Appearance Resources
+
+Native appearance uses app-private documents and verified immutable bundles.
+Settings imports through Android document grants; MCP file import/export uses
+the shared Files service and its explicit grants. Neither route starts Desktop,
+acquires input or authorizes a new privileged service.
+
+Themes supply bounded configuration, media and optional AGSL wallpaper programs,
+not shell scripts, arbitrary file paths or network access. Shaders run in
+Android's graphics pipeline. Source/FPS and media limits bound inputs but do not
+guarantee GPU execution time for an arbitrary shader. See [Native Appearance](appearance.md)
+for validation, resource limits and playback controls.
+
+Device-signal bindings select only allowlisted measurements. CPU uses the
+already-authorized shell service; public RAM/battery sources need no privilege.
+Absent access yields an unavailable value, not elevation. Collectors exist only
+while explicitly subscribed, share sources across outputs, and publish cached
+values without a persistent measurement history.
+
 ## Input And HOME Ownership
 
 Physical keyboards and mice remain Android devices. Explicit input control journals
@@ -173,6 +192,11 @@ The phone touchpad owns one virtual relative mouse. Android handles cursor
 acceleration, hover, dragging and right click. The external editor connects
 directly to the user's normal phone IME through Android's display IME policy.
 MagicDesk does not capture or relay its text.
+
+IME placement is a separate, optional policy lease. It uses the same authorized
+service but does not gate physical routing or the phone pointer. Failed placement
+retains input readiness and a separate warning; release restores an owned policy
+without replacing another owner's later change.
 
 Close releases routing, shortcut enablement and the phone pointer only if that
 workspace still owns input. Owned display removal also releases input targeting

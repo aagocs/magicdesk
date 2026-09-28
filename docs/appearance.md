@@ -20,8 +20,8 @@ publication path as imported documents:
 | [Contours](../app/src/main/assets/themes/contours.json) | Animated AGSL contour wallpaper and translucent bottom panel. |
 
 Secondary controls adapt to available width. Start, tasks, open tasks and quick
-controls remain available. Themes contain no external assets or service
-requirements; blur follows system availability. The linked files are the actual
+controls remain available. These bundled themes contain no external assets or
+service requirements; blur follows system availability. The linked files are the actual
 bundled documents and can be edited and imported as JSON.
 
 **Common background** sets background opacity (15-100%) and blur radius (0-64 dp)
@@ -247,6 +247,23 @@ removing the installed digest from portable `theme.json`. It does not export an
 outdated original document. JSON export captures the global document, or the
 selected workspace's sparse patch; it carries no binary assets.
 
+### Wallpaper Selection
+
+The effective workspace appearance selects the wallpaper in this order:
+
+1. `resources.shader`, using `resources.wallpaper` as its static poster when set.
+2. `resources.wallpaper` from the selected resource bundle.
+3. The shared Desktop media file, `/storage/emulated/0/Desktop/.magicdesk/wallpaper`.
+4. The bundled MagicDesk image when no custom source is selected.
+
+**Set as desktop wallpaper** in Files updates the shared media file, not an
+appearance override. It remains behind any effective theme wallpaper or shader.
+**Use MagicDesk wallpaper** in the desktop context menu clears wallpaper/shader
+selection for that workspace's appearance scope and removes the shared media
+file. Other workspaces retain their own theme resources; workspaces using the
+shared file return to the bundled image. Neither action changes Android's system
+wallpaper. Use scoped Appearance configuration for independent backgrounds.
+
 ### AGSL Wallpapers
 
 `resources.shader` selects a single-pass Android `RuntimeShader` wallpaper.
@@ -400,7 +417,10 @@ confirm/cancel must use the same scope as the exact returned `previewId`.
 - `appearance.schema`: schema; observation.
 - `appearance.validate`: resolve `document` without mutation; observation.
 - `appearance.get`: effective and committed documents, sparse patches, known
-  override keys, revision and preview ID; observation.
+  override keys, revision, preview ID and process-wide cached `signalSources`;
+  observation.
+- `appearance.themes`: bundled theme IDs, localized names and complete validated
+  documents for the same preview path; observation.
 - `appearance.apply`: replace `document` or selected patch; control.
 - `appearance.preview`: temporary `document` or patch; control.
 - `appearance.confirm` / `appearance.cancel`: commit/discard exact preview; control.

@@ -106,8 +106,11 @@ input is independent. By default it appears on the phone; **Show keyboard on app
 display** selects Android's local-display IME policy for the controlled external
 display. The option is shared by Settings and the taskbar context menu, applies
 live, and does not require a vendor extension or a particular keyboard. Actual
-external-display presentation depends on the installed Android IME. Optional pointer
-observation and coordinate injection remain separate. Coordinate automation
+external-display presentation depends on the installed Android IME. A rejected
+placement is reported as `keyboardPlacementError`, separately from routing
+readiness, and does not disable a working touchpad or physical input. The live
+setting needs shell access but not Desktop on any supported Android version.
+Optional pointer observation and coordinate injection remain separate. Coordinate automation
 uses Android display-targeted mouse events; it does not move a global vendor
 cursor. A position query without a display identity is reported separately as
 an unscoped observation, never as a confirmed position on the desktop.
@@ -435,6 +438,10 @@ the selected SoC display backend before falling back to Android's public mode
 list. When neither source exposes alternate timings, the current physical mode
 is read-only and timing selection remains with the system projection UI. This
 does not disable the desktop.
-Desktop wallpaper comes from the bundled MagicDesk artwork or a user-selected
-image. An unreadable custom image falls back to its last valid cache or the
-bundled background without failing the desktop session.
+Desktop wallpaper can come from scoped theme resources (including AGSL), the
+shared custom media file or bundled artwork; see [selection order](appearance.md#wallpaper-selection).
+An unreadable shared file falls back to its last valid cache or the bundled
+background. Animation, video and shader playback failures retain a static poster
+without failing the desktop session. System background blur is optional: an
+unavailable blur effect retains the configured translucent fill. Themes do not
+repair Android's caption rendering or change framework windowing capabilities.

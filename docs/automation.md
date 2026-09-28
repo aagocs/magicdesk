@@ -16,13 +16,16 @@ See [Runtime API levels](runtime-api-levels.md) for the validation boundary.
 Native [appearance](appearance.md) has shared schema, validation, read/apply,
 preview/confirm/cancel, preset and reset operations. Version 4 describes 1-4
 native panels on any edge and shared background opacity and blur, with optional
-per-panel overrides. Optional `workspaceKey` selects a stable workspace
+per-panel overrides, Start composition, media and AGSL wallpaper resources, motion
+and opt-in device-signal bindings. Optional `workspaceKey` selects a stable workspace
 identity, not a display ID or live residency ID; omission selects global defaults.
 Workspace documents are sparse patches over global defaults, with whole-array
 replacement. Resetting a workspace removes its override. Read results include
 the effective/committed documents, patches, known override keys and preview ID.
-`signalSources` reports process-wide active appearance-data subscriptions and
-their cached availability/values without initializing or sampling any source.
+`signalSources` reports process-wide active appearance-data subscriptions with
+`source`, `subscribers`, `available` and normalized `value` (null when unavailable).
+It reads cached values without initializing or sampling any source; it is not
+restricted to the queried workspace. See [device signals](appearance.md#device-signals).
 Confirm/cancel use the exact preview ID and the same scope. The JSON Schema is
 also available at `magicdesk://appearance/schema`. These operations use
 app-private state without Desktop or shell prerequisites; mutations require control.
@@ -1471,9 +1474,11 @@ journal. Events come from the existing production observers and include:
 - MagicDesk process and MCP server lifecycle plus action outcomes.
 
 The `wallpaper_rendered` event includes the selected source (`bundled`, `custom`,
-or `fallback`), `mediaKind` (`image`, `animated_image`, `video`), poster/view
+or `fallback`), `mediaKind` (`image`, `animated_image`, `video`, `shader`), poster/view
 dimensions, and bitmap/display density. These values are captured once after
 the selected poster commits; readiness does not require active animation.
+Theme resources, including shaders, use `source=custom`; the source field does
+not distinguish a theme resource from the shared Desktop media file.
 `wallpaper_playback` reports `playing`, `paused` or `fallback` with the display
 and media kind. Playback is per output and obeys scoped `motion.wallpaper`,
 visibility, display power and reduced-motion policy.

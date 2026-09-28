@@ -46,6 +46,10 @@ the successful Miracast direct-pointer path.
 
 - JVM tests cover state models, parsers, resource ownership, task/display policy,
   shell quoting, files, content, profile identities and platform isolation.
+- Appearance fixtures cover schema and bundle validation, scoped preview rollback,
+  component layout, native motion/backdrops, media lifetime, shader bindings,
+  shared signal subscriptions, stale callbacks and CPU counter resets. Native
+  graphics/driver behavior still requires device checks.
 - Lint and assembly validate the APK's API 34 minimum and module boundaries.
   Native artifacts target API 34; device coverage remains per helper, not implied
   by the build. See
@@ -141,6 +145,26 @@ Run these without Desktop; managed Desktop self-tests cannot prove isolation:
   for the ordinary path.
 - [ ] Verify microphone synchronization, video-only cleanup and standard-provider
   recording without optional vendor internal audio.
+
+## Appearance Validation
+
+On RM11/API 36, two simultaneous virtual workspaces exercised AGSL CPU, RAM and
+battery values with pixel checks, shared source reference counts, selective
+unsubscription, static fallback after animation was disabled, and preview
+rollback without changing global appearance. This does not establish shader or
+decoder compatibility on other devices. Desktop self-tests cover basic wallpaper
+and chrome invariants, not every theme or media format.
+
+- [ ] Exercise native tool styling, document-picker imports and preview
+  cancellation without Desktop or shell on actual API 34.
+- [ ] Verify wallpaper decoding, shader compilation and blur availability across
+  Android 15+ graphics drivers, including unavailable blur and playback failure.
+- [ ] Exercise all panel edges, floating gaps, edge reveal and live composition
+  changes alongside Linux panels and fullscreen applications on phone and
+  external outputs; confirm input, popup placement and reservations stay aligned.
+- [ ] Verify media and signal release on display-off, power saving, reduced
+  motion, workspace closure and shell loss/reconnect. In particular, no-signal
+  and battery-only themes must not start CPU/RAM sampling.
 
 ## Additional Hardware And Release Coverage
 

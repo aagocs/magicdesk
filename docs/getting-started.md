@@ -204,6 +204,27 @@ The resource lifetimes are separate:
 Additional built-in screens on dual-screen devices are not yet verified
 Desktop targets. A virtual display does not emulate another Android version.
 
+## Control Display Input
+
+Select the destination and press **Control this display** before using a
+phone-attached mouse, keyboard or MagicDesk's phone touchpad there. This works
+independently of Desktop, including on Android 14. **Release input** restores
+the previous routing; opening an application alone never acquires input.
+
+On Android 14, the selected screen must expose an input viewport and match
+Android's shared pointer target. Follow the input setup's **System desktop mode
+on external displays** guidance and reconnect the output when requested.
+An output can accept applications without accepting a pointer. See
+[Android 14 coverage](testing-backlog.md#android-14-shared-services) for the
+tested Miracast path and the Google Cast limitation.
+
+**Settings > Display input > Show keyboard on app display** requests the screen
+keyboard beside the app instead of on the phone. It needs shell access, not a
+Desktop session, and can be changed while input is active. Android and the
+installed IME decide whether that placement is supported. A placement warning
+does not disable the touchpad or hardware input; changing this preference does
+not restart them.
+
 ## Prepare And Start Desktop
 
 Only managed Desktop needs this preparation:
@@ -255,6 +276,31 @@ not a separate theme for each display.
 
 Notification-listener access is optional. Grant it only when MagicDesk's
 notification center and popups are wanted.
+
+## Customize Appearance
+
+Open **Settings > Appearance**, choose **Global defaults** or **Current
+workspace** when available, then **Choose theme**. Workbench, Glass Dock,
+Two Panels and Contours preview complete native layouts; **Keep changes** saves
+the result, while cancellation restores the previous appearance.
+
+Adjust panel edges, dimensions and components, Start's layout, colors, background
+opacity and optional system blur. Use **Edit configuration** for the full JSON
+document, or import a JSON/ZIP theme through Android's document picker. This
+requires neither Termux nor shell access. Built-in tool styles apply without
+Desktop; Desktop panels and wallpaper appear in an active workspace. Themes
+affect MagicDesk, not other apps or Android's caption bars.
+
+**Use global defaults** removes the current workspace's overrides. Global changes
+otherwise flow to workspaces that have not overridden those properties.
+**Animate wallpaper** controls animated images, silent videos and AGSL shaders;
+when paused, they display their poster. System power-saving and reduced-motion
+policy also pause playback. Optional shader device signals collect only when
+explicitly requested by a playing theme; CPU needs existing shell access.
+
+See [Native Appearance](appearance.md) for composition, resources, wallpaper
+selection, schema and automation. This is separate from **System theme during
+Desktop**, which temporarily changes Android's own light/dark preference.
 
 ## Close, Exit And Recovery
 

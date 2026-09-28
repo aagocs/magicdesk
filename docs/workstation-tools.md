@@ -20,8 +20,9 @@ Desktop layout and per-display configuration are stored atomically in:
 /storage/emulated/0/Desktop/.magicdesk/desktop.json
 ```
 
-An optional custom wallpaper is stored beside that file. The hidden
-`.magicdesk` directory is not rendered as a desktop item. Application runtime
+An optional shared wallpaper media file is stored beside that file. Theme
+documents, workspace appearance overrides and imported bundles use app-private
+storage instead. The hidden `.magicdesk` directory is not rendered as a desktop item. Application runtime
 state, diagnostics, recent applications, and Android widget bindings remain
 outside the Desktop directory.
 
@@ -43,11 +44,16 @@ The desktop supports:
 - native global drag and drop;
 - folder, web, Android application, and command `.desktop` entries;
 - shared file activation and context menus with built-in Files;
-- the bundled MagicDesk wallpaper or a custom image selected in Files.
+- bundled or custom static, animated-image, video and AGSL wallpaper through
+  the shared [appearance system](appearance.md).
 
-Use **Set as desktop wallpaper** on an image in Files to replace the background.
-**Use MagicDesk wallpaper** in the desktop context menu restores the bundled
-background. These actions do not change the phone's system wallpaper.
+Use **Set as desktop wallpaper** in Files for images, animated WebP/GIF or
+MP4/WebM video. This changes the shared Desktop media file. A workspace's
+effective theme wallpaper or shader takes precedence over that file.
+**Use MagicDesk wallpaper** clears the current appearance scope's wallpaper and
+shader selection and removes the shared media file, revealing the bundled
+background. Other workspaces keep their own theme selections. These actions do
+not change the phone's system wallpaper. See [wallpaper selection](appearance.md#wallpaper-selection).
 
 ## Files
 
@@ -349,7 +355,12 @@ editor text. Layout cycling uses Android's physical-layout mappings and enabled
 IME subtypes; shortcut filtering does not depend on a particular keyboard app.
 **Show keyboard on app display** in Settings or the taskbar context menu requests
 the keyboard on the editor's display instead of the phone. Support depends on
-Android and the selected IME. Clicking bare Desktop requests keyboard dismissal
+Android and the selected IME. The setting is available with shell access even
+without Desktop. Placement failure is reported separately and leaves a working
+touchpad and physical input active; live changes do not restart routing.
+Android 14 additionally requires the routed screen to match the shared system
+pointer target and expose an input viewport; see [input prerequisites](runtime-api-levels.md#release-specific-behavior).
+Clicking bare Desktop requests keyboard dismissal
 without making the Desktop host focusable.
 
 ## Settings
@@ -357,6 +368,8 @@ without making the Desktop host focusable.
 The Settings window controls persistent MagicDesk behavior, including:
 
 - taskbar auto-hide;
+- native appearance, panel composition, Start layout and per-workspace overrides;
+- theme JSON/ZIP import/export, live preview and wallpaper animation;
 - single-click file activation;
 - automatic phone-touchpad startup;
 - phone-screen retention, a session CPU wake lock and adaptive-brightness control;
@@ -392,9 +405,9 @@ repeatable external-command setup command, open the selected Termux package and
 explicitly retry the same check. Closing the dialog does not discard its result.
 Termux availability is independent of shell access.
 
-The taskbar sliders icon opens **Quick controls**, a content-sized panel above
-the taskbar with audio, interface scale, pointer speed, and available hardware
-controls. Its gear opens MagicDesk settings; the explicitly labelled Android
+The taskbar sliders icon opens **Quick controls**, a content-sized popup on the
+inward side of its owning panel, with audio, interface scale, pointer speed, and
+available hardware controls. Its gear opens MagicDesk settings; the explicitly labelled Android
 sound action opens Android's settings. Physical output mode belongs to the
 selected screen in Phone Control Panel before Desktop startup, not to global
 preferences.

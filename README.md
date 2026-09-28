@@ -61,6 +61,9 @@ MagicDesk's strength is how its parts work together:
 - **Android apps get room to work.** Keep a browser, editor, file manager and
   terminals in separate native windows, with task switching, keyboard shortcuts
   and [per-app DPI](#per-app-dpi).
+- **The shell has its own native themes.** Arrange panels, choose Start's layout,
+  adjust transparency and blur, and use animated or shader wallpapers. Share a
+  [theme](#native-appearance) as JSON or a resource bundle, with per-workspace overrides.
 - **Files connect the tools.** The desktop is a real folder. Files, clipboard,
   drag and drop, Android sharing and command launchers work with the same
   content, so a file can move from a terminal workflow to an Android app without
@@ -131,22 +134,6 @@ precedence. **Settings > Session** controls phone screen retention, CPU wake
 lock, adaptive brightness and a temporary system-wide light/dark theme. These
 options apply while Desktop is running and release their overrides when it ends.
 
-**Settings > Appearance** customizes MagicDesk's native interface with panels
-along any screen edge, including floating, translucent layouts and optional system
-background blur. Popups share the background style; individual panels can override it.
-Choose a bundled theme for a complete layout, adjust colors,
-import/export a [JSON theme](docs/appearance.md), or use a theme bundle containing
-icons, fonts and wallpaper. Wallpapers can be static, animated WebP/GIF, silent
-MP4/WebM loops, or configurable AGSL shaders such as the bundled Contours theme,
-with automatic pause for power saving and reduced motion.
-Shaders can opt into CPU, RAM and battery signals; themes without bindings do
-not start telemetry collection.
-Global defaults can be overridden per workspace.
-Styles apply to open panels and built-in tools without restarting them, including
-when no Desktop is running. The declarative document controls panel contents,
-Start layout and native feedback effects, with a published JSON Schema and live
-preview before confirmation.
-
 Close records the selected workspace and releases its surviving applications
 as independent fullscreen tasks on the same live display, leaving other
 Desktops running. If the display disappears, its tasks return to the phone.
@@ -179,6 +166,32 @@ Apps still choose their own layouts: reducing DPI can give an adaptive app
 more logical space, but cannot create a tablet interface it does not implement.
 Per-app DPI is a managed Desktop feature, not a system-wide override for an
 app outside MagicDesk's session.
+
+## Native Appearance
+
+**Settings > Appearance** customizes MagicDesk's own interface. Choose Workbench,
+Glass Dock, Two Panels or Contours, then keep or cancel the live preview. Styles
+apply to open panels and built-in tools without restarting them; settings and
+tool styling also work without Desktop or Termux.
+
+Arrange one to four panels along any screen edge, including floating docks.
+Choose their contents, Start's grid or list layout, colors, fonts and motion.
+By default, taskbar buttons and Start icons share their panel background, with
+feedback for hover, selection and presses. Background transparency does not fade the controls;
+optional system blur falls back to the same translucent fill when unavailable.
+Global defaults can be overridden per workspace.
+
+Desktop wallpapers can be static, animated WebP/GIF, silent MP4/WebM loops, or
+configurable AGSL shaders such as Contours. Playback pauses for hidden displays,
+power saving and reduced motion. Shaders may explicitly bind CPU/RAM usage,
+battery level and charging state. Themes without bindings start no telemetry;
+CPU readings require existing shell access, while RAM and battery do not.
+
+Import/export a [JSON theme](docs/appearance.md) or a ZIP containing its icons,
+fonts and media. The same validated document and preview workflow are available
+through Settings, MCP and the CLI, with an exported JSON Schema. Themes do not
+restyle third-party apps, Android captions or terminal content; Android's
+**System theme during Desktop** remains a separate setting.
 
 ## Tools Without Desktop
 
@@ -387,6 +400,8 @@ active Desktop in **Linux graphics > Shell workspace**. Wayland layer-shell
 surfaces and X11 dock/desktop windows share MagicDesk's layout and reserved work
 area. Compatible Wayland panels can list and control managed Android and Linux
 tasks through foreign-toplevel management.
+The [Waybar example](scripts/examples/waybar/README.md) includes a launcher and
+configuration for Ubuntu/proot, with Android and Linux tasks in the same panel.
 
 This binding is explicit and does not start Desktop. **Separate** releases the
 shell contribution without ending the session. Whole Linux desktops keep their
@@ -526,6 +541,8 @@ Desktop targets.
 The optional MCP server exposes the same services used by the UI:
 
 - Device, runtime, display and task state, events and exact-operation waits.
+- Native appearance schema, bundled themes, scoped edits, live preview and
+  JSON/ZIP import/export through the same store as Settings.
 - Desktop lifecycle, task focus, window transitions and semantic UI actions.
 - Independent tool placement and retained terminal control.
 - Discovery and launch of Desktop and Termux `.desktop` entries, including X11 and Wayland
@@ -596,6 +613,7 @@ and the [API-level contract](docs/runtime-api-levels.md).
 | Use | Requirements beyond installing the APK |
 | --- | --- |
 | Control panel, Settings, MCP observation | Ordinary app access; explicitly enable MCP for clients |
+| Native appearance and theme import through Settings | Ordinary app access and the document picker's grants; visible Desktop panels/wallpaper still require a Desktop session |
 | Display inventory and interactive app launches | Ordinary app access; Android must allow the selected app on that display |
 | Files, Android shell, privileged capture and device actions | An authorized privileged service and the operation's actual capabilities |
 | Termux terminals | Termux, external commands enabled, MagicDesk's `RUN_COMMAND` permission |
@@ -659,6 +677,12 @@ with the selected input display, with or without Desktop. Android handles
 acceleration, layout, repeat, hover and right click. MagicDesk's key-only Accessibility service handles
 desktop shortcuts only during the session.
 
+On Android 14, direct mouse routing additionally needs an Android input viewport
+and the system's shared pointer target to match the selected screen. The external
+input setup can offer **System desktop mode on external displays** and request a
+reconnection. A cast output without an input viewport can show applications but
+cannot receive the direct pointer; Miracast and Google Cast need separate checks.
+
 The optional phone touchpad supplies one virtual relative mouse. The user's
 normal Android IME connects directly to a focused external editor; MagicDesk
 does not capture editor text, choose a replacement IME or relay it through a
@@ -668,7 +692,9 @@ vendor text bridge.
 context menu, requests the on-screen keyboard beside the app instead of on the
 phone. This is useful with XR glasses or a distant monitor while the phone
 serves as a touchpad. Keyboard placement still depends on the IME and Android's
-display policy.
+display policy. This live preference does not restart mouse routing. A keyboard
+placement failure is reported separately and does not disable a working
+touchpad or physical input on any supported Android version.
 
 Output timing, phone-screen power, charging separation, cooling, thermal
 readings and internal recording audio depend on separately probed capabilities.
@@ -815,6 +841,7 @@ Remaining API 34 native validation and other ABIs are tracked in the
 - [Embedded Wayland](docs/wayland.md)
 - [Shared graphics](docs/graphics.md)
 - [Shell layout and Linux panels](docs/shell-layout.md)
+- [Native appearance and theme format](docs/appearance.md)
 - [Architecture](docs/architecture.md)
 - [Automation and MCP](docs/automation.md)
 - [Runtime API levels](docs/runtime-api-levels.md)

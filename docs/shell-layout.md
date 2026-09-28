@@ -378,16 +378,22 @@ command deadline and observe the resulting Android task state separately; a
 Wayland roundtrip confirms delivery, not completion of an Android transition.
 The native `wayland-toplevel` fixture verifies protocol metadata, action mapping,
 handle replacement and revocation without Android.
+The [Waybar example](../scripts/examples/waybar/README.md) provides a real panel
+workflow with the same workspace binding and Android/Linux task actions.
 
 `ShellLayoutTest`, `ShellLayoutScopeTest`, `ShellPanelPlacementTest`,
 `DesktopShellLayoutTest` and `DesktopViewportTest` cover pure
 layout, partial/overlapping exclusions, mapped lifetime, isolated scopes,
-placement margins, viewport origins, DPI-dependent taskbar height, autohide,
-navigation paint extension, owner-relative popups, atomic viewport commits and
-immutable snapshots. Quick-controls fixtures retain their placement assertions.
+placement margins, viewport origins, DPI-dependent panel dimensions, autohide,
+multi-edge composition, navigation paint extension, owner-relative popups,
+atomic viewport commits and immutable snapshots. Quick-controls fixtures retain their placement assertions.
 `DesktopPanelArchitectureTest` guards Android host and focus boundaries. The
-Wayland native shell fixture verifies transparent pixels, configure deduplication,
-mapping lifetime, independent pointer/keyboard ownership and output revocation.
+Wayland native shell fixture verifies logical output discovery, the initial
+configure reply before asynchronous placement, configure deduplication,
+transparent pixels, remapping, independent pointer/keyboard ownership and output
+revocation. `HostedShellRedrawTest` covers matching frame-submission receipts,
+replacement coalescing, stale-frame rejection, and pending redraw release on
+failure, Surface loss and closure.
 `WaylandShellLayoutTest` covers protocol-zone conversion, density, remapping,
 oversized requests and nested-scope isolation. `ShellSurfaceCatalogTest` covers
 lease revocation, obsolete configurations and catalog bounds. The native

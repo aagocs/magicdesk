@@ -1157,8 +1157,8 @@ runtime integration and are not distributed through the same release path.
   as well. Native taskbar auto-hide remains a taskbar preference. See
   [Shell layout](shell-layout.md#android-adapter).
 - `SystemPanelController` presents Quick controls using those same panel
-  windows. It measures content within the available work area and anchors the
-  panel above the taskbar, with scrolling when controls exceed that height.
+  windows. It measures content within the available work area and opens on the
+  inward side of the panel containing Quick controls, with scrolling when needed.
   Audio, density, pointer speed and optional hardware retain their existing
   controller and observation owners; the UI adds no monitoring loop.
 - `DesktopInputController` handles shell UI input and delegates global physical
@@ -3047,36 +3047,31 @@ disable shadows or change task topology to obtain the source RGB value.
 The desktop uses one `WindowMetrics`/WindowInsets viewport model on every
 display. `DesktopViewport` supplies stable system geometry to the protocol-neutral
 `ShellLayout`. `ShellLayoutScope` owns revocable, namespaced surface bindings.
-`DesktopShellLayout` submits taskbar policy; `ShellPanelPlacement` describes
-ordinary panels and owner-relative popups. The immutable
+`DesktopShellLayout` submits the complete native panel set; `ShellPanelPlacement`
+describes ordinary panels and owner-relative popups. The immutable
 result supplies taskbar, icon-grid, popup and application work-area bounds through
 `DesktopLayoutController`. Separate layout instances isolate Desktop and nested
 graphical scopes. Precise edge exclusions coexist with the rectangular work area;
 absolute partial reservations and stacked exclusive zones retain distinct
 semantics. See [shell layout](shell-layout.md) for the model and protocol boundaries.
-A phone desktop is an explicitly selected primary HOME session: it
-reserves the status and navigation bars and places its taskbar above the stable
-navigation inset. Visibility changes do not move the desktop because geometry
-uses the bars' ignoring-visibility insets. A dedicated external display
-normally reports zero system-bar insets and fills the panel. The desktop
-layout provides separate control and surface bounds for the taskbar. On the
-phone display the visible surface extends through the stable navigation inset,
-so its application panel paints that inset as taskbar chrome even when a
-managed fullscreen plane covers HOME. The taskbar controls retain their
-ordinary height above the inset. On displays without a lower inset the two
-bounds are identical. The attached application panel does not apply system-bar
-or IME insets a second time. When managed fullscreen policy conceals the taskbar,
-the bounded panel collapses to its transparent reveal edge. Only its background
-and taskbar content stop drawing; its window opacity and input region are
-unchanged, so hover and touch can still reveal the taskbar. The expanded panel
-restores its background, including the reserved navigation inset. An independent
-foreground fullscreen task suppresses automatic panel presentation. The transparent, non-input chrome host remains
-structurally stable without leaving the taskbar backdrop over fullscreen content.
-There is no separate phone implementation of the desktop.
-IME visibility may keep an
-auto-hiding taskbar logically presented, but it never moves the taskbar surface:
-the keyboard temporarily covers the physical bottom edge instead of relocating
-desktop chrome into the workspace.
+A phone desktop is an explicitly selected primary HOME session. Stable
+status/navigation insets bound content on every edge, using the bars'
+ignoring-visibility geometry; a dedicated external display normally has no such
+insets. Native panels keep separate content, paint and physical-output rectangles.
+A panel spanning a stable content edge without gaps may extend its background
+through that edge's system inset. A floating gap or external reservation moving it inward
+suppresses this extension; controls remain within content bounds. Attached
+windows do not subtract system-bar or IME insets a second time.
+
+When managed fullscreen policy or auto-hide conceals chrome, each bounded panel
+collapses to a transparent reveal strip on its configured physical output edge.
+Input remains bounded to the individual strips, never a rectangle spanning gaps
+between panels. Expansion restores that panel's resolved background and content.
+An independent foreground fullscreen task suppresses automatic presentation;
+explicit phone Home reveal retains its separate policy. The transparent,
+non-input chrome host stays structurally stable. IME visibility can hold an
+auto-hiding panel open but does not relocate it: the keyboard may cover an edge
+without moving desktop chrome. The same model serves phone and external displays.
 
 The wallpaper is a full-display backdrop outside the inset-aware desktop
 content layer. Status-bar and viewport changes therefore reposition icons and
@@ -3129,8 +3124,8 @@ wallpaper. Individual desktop items retain keyboard focus and highlighting;
 the container does not block descendant focus or change click/drop handling.
 
 The desktop chrome host is a translucent, normally non-focusable `MULTI_WINDOW` task in its
-own root-level organizer area beside Android's standard task workspace. The
-taskbar itself is a bounded child application window,
+own root-level organizer area beside Android's standard task workspace. Each
+native panel is a bounded child application window under that one chrome token,
 so a foreground application that suppresses non-system overlays cannot
 suppress it. Empty task bounds fill the area without a freeform caption.
 Both the area and host task are `alwaysOnTop` in `MULTI_WINDOW` mode:
@@ -3139,11 +3134,11 @@ keeps chrome above the application workspace and below system windows and IME.
 Keeping chrome outside the workspace also avoids the root-task sibling cast
 in `ActivityStarter` during app-owned child/result launches.
 The shell disables that Activity's Android 15+ ActivityRecord input sink, so
-only the taskbar window's bounded touch region receives input and pointer events
-outside the panel continue to the desktop and application windows.
+only the individual panel windows' bounded touch regions receive input; pointer
+events outside them continue to the desktop and application windows.
 Auto-hide keeps the non-touchable host geometry stable and resizes the
-application panel containing the taskbar View to its reveal edge. The same
-bounded window therefore owns visible taskbar input and
+application windows containing the panel Views to their respective reveal edges.
+Each bounded window therefore owns its visible panel input and
 hidden-edge hover without forwarding synthetic events. It adds no polling and
 keeps the input frame aligned with the visible edge. `ShellDesktopSurfaceOrder`
 only orders fullscreen planes within the application workspace. Chrome's
@@ -4518,14 +4513,18 @@ The smoke script starts that Activity and reads the normal bounded result file;
 it does not replace the app process with instrumentation, so the runtime and an
 enabled MCP server remain alive. It is intentionally not run by host-only CI.
 
-Desktop wallpaper loading follows the same fail-open rule. By default MagicDesk
-decodes its bundled `drawable-nodpi/desktop_wallpaper.webp` resource. MagicDesk Files offers **Set as
+Desktop wallpaper selection starts with the effective workspace's prepared
+appearance resource, including an optional shader and poster. Without a theme
+wallpaper, the controller reads the shared Desktop media file or decodes bundled
+`drawable-nodpi/desktop_wallpaper.webp`. The [selection contract](appearance.md#wallpaper-selection)
+is shared across displays. MagicDesk Files offers **Set as
 desktop wallpaper** for local images and MP4/WebM video. The selected file is reopened
 through its verified device/inode identity, validated by `WallpaperAsset`, and atomically copied to
 `/storage/emulated/0/Desktop/.magicdesk/wallpaper`;
-selecting **Use MagicDesk wallpaper** removes that override. An unavailable or
-undecodable custom media falls back to the last valid custom cache or the
-bundled background and
+selecting **Use MagicDesk wallpaper** clears wallpaper/shader selection in the
+current appearance scope and removes the shared file. Other scopes keep their
+theme selections. Unavailable or undecodable shared media falls back to the last
+valid custom cache or the bundled background and
 records one compatibility event per distinct failure instead of changing
 desktop session state.
 Confirmed absence of the custom file clears its cache and selects the bundled
