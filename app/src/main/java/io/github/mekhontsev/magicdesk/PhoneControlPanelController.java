@@ -309,7 +309,7 @@ final class PhoneControlPanelController {
     }
 
     private void confirmExit() {
-        new AlertDialog.Builder(mActivity)
+        UiDialogs.builder(mActivity)
                 .setTitle(R.string.action_exit)
                 .setMessage(R.string.confirm_exit_magicdesk)
                 .setNegativeButton(android.R.string.cancel, null)

@@ -461,7 +461,7 @@ public final class DiagnosticsActivity extends Activity {
                 getString(R.string.diagnostics_self_test_external),
                 getString(R.string.diagnostics_self_test_phone)
         };
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.diagnostics_self_test_target)
                 .setItems(choices, (dialog, which) -> {
                     final DesktopSelfTestTarget target = which == 0
@@ -574,7 +574,7 @@ public final class DiagnosticsActivity extends Activity {
         if (mLoading || DesktopSelfTestRunState.isActive() || !ShellAccess.isReady()) {
             return;
         }
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.diagnostics_vendor_probe)
                 .setMessage(R.string.diagnostics_vendor_probe_description)
                 .setNegativeButton(android.R.string.cancel, null)

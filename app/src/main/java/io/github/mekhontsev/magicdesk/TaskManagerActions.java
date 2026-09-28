@@ -92,7 +92,7 @@ final class TaskManagerActions {
         if (entry.windows().size() == 1) { window(entry.windows().get(0), action); return; }
         final String[] names = entry.windows().stream().map(t -> TaskTitle.resolve(activity, null, t)
                 + " [" + t.displayId + "] #" + t.taskId).toArray(String[]::new);
-        new AlertDialog.Builder(activity).setTitle(switch (action) {
+        UiDialogs.builder(activity).setTitle(switch (action) {
                     case OPEN -> R.string.task_manager_focus;
                     case CLOSE -> R.string.task_manager_close;
                     case FORCE_STOP -> R.string.task_manager_force_stop;
@@ -122,7 +122,7 @@ final class TaskManagerActions {
 
     void processMenu(View anchor, SystemProcessSnapshot process) {
         final PopupMenu menu = new PopupMenu(activity, anchor);
-        add(menu, R.string.task_manager_process_details, () -> new AlertDialog.Builder(activity)
+        add(menu, R.string.task_manager_process_details, () -> UiDialogs.builder(activity)
                 .setTitle(process.name).setMessage("PID: " + process.pid + "\nPPID: " + process.parentPid
                         + "\nUID: " + process.uid + "\nState: " + process.state + "\nStart ticks: " + process.startTicks)
                 .setPositiveButton(android.R.string.ok, null).show());
@@ -139,7 +139,7 @@ final class TaskManagerActions {
                 () -> ProcessControl.signal(activity, process, force, this::result));
     }
     private void confirm(int title, String message, Runnable action) {
-        new AlertDialog.Builder(activity).setTitle(title).setMessage(message)
+        UiDialogs.builder(activity).setTitle(title).setMessage(message)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(title, (d, which) -> action.run()).show();
     }

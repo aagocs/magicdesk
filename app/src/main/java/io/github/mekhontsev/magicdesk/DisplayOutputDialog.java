@@ -20,11 +20,11 @@ final class DisplayOutputDialog {
         final String current = activity.getString(R.string.external_display_current_mode,
                 selection.current == null ? activity.getString(R.string.state_unavailable) : selection.current.displayLabel);
         if (!configurable || modes.isEmpty()) {
-            new AlertDialog.Builder(activity).setTitle(R.string.external_display_resolution)
+            UiDialogs.builder(activity).setTitle(R.string.external_display_resolution)
                     .setMessage(current).setPositiveButton(android.R.string.ok, null).show();
             return;
         }
-        new AlertDialog.Builder(activity).setTitle(current)
+        UiDialogs.builder(activity).setTitle(current)
                 .setSingleChoiceItems(modes.stream().map(mode -> mode.displayLabel).toArray(String[]::new),
                         outputModeIndex(selection, modes), (dialog, index) -> {
                             apply.accept(modes.get(index).timingKey);

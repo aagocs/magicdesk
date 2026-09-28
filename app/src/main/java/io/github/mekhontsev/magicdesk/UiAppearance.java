@@ -79,9 +79,8 @@ public final class UiAppearance {
             if (v instanceof android.widget.SeekBar seek) seek.setThumbTintList(tint);
         });
     }
-    static void dialog(android.app.AlertDialog dialog, android.app.Activity owner) {
+    static void dialog(android.app.AlertDialog dialog) {
         final View root = dialog.getWindow().getDecorView();
-        DialogContentInsets.bind(root, owner);
         final Paint background = (Paint) paint(root.getContext(),
                 UiColor.PANEL, 8 * root.getResources().getDisplayMetrics().density, UiColor.HOVER);
         background.backdrop = true;

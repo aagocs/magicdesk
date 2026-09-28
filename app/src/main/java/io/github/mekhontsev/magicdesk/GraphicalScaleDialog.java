@@ -48,11 +48,11 @@ final class GraphicalScaleDialog {
         IntConsumer apply = value -> {
             try { save.accept(value); }
             catch (RuntimeException error) {
-                new AlertDialog.Builder(activity).setMessage(ShellAccess.usefulMessage(error))
+                UiDialogs.builder(activity).setMessage(ShellAccess.usefulMessage(error))
                         .setPositiveButton(android.R.string.ok, null).show();
             }
         };
-        new AlertDialog.Builder(activity).setTitle(title).setView(content)
+        UiDialogs.builder(activity).setTitle(title).setView(content)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setNeutralButton(R.string.app_presentation_system, (dialog, which) -> apply.accept(100))
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> apply.accept(slider.getProgress())).show();

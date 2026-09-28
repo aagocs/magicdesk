@@ -37,7 +37,7 @@ final class IndependentApplicationsDialog {
         this.changed = changed;
         this.items = items;
         ui = new DesktopUiFactory(activity);
-        dialog = new AlertDialog.Builder(activity)
+        dialog = UiDialogs.builder(activity)
                 .setTitle(activity.getString(R.string.display_independent_apps) + " [" + display.id + "]")
                 .setAdapter(adapter, null)
                 .setNegativeButton(android.R.string.cancel, null).create();

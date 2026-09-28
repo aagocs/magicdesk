@@ -24,7 +24,7 @@ final class DesktopWorkspacePicker {
             return (display == null ? target.output.kind.name() : DisplayNames.name(display))
                     + " (" + target.workspaceDisplayId + ")";
         }).toArray(String[]::new);
-        new AlertDialog.Builder(activity).setTitle(R.string.action_close_desktop)
+        UiDialogs.builder(activity).setTitle(R.string.action_close_desktop)
                 .setItems(labels, (dialog, index) -> action.accept(targets.get(index)))
                 .setNegativeButton(android.R.string.cancel, null).show();
     }

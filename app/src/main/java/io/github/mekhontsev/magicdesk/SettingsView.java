@@ -372,18 +372,7 @@ final class SettingsView {
     }
 
     private View centered(final View content) {
-        final FrameLayout contentHost = new FrameLayout(mActivity);
-        final int availableWidthDp = Math.max(
-                1,
-                mActivity.getResources().getConfiguration().screenWidthDp
-                        - 32);
-        final FrameLayout.LayoutParams contentParams =
-                new FrameLayout.LayoutParams(
-                        dp(Math.min(CONTENT_MAX_WIDTH_DP, availableWidthDp)),
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
-                        Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        contentHost.addView(content, contentParams);
-        return contentHost;
+        return new UiContentColumn(content, CONTENT_MAX_WIDTH_DP);
     }
 
     void render(

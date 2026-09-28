@@ -42,7 +42,7 @@ final class IntegrationStatusDialogs {
     }
 
     static void showDesktop(Activity activity, boolean canConfigure, Runnable access) {
-        final var dialog = new AlertDialog.Builder(activity).setTitle(R.string.control_desktop_title)
+        final var dialog = UiDialogs.builder(activity).setTitle(R.string.control_desktop_title)
                 .setMessage("").setNegativeButton(R.string.action_close, null)
                 .setNeutralButton(R.string.action_refresh, null)
                 .setPositiveButton(R.string.control_desktop_setup, null).create();
@@ -102,7 +102,7 @@ final class IntegrationStatusDialogs {
         if (!access.backend.usesRoot()) appendPackage(activity, message, IntegrationPackage.SHIZUKU);
         if (!access.error.isEmpty()) message.append("\n\n").append(access.error);
         if (pending) message.append("\n\n").append(activity.getString(R.string.access_restart_required));
-        final var dialog = new AlertDialog.Builder(activity).setTitle(R.string.control_access_title)
+        final var dialog = UiDialogs.builder(activity).setTitle(R.string.control_access_title)
                 .setMessage(message).setNegativeButton(R.string.action_close, null)
                 .setNeutralButton(R.string.control_integration_settings, (d, which) -> settings.run());
         if (canRequest && (pending || RuntimeLimits.active().privilegedAllowed() && !access.isReady())) dialog.setPositiveButton(

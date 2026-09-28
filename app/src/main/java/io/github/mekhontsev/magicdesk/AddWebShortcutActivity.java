@@ -103,7 +103,7 @@ public final class AddWebShortcutActivity extends Activity
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        mDialog = new AlertDialog.Builder(this)
+        mDialog = UiDialogs.builder(this)
                 .setTitle(R.string.share_web_shortcut_title)
                 .setView(form)
                 .setNegativeButton(android.R.string.cancel, null)

@@ -205,7 +205,7 @@ final class DesktopCommandApplicationDialog {
         scroll.addView(form, new ScrollView.LayoutParams(
                 ScrollView.LayoutParams.MATCH_PARENT,
                 ScrollView.LayoutParams.WRAP_CONTENT));
-        final AlertDialog dialog = new AlertDialog.Builder(activity)
+        final AlertDialog dialog = UiDialogs.builder(activity)
                 .setTitle(R.string.command_app_title)
                 .setView(scroll)
                 .setPositiveButton(R.string.action_create, null)

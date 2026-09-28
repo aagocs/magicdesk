@@ -63,7 +63,7 @@ public final class GraphicalSessionsActivity extends Activity {
                 () -> { if (session != null) GraphicalScaleDialog.show(this, session); });
         stop = addAction(toolbar, R.drawable.ic_close, R.string.graphics_stop_session, () -> {
             GraphicalSessions.Session selected = session;
-            if (selected != null) new AlertDialog.Builder(this).setTitle(R.string.graphics_stop_session)
+            if (selected != null) UiDialogs.builder(this).setTitle(R.string.graphics_stop_session)
                     .setMessage(selected.name()).setNegativeButton(android.R.string.cancel, null)
                     .setPositiveButton(android.R.string.ok, (dialog, which) -> selected.close()).show();
         });
@@ -115,7 +115,7 @@ public final class GraphicalSessionsActivity extends Activity {
             labels[i + 1] = getString(R.string.graphics_shell_display, items.get(i).activeWorkspaceDisplayId());
             if (items.get(i).workspace().id.equals(id)) current = i + 1;
         }
-        new AlertDialog.Builder(this).setTitle(R.string.graphics_shell_workspace)
+        UiDialogs.builder(this).setTitle(R.string.graphics_shell_workspace)
                 .setSingleChoiceItems(labels, current, (dialog, which) -> {
                     try { GraphicalShells.select(selected, which == 0 ? "" : items.get(which - 1).workspace().id); }
                     catch (RuntimeException error) { showError(error); }
@@ -131,7 +131,7 @@ public final class GraphicalSessionsActivity extends Activity {
     private void chooseSession() {
         List<GraphicalSessions.Session> items = GraphicalSessions.list();
         String[] labels = items.stream().map(item -> item.name() + " / " + item.protocol()).toArray(String[]::new);
-        new AlertDialog.Builder(this).setTitle(R.string.graphics_sessions).setItems(labels, (dialog, which) -> {
+        UiDialogs.builder(this).setTitle(R.string.graphics_sessions).setItems(labels, (dialog, which) -> {
             select(items.get(which));
         }).setPositiveButton(R.string.graphics_new_session, (dialog, which) -> newSession())
                 .setNegativeButton(android.R.string.cancel, null).show();
@@ -142,7 +142,7 @@ public final class GraphicalSessionsActivity extends Activity {
         List<GraphicalSessions.Window> windows = session.windows();
         String[] labels = windows.stream().map(item -> item.title().isBlank()
                 ? session.protocol() + " " + Long.toUnsignedString(item.id()) : item.title()).toArray(String[]::new);
-        new AlertDialog.Builder(this).setTitle(R.string.graphics_windows).setItems(labels, (dialog, which) -> {
+        UiDialogs.builder(this).setTitle(R.string.graphics_windows).setItems(labels, (dialog, which) -> {
             openWindow(windows.get(which).id());
         }).setNegativeButton(android.R.string.cancel, null).show();
     }
@@ -197,7 +197,7 @@ public final class GraphicalSessionsActivity extends Activity {
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
         });
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.graphics_new_session).setView(fields)
+        AlertDialog dialog = UiDialogs.builder(this).setTitle(R.string.graphics_new_session).setView(fields)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.x11_start, null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
@@ -223,7 +223,7 @@ public final class GraphicalSessionsActivity extends Activity {
         command.setSingleLine(true);
         command.setHint(R.string.x11_run_command);
         GraphicalSessions.Session selected = session;
-        new AlertDialog.Builder(this).setTitle(R.string.x11_run_command).setView(command)
+        UiDialogs.builder(this).setTitle(R.string.x11_run_command).setView(command)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.x11_start, (dialog, which) -> {
                     try { selected.execute(command.getText().toString(), ""); }
@@ -232,7 +232,7 @@ public final class GraphicalSessionsActivity extends Activity {
     }
 
     private void showError(Throwable error) {
-        new AlertDialog.Builder(this).setMessage(ShellAccess.usefulMessage(error))
+        UiDialogs.builder(this).setMessage(ShellAccess.usefulMessage(error))
                 .setPositiveButton(android.R.string.ok, null).show();
     }
 

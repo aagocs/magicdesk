@@ -161,7 +161,7 @@ final class FileOpenWithController {
         final ListView list = new ListView(host);
         list.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
         list.setAdapter(adapter);
-        final AlertDialog dialog = new AlertDialog.Builder(host)
+        final AlertDialog dialog = UiDialogs.builder(host)
                 .setTitle(R.string.file_manager_open_with)
                 .setView(list)
                 .setNegativeButton(R.string.file_manager_just_once, null)

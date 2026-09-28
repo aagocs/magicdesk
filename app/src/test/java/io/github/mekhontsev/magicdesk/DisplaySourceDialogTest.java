@@ -39,6 +39,9 @@ public final class DisplaySourceDialogTest {
                         void show() { }
                     }
                 }
+                static class UiDialogs {
+                    static AlertDialog.Builder builder(Activity activity) { return new AlertDialog.Builder(activity); }
+                }
                 static class Toast {
                     static final int LENGTH_LONG = 1;
                     static String message;

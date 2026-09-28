@@ -911,8 +911,8 @@ final class DesktopPanelWindowController {
                     updateHostFocus();
                 }
             });
+            UiAppearance.dialog(dialog);
             dialog.show();
-            UiAppearance.dialog(dialog, activity);
             return true;
         } catch (RuntimeException error) {
             mDialog = null;

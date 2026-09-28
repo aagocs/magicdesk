@@ -39,7 +39,7 @@ public final class DesktopContentReceiverActivity extends Activity {
         }
         final int itemCount = mContent.hasUris()
                 ? mContent.uriItems.size() : 1;
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.desktop_share_save_title)
                 .setMessage(getResources().getQuantityString(
                         R.plurals.desktop_share_save_message,

@@ -5,6 +5,34 @@ import java.util.List;
 import org.junit.Test;
 
 public final class AppearanceSettingsTest {
+    @Test public void pageUsesActivityInsetsAndInvalidatesEditsWhenLeaving() throws Exception {
+        String create = RuntimeSourceFixture.methods("AppearanceSettings", "createPage");
+        assertTrue(create.contains("SystemBarInsets.addToPadding(root)"));
+        assertTrue(create.contains("new UiContentColumn(page, 640)"));
+        assertFalse(create.contains("AlertDialog"));
+        RuntimeSourceFixture.verify("""
+                static class AppearanceStore {
+                    static int listeners=1;
+                    static void unlisten(Runnable listener) { listeners--; }
+                }
+                Object mPage=new Object();
+                Runnable mChanged=()->{};
+                List<Runnable> mRefreshers=new ArrayList<>(List.of(()->{}));
+                int generation, childClosures;
+                void invalidateFiles() { generation++; }
+                void dismissChildren() { childClosures++; }
+                """ + RuntimeSourceFixture.methods("AppearanceSettings", "dismissPage", "isOpen") + """
+                public static void verify() {
+                    var page=new Fixture();
+                    check(page.isOpen(), "page not open");
+                    page.dismissPage();
+                    check(!page.isOpen() && page.mRefreshers.isEmpty(), "page retained detached views");
+                    check(page.generation==1 && page.childClosures==1, "page retained pending edits or modals");
+                    check(AppearanceStore.listeners==0, "page retained appearance subscription");
+                }
+                """);
+    }
+
     @Test public void editingLocalTypographyDoesNotFreezeGlobalPanelsOrColors() throws Exception {
         var before = ShellAppearance.defaults();
         var after = before.withTypography(new ShellAppearance.Typography(ShellAppearance.Font.MONO, 1));

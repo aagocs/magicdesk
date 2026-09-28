@@ -27,7 +27,7 @@ final class TermuxSetupDialog {
         content.setPadding(dp(24), dp(8), dp(24), dp(8));
         final var scroll = new ScrollView(activity);
         scroll.addView(content);
-        dialog = new AlertDialog.Builder(activity).setTitle(R.string.console_shell_termux)
+        dialog = UiDialogs.builder(activity).setTitle(R.string.console_shell_termux)
                 .setView(scroll).setNegativeButton(R.string.action_close, null)
                 .setNeutralButton(R.string.control_integration_settings, (d, which) -> settings.run()).create();
         summary = text(content, "");

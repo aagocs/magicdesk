@@ -69,7 +69,7 @@ final class AboutDialog {
         licenseParams.topMargin = ui.dp(8);
         content.addView(license, licenseParams);
 
-        new AlertDialog.Builder(activity)
+        UiDialogs.builder(activity)
                 .setView(content)
                 .setNeutralButton(
                         R.string.about_github,

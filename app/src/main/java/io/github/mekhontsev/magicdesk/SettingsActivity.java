@@ -27,6 +27,8 @@ public final class SettingsActivity extends Activity
     private static final int LOCAL_NETWORK_PERMISSION_REQUEST = 1;
     private SettingsView mView;
     private AppearanceSettings mAppearance;
+    private android.view.View mSettingsContent;
+    private final android.window.OnBackInvokedCallback mAppearanceBack = this::closeAppearance;
     private boolean mSystemDesktopModeBusy;
     private final ShellAccess.StateListener mShellStateListener = state ->
             runOnUiThread(this::renderSystemDesktopMode);
@@ -49,9 +51,11 @@ public final class SettingsActivity extends Activity
         BuiltInWindowRegistry.register(this);
         mView = new SettingsView(this, this);
         mAppearance = new AppearanceSettings(this);
-        setContentView(mView.create());
+        mSettingsContent = mView.create();
+        setContentView(mSettingsContent);
         ShellAccess.addStateListener(mShellStateListener);
         render();
+        if (savedInstanceState != null && savedInstanceState.getBoolean("appearancePage")) configureAppearance();
     }
 
     @Override
@@ -66,13 +70,30 @@ public final class SettingsActivity extends Activity
 
     @Override
     protected void onDestroy() {
+        getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mAppearanceBack);
         if (mAppearance != null) mAppearance.close();
         ShellAccess.removeStateListener(mShellStateListener);
         BuiltInWindowRegistry.unregister(this);
         super.onDestroy();
     }
 
-    @Override public void configureAppearance() { mAppearance.show(); }
+    @Override public void configureAppearance() {
+        if (mAppearance.isOpen()) return;
+        setContentView(mAppearance.createPage(this::closeAppearance));
+        getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, mAppearanceBack);
+    }
+
+    private void closeAppearance() {
+        mAppearance.dismissPage();
+        getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mAppearanceBack);
+        setContentView(mSettingsContent);
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        state.putBoolean("appearancePage", mAppearance.isOpen());
+    }
 
     @Override public void configureLanguage() {
         final LocaleManager manager = getSystemService(LocaleManager.class);
@@ -93,7 +114,7 @@ public final class SettingsActivity extends Activity
                 checked = index + 1;
             }
         }
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.settings_language)
                 .setSingleChoiceItems(labels, checked, (dialog, index) -> {
                     dialog.dismiss();
@@ -138,7 +159,7 @@ public final class SettingsActivity extends Activity
         final DesktopSystemThemeSession.Preference[] values = DesktopSystemThemeSession.Preference.values();
         final String[] labels = new String[values.length];
         for (int index = 0; index < values.length; index++) labels[index] = getString(SettingsView.systemThemeLabel(values[index]));
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.settings_system_theme)
                 .setSingleChoiceItems(labels, MagicDeskSettings.load().systemTheme.ordinal(), (dialog, index) -> {
                     dialog.dismiss();
@@ -172,7 +193,7 @@ public final class SettingsActivity extends Activity
         if (mSystemDesktopModeBusy || !SystemDesktopModeSetting.canChange()) {
             return;
         }
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.settings_compat_reset)
                 .setMessage(getString(R.string.settings_compat_reset_confirm,
                         PlatformDrivers.current().name()))
@@ -189,7 +210,7 @@ public final class SettingsActivity extends Activity
         if (mSystemDesktopModeBusy || !SystemDesktopModeSetting.canChange()) {
             return;
         }
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.settings_system_desktop_mode)
                 .setMessage(R.string.settings_system_desktop_mode_confirm)
                 .setNegativeButton(android.R.string.cancel, null)
@@ -235,7 +256,7 @@ public final class SettingsActivity extends Activity
                 }
                 render();
                 if (resultError != null) {
-                    new AlertDialog.Builder(this)
+                    UiDialogs.builder(this)
                             .setTitle(R.string.settings_save_failed)
                             .setMessage(resultError)
                             .setPositiveButton(android.R.string.ok, null)
@@ -273,7 +294,7 @@ public final class SettingsActivity extends Activity
         warning.setText(R.string.mcp_permissions_warning);
         final int padding = Math.round(16 * getResources().getDisplayMetrics().density);
         warning.setPadding(padding, padding, padding, padding);
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(network ? R.string.settings_mcp_network_access : R.string.settings_mcp_local_access)
                 .setView(warning)
                 .setMultiChoiceItems(labels, checked, (dialog, index, selected) -> checked[index] = selected)
@@ -347,7 +368,7 @@ public final class SettingsActivity extends Activity
         if (requestCode != LOCAL_NETWORK_PERMISSION_REQUEST) return;
         MagicDeskRuntime.refreshSettings(this::render);
         if (results.length == 0 || RuntimeCapabilities.canAccessLocalNetwork(this)) return;
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.settings_mcp_network_enabled)
                 .setMessage(R.string.settings_mcp_network_permission_denied)
                 .setNegativeButton(android.R.string.cancel, null)
@@ -378,7 +399,7 @@ public final class SettingsActivity extends Activity
     }
 
     private void regenerateMcpToken(final boolean network) {
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(network ? R.string.settings_mcp_network_token
                         : R.string.settings_mcp_regenerate_token)
                 .setMessage(R.string.settings_mcp_regenerate_confirm)
@@ -408,7 +429,7 @@ public final class SettingsActivity extends Activity
     public void configureShellBackend() {
         final ShellBackend[] backends = ShellBackend.values();
         final String[] labels = java.util.Arrays.stream(backends).map(value -> value.label).toArray(String[]::new);
-        new AlertDialog.Builder(this).setTitle(R.string.settings_shell_backend)
+        UiDialogs.builder(this).setTitle(R.string.settings_shell_backend)
                 .setSingleChoiceItems(labels, ShellBackend.configured(this).ordinal(), (dialog, which) -> {
                     saveStartupSetting(backends[which].save(this));
                     dialog.dismiss();
@@ -419,7 +440,7 @@ public final class SettingsActivity extends Activity
     public void configureMaximumAccess() {
         final RuntimeLimits.Access[] levels = RuntimeLimits.Access.values();
         final String[] labels = java.util.Arrays.stream(levels).map(value -> getString(value.label)).toArray(String[]::new);
-        new AlertDialog.Builder(this).setTitle(R.string.settings_maximum_access)
+        UiDialogs.builder(this).setTitle(R.string.settings_maximum_access)
                 .setSingleChoiceItems(labels, RuntimeLimits.configured(this).access().ordinal(), (dialog, which) -> {
                     final var current = RuntimeLimits.configured(this);
                     saveStartupSetting(RuntimeLimits.save(this, new RuntimeLimits.Values(levels[which], current.termux(), current.desktop())));
@@ -453,7 +474,7 @@ public final class SettingsActivity extends Activity
         input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(IntegrationPackage.MAX_LENGTH)});
         input.setText(integration.configured(this));
         input.setSelectAllOnFocus(true);
-        final AlertDialog dialog = new AlertDialog.Builder(this)
+        final AlertDialog dialog = UiDialogs.builder(this)
                 .setTitle(SettingsView.integrationLabel(integration))
                 .setView(input)
                 .setNegativeButton(android.R.string.cancel, null)

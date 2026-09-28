@@ -7,7 +7,7 @@ import android.widget.Toast;
 /** Start's user-shortcut action, separate from package installation and application lifetime. */
 final class TermuxShortcutDialog {
     static void confirmDelete(Activity activity, StartMenuEntry entry) {
-        new AlertDialog.Builder(activity)
+        UiDialogs.builder(activity)
                 .setTitle(R.string.action_delete_shortcut)
                 .setMessage(activity.getString(R.string.delete_termux_shortcut_confirmation, entry.label))
                 .setNegativeButton(android.R.string.cancel, null)

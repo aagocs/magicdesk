@@ -107,7 +107,7 @@ final class DisplayCreationDialog {
         });
         final ScrollView scroll = new ScrollView(mActivity);
         scroll.addView(content);
-        final AlertDialog dialog = new AlertDialog.Builder(mActivity)
+        final AlertDialog dialog = UiDialogs.builder(mActivity)
                 .setTitle(R.string.display_create).setView(scroll)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.action_create, null).create();

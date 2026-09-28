@@ -475,7 +475,7 @@ public final class ControlActivity extends Activity
                 && displayId > 0 && !isFinishing() && !isDestroyed()) {
             try {
                 if (!SystemDesktopModeSetting.read(this) && SystemDesktopModeSetting.canChange()) {
-                    new android.app.AlertDialog.Builder(this)
+                    UiDialogs.builder(this)
                             .setTitle(R.string.display_input_setup)
                             .setMessage(failure + "\n\n" + getString(R.string.display_input_setup_confirm))
                             .setNegativeButton(android.R.string.cancel, null)
@@ -584,7 +584,7 @@ public final class ControlActivity extends Activity
     private void requestAccess() {
         if (mDisplayOperation || mSessionController.isOperationInProgress()) { return; }
         if (RuntimeLimits.restartRequired(this)) {
-            new android.app.AlertDialog.Builder(this)
+            UiDialogs.builder(this)
                     .setMessage(R.string.access_restart_required)
                     .setNegativeButton(android.R.string.cancel, null)
                     .setPositiveButton(R.string.action_exit, (dialog, which) -> exitMagicDesk())

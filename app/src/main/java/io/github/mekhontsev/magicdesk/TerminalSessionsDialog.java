@@ -37,7 +37,7 @@ final class TerminalSessionsDialog {
         status = new TextView(activity);
         status.setTextSize(13);
         status.setPadding(dp(24), dp(8), dp(24), dp(8));
-        dialog = new AlertDialog.Builder(activity).setTitle(R.string.terminal_sessions)
+        dialog = UiDialogs.builder(activity).setTitle(R.string.terminal_sessions)
                 .setAdapter(adapter, (picker, index) -> open(items.get(index)))
                 .setPositiveButton(R.string.terminal_new, null)
                 .setNeutralButton(R.string.action_refresh, null)
@@ -137,7 +137,7 @@ final class TerminalSessionsDialog {
             result(new IllegalStateException(activity.getString(R.string.capability_terminal_required)));
             return;
         }
-        new AlertDialog.Builder(activity).setTitle(R.string.terminal_new)
+        UiDialogs.builder(activity).setTitle(R.string.terminal_new)
                 .setItems(choices.stream().map(activity::getString).toArray(String[]::new),
                         (which, index) -> {
                             final int choice = choices.get(index);
@@ -155,7 +155,7 @@ final class TerminalSessionsDialog {
                 ? new String[]{activity.getString(R.string.action_rename), activity.getString(R.string.terminal_detach),
                     activity.getString(R.string.terminal_end_session)}
                 : new String[]{activity.getString(R.string.action_rename), activity.getString(R.string.terminal_end_session)};
-        new AlertDialog.Builder(activity).setTitle(title(item)).setItems(choices, (which, index) -> {
+        UiDialogs.builder(activity).setTitle(title(item)).setItems(choices, (which, index) -> {
             if (index == 0) {
                 editName(activity.getString(R.string.action_rename), title(item), name -> {
                     if (item.tmux() != null) TmuxSessionProvider.rename(activity, item.tmux(), name, this::changed);
@@ -164,7 +164,7 @@ final class TerminalSessionsDialog {
             } else if (connection && index == 1) {
                 ConsoleTerminalRegistry.hide(item.terminal().id); load();
             } else if (item.tmux() != null) {
-                new AlertDialog.Builder(activity).setTitle(R.string.terminal_end_session)
+                UiDialogs.builder(activity).setTitle(R.string.terminal_end_session)
                         .setMessage(activity.getString(R.string.terminal_end_tmux_confirm, title(item)))
                         .setNegativeButton(android.R.string.cancel, null)
                         .setPositiveButton(R.string.terminal_end_session,
@@ -182,7 +182,7 @@ final class TerminalSessionsDialog {
         final LinearLayout container = new LinearLayout(activity);
         container.setPadding(dp(24), dp(8), dp(24), 0);
         container.addView(input, new LinearLayout.LayoutParams(-1, -2));
-        final AlertDialog editor = new AlertDialog.Builder(activity).setTitle(title).setView(container)
+        final AlertDialog editor = UiDialogs.builder(activity).setTitle(title).setView(container)
                 .setNegativeButton(android.R.string.cancel, null).setPositiveButton(android.R.string.ok, null).create();
         editor.setOnShowListener(ignored -> editor.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             try { save.accept(input.getText().toString()); editor.dismiss(); }
@@ -196,7 +196,7 @@ final class TerminalSessionsDialog {
         final var session = ConsoleTerminalRegistry.status(id);
         if (session == null) return;
         final boolean tmux = !session.tmuxSessionId.isEmpty();
-        new AlertDialog.Builder(activity).setTitle(tmux ? R.string.terminal_detach : R.string.terminal_end_session)
+        UiDialogs.builder(activity).setTitle(tmux ? R.string.terminal_detach : R.string.terminal_end_session)
                 .setMessage(tmux ? R.string.terminal_detach_tmux_confirm : R.string.terminal_end_confirm)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(tmux ? R.string.terminal_detach : R.string.terminal_end_session, (dialog, which) -> {

@@ -51,7 +51,7 @@ final class ConsoleTerminalActions implements ConsoleTerminalView.Actions, AutoC
 
     @Override public void showLink(final com.termux.terminal.TerminalHyperlink link) {
         final TerminalLink target = TerminalLink.parse(link.uri());
-        final AlertDialog.Builder dialog = new AlertDialog.Builder(mActivity)
+        final AlertDialog.Builder dialog = UiDialogs.builder(mActivity)
                 .setTitle(R.string.console_link).setMessage(link.uri())
                 .setNeutralButton(android.R.string.copy, (which, button) -> copyText(link.uri()))
                 .setNegativeButton(android.R.string.cancel, null);
@@ -74,7 +74,7 @@ final class ConsoleTerminalActions implements ConsoleTerminalView.Actions, AutoC
 
     @Override public void showImage(final com.termux.terminal.TerminalImage image) {
         if (mExportingImage || mActivity.isFinishing() || mActivity.isDestroyed()) return;
-        new AlertDialog.Builder(mActivity)
+        UiDialogs.builder(mActivity)
                 .setTitle(mActivity.getString(R.string.console_image_title, image.width, image.height))
                 .setItems(new String[]{mActivity.getString(R.string.console_image_save),
                         mActivity.getString(R.string.action_open), mActivity.getString(R.string.file_manager_share)},
@@ -135,7 +135,7 @@ final class ConsoleTerminalActions implements ConsoleTerminalView.Actions, AutoC
             labels[i] = (command.commandKnown() ? command.command() : mActivity.getString(R.string.console_command_unknown))
                     + "\n" + command.state() + (command.exitCode() == null ? "" : " [exit " + command.exitCode() + "]");
         }
-        final AlertDialog.Builder dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.console_commands)
+        final AlertDialog.Builder dialog = UiDialogs.builder(mActivity).setTitle(R.string.console_commands)
                 .setNegativeButton(android.R.string.cancel, null);
         if (commands.isEmpty()) { dialog.setMessage(R.string.console_no_commands); }
         else { dialog.setItems(labels, (picker, index) -> {
@@ -168,7 +168,7 @@ final class ConsoleTerminalActions implements ConsoleTerminalView.Actions, AutoC
                     }
                 });
             }
-            new AlertDialog.Builder(mActivity).setTitle(labels[index])
+            UiDialogs.builder(mActivity).setTitle(labels[index])
                     .setItems(actions.toArray(new String[0]), (menu, action) -> handlers.get(action).run())
                     .setNegativeButton(android.R.string.cancel, null).show();
         }); }

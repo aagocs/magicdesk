@@ -947,7 +947,7 @@ mView.setTerminalVisible(RuntimeLimits.active().termux() && TermuxIntegration.is
         if (mSelected.isEmpty()) {
             return;
         }
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.file_manager_delete_title)
                 .setMessage(getString(
                         R.string.file_manager_delete_message,
@@ -1073,7 +1073,7 @@ mView.setTerminalVisible(RuntimeLimits.active().termux() && TermuxIntegration.is
         input.setHint(R.string.file_manager_search_hint);
         input.setText(mSearchQuery);
         input.setSelection(input.length());
-        final AlertDialog dialog = new AlertDialog.Builder(this)
+        final AlertDialog dialog = UiDialogs.builder(this)
                 .setTitle(R.string.file_manager_search_title)
                 .setView(input)
                 .setPositiveButton(R.string.file_manager_search, null)
@@ -1228,7 +1228,7 @@ mView.setTerminalVisible(RuntimeLimits.active().termux() && TermuxIntegration.is
         if (!ShellPackageInstaller.supports(file)) {
             return;
         }
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.file_manager_install_title)
                 .setMessage(getString(
                         R.string.file_manager_install_message,
@@ -1927,7 +1927,7 @@ mView.setTerminalVisible(RuntimeLimits.active().termux() && TermuxIntegration.is
         input.setHint(R.string.file_manager_name_hint);
         input.setText(initial);
         input.setSelection(input.length());
-        final AlertDialog dialog = new AlertDialog.Builder(this)
+        final AlertDialog dialog = UiDialogs.builder(this)
                 .setTitle(title)
                 .setView(input)
                 .setPositiveButton(android.R.string.ok, null)
@@ -1948,7 +1948,7 @@ mView.setTerminalVisible(RuntimeLimits.active().termux() && TermuxIntegration.is
     }
 
     private void showProperties(final ShellFileInfo file) {
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(file.name)
                 .setMessage(FilePropertiesFormatter.format(this, file))
                 .setNeutralButton(R.string.file_manager_copy_path,

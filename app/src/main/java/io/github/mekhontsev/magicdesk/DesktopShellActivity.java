@@ -1343,7 +1343,7 @@ public abstract class DesktopShellActivity extends Activity
     }
 
     void showDesktopFileProperties(final ShellFileInfo file) {
-        showDesktopDialog(host -> new AlertDialog.Builder(host)
+        showDesktopDialog(host -> UiDialogs.builder(host)
                 .setTitle(file.name)
                 .setMessage(FilePropertiesFormatter.format(this, file))
                 .setNeutralButton(
@@ -1368,7 +1368,7 @@ public abstract class DesktopShellActivity extends Activity
             message.append('\n').append(getString(
                     R.string.desktop_shortcut_unavailable));
         }
-        showDesktopDialog(host -> new AlertDialog.Builder(host)
+        showDesktopDialog(host -> UiDialogs.builder(host)
                 .setTitle(shortcut.name)
                 .setMessage(message)
                 .setNeutralButton(
@@ -1384,7 +1384,7 @@ public abstract class DesktopShellActivity extends Activity
     }
 
     void installDesktopApk(final DesktopFile file) {
-        showDesktopDialog(host -> new AlertDialog.Builder(host)
+        showDesktopDialog(host -> UiDialogs.builder(host)
                 .setTitle(R.string.file_manager_install_title)
                 .setMessage(getString(
                         R.string.file_manager_install_message,
@@ -1454,7 +1454,7 @@ public abstract class DesktopShellActivity extends Activity
     }
 
     void confirmDeleteDesktopFile(final DesktopFile file) {
-        showDesktopDialog(host -> new AlertDialog.Builder(host)
+        showDesktopDialog(host -> UiDialogs.builder(host)
                 .setTitle(R.string.delete_desktop_entry_title)
                 .setMessage(getString(
                         file.desktopEntry != null
@@ -1481,7 +1481,7 @@ public abstract class DesktopShellActivity extends Activity
 
     void confirmForceStop(final AppItem app, final TaskRepository.TaskEntry task) {
         final var hosted = BuiltInWindowRegistry.forceCloseAction(task);
-        showDesktopDialog(host -> new AlertDialog.Builder(host)
+        showDesktopDialog(host -> UiDialogs.builder(host)
                 .setTitle(hosted == null ? R.string.force_stop_title : hosted.label())
                 .setMessage(hosted == null ? getString(R.string.force_stop_message, app.label) : hosted.warning())
                 .setNegativeButton(android.R.string.cancel, null)
@@ -1586,7 +1586,7 @@ public abstract class DesktopShellActivity extends Activity
             container.addView(input, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT));
-            final AlertDialog dialog = new AlertDialog.Builder(host)
+            final AlertDialog dialog = UiDialogs.builder(host)
                     .setTitle(titleResId)
                     .setView(container)
                     .setNegativeButton(android.R.string.cancel, null)

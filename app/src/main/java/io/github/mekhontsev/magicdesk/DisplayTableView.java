@@ -212,7 +212,7 @@ final class DisplayTableView {
         updateButton(mOutput, R.drawable.ic_show_desktop, R.string.external_display_resolution,
                 enabled && hasOutputControls(display, outputAvailable), () -> mActions.openOutputSettings(display));
         updateButton(mRemove, R.drawable.ic_file_delete, R.string.display_remove,
-                enabled && display.canRemove(), () -> new AlertDialog.Builder(mActivity)
+                enabled && display.canRemove(), () -> UiDialogs.builder(mActivity)
                         .setTitle(R.string.display_remove).setMessage(display.name + " [" + display.id + "]")
                         .setNegativeButton(android.R.string.cancel, null)
                         .setPositiveButton(R.string.action_delete, (dialog, which) -> mActions.removeDisplay(display)).show());

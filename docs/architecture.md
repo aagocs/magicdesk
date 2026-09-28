@@ -1089,11 +1089,19 @@ runtime integration and are not distributed through the same release path.
 
 ### Desktop UI
 
+- `UiDialogs` creates native modal dialogs and installs `DialogContentInsets`
+  before presentation. The content host fits title, body and buttons together,
+  preserving Android's decor handling and adding only the owner's remaining
+  caption overlap. Layout and inset callbacks update the fit before drawing;
+  attachment owns observation lifetime. Callers retain their show/dismiss/button
+  callbacks. This contract does not require Desktop or privileged access.
+  Appearance settings are a page inside Settings, with the same Activity content
+  inset policy and a measured `UiContentColumn`; focused edits use modal dialogs.
 - `ShellAppearance` separates semantic colors, typography, resources, control
   shapes and background presentation from panel layout. Its `Backdrop` combines
   opacity and blur radius; the common backdrop supplies native shell panels and
   popup backgrounds through Window bindings, while a nullable `PanelStyle.backdrop`
-  overrides it for one panel. Dialogs explicitly styled by `UiAppearance.dialog`
+  overrides it for one panel. Dialogs created with `UiDialogs.themedBuilder`
   share that backdrop; arbitrary Android dialogs are not automatically themed.
   `AppearanceStore` persists app-private defaults and sparse workspace overrides
   without Desktop or privileged services; Settings, MCP and the CLI share its

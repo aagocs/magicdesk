@@ -24,7 +24,7 @@ final class McpNetworkSettingsDialog {
             return;
         }
         if (bindings.isEmpty()) {
-            new AlertDialog.Builder(activity).setMessage(R.string.settings_mcp_network_no_interface)
+            UiDialogs.builder(activity).setMessage(R.string.settings_mcp_network_no_interface)
                     .setPositiveButton(android.R.string.ok, null)
                     .setOnDismissListener(dialog -> dismissed.run()).show();
             return;
@@ -54,7 +54,7 @@ final class McpNetworkSettingsDialog {
         port.setContentDescription(activity.getString(R.string.settings_mcp_network_port));
         port.setText(Integer.toString(settings.networkPort));
         content.addView(port);
-        final AlertDialog dialog = new AlertDialog.Builder(activity)
+        final AlertDialog dialog = UiDialogs.builder(activity)
                 .setTitle(R.string.settings_mcp_network_configure).setView(content)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(android.R.string.ok, null)

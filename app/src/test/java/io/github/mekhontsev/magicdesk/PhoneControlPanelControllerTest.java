@@ -207,6 +207,9 @@ public final class PhoneControlPanelControllerTest {
                     int exits;
                     void exitMagicDesk() { exits++; }
                 }
+                static class UiDialogs {
+                    static AlertDialog.Builder builder(Object activity) { return new AlertDialog.Builder(activity); }
+                }
                 final Object mActivity = new Object();
                 final Actions mActions = new Actions();
                 public static void verify() {

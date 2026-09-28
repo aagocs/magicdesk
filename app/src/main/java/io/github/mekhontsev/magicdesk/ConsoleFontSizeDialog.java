@@ -46,7 +46,7 @@ final class ConsoleFontSizeDialog {
             @Override public void onStartTrackingTouch(final SeekBar bar) { }
             @Override public void onStopTrackingTouch(final SeekBar bar) { }
         });
-        final AlertDialog dialog = new AlertDialog.Builder(activity)
+        final AlertDialog dialog = UiDialogs.builder(activity)
                 .setTitle(title).setView(content)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setNeutralButton(R.string.action_reset, null)

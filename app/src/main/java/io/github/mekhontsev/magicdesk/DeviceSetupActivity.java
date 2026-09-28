@@ -124,7 +124,7 @@ public final class DeviceSetupActivity extends Activity {
         final SessionProfile.DisplayTarget[] targets = targetList.toArray(
                 new SessionProfile.DisplayTarget[0]);
         final String[] labels = labelList.toArray(new String[0]);
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.setup_choose_display_target)
                 .setSingleChoiceItems(
                         labels,
@@ -404,7 +404,7 @@ public final class DeviceSetupActivity extends Activity {
     }
 
     private void confirmRestore() {
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.setup_restore_title)
                 .setMessage(R.string.setup_restore_message)
                 .setNegativeButton(android.R.string.cancel, null)
@@ -418,7 +418,7 @@ public final class DeviceSetupActivity extends Activity {
     }
 
     private void confirmReboot() {
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.setup_reboot_title)
                 .setMessage(R.string.setup_reboot_message)
                 .setNegativeButton(android.R.string.cancel, null)
@@ -496,7 +496,7 @@ public final class DeviceSetupActivity extends Activity {
         final String errorCode = "SETUP-001";
         CompatibilityDiagnostics.record(
                 errorCode, "Device setup failed", message, error);
-        new AlertDialog.Builder(this)
+        UiDialogs.builder(this)
                 .setTitle(R.string.setup_error_title)
                 .setMessage(getString(
                         R.string.setup_error_with_code, message, errorCode))

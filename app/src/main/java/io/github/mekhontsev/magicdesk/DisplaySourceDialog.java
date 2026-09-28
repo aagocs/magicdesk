@@ -17,7 +17,7 @@ final class DisplaySourceDialog {
             Toast.makeText(activity, activity.getString(R.string.display_viewer_no_sources), Toast.LENGTH_LONG).show();
             return;
         }
-        new AlertDialog.Builder(activity).setTitle(R.string.display_show_another)
+        UiDialogs.builder(activity).setTitle(R.string.display_show_another)
                 .setItems(sources.stream().map(d -> label(activity, d)).toArray(String[]::new),
                         (dialog, index) -> DisplayPresentations.attachOutput(activity, sources.get(index),
                                 output, reportFailure(activity)))

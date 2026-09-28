@@ -182,7 +182,7 @@ final class FileManagerOperationController implements AutoCloseable {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        final AlertDialog progress = new AlertDialog.Builder(mActivity)
+        final AlertDialog progress = UiDialogs.builder(mActivity)
                 .setTitle(R.string.file_manager_operation_running)
                 .setView(content)
                 .setNegativeButton(R.string.file_manager_cancel, null)

@@ -223,14 +223,14 @@ public final class X11Activity extends Activity implements
         ToolApplications.openSibling(source, windowIntent(source, selected, id),
                 error -> {
                     if (error != null) {
-                        new AlertDialog.Builder(source).setMessage(ShellAccess.usefulMessage(error))
+                        UiDialogs.builder(source).setMessage(ShellAccess.usefulMessage(error))
                                 .setPositiveButton(android.R.string.ok, null).show();
                     }
                 });
     }
 
     private void showError(Throwable error) {
-        new AlertDialog.Builder(this).setMessage(ShellAccess.usefulMessage(error))
+        UiDialogs.builder(this).setMessage(ShellAccess.usefulMessage(error))
                 .setPositiveButton(android.R.string.ok, null).show();
     }
 

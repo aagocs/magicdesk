@@ -344,7 +344,7 @@ public final class DisplayViewerActivity extends Activity implements SurfaceHold
             final var sources = java.util.Arrays.stream(displays)
                     .filter(d -> d.id != getDisplay().getDisplayId()).toList();
             if (sources.isEmpty()) { showSelectionError(getString(R.string.display_viewer_no_sources)); return; }
-            mSourceDialog = new AlertDialog.Builder(this).setTitle(R.string.display_viewer_source)
+            mSourceDialog = UiDialogs.builder(this).setTitle(R.string.display_viewer_source)
                     .setItems(sources.stream().map(d -> d.name + " [" + d.id + "]").toArray(String[]::new),
                             (dialog, index) -> bindSource(sources.get(index)))
                     .setNegativeButton(android.R.string.cancel, null).show();

@@ -24,7 +24,7 @@ final class AppearanceSettings implements AutoCloseable {
     private final List<Runnable> mRefreshers = new ArrayList<>();
     private final List<AlertDialog> mChildren = new ArrayList<>();
     private final Runnable mChanged = this::refresh;
-    private AlertDialog mDialog;
+    private View mPage;
     private AlertDialog mPreviewDialog;
     private boolean mRendering;
     private volatile boolean mClosed;
@@ -40,9 +40,9 @@ final class AppearanceSettings implements AutoCloseable {
 
     AppearanceSettings(Activity activity) { mActivity = activity; mUi = new DesktopUiFactory(activity); }
 
-    void show() {
-        if (mClosed) return;
-        if (mDialog != null) { mDialog.show(); return; }
+    View createPage(Runnable back) {
+        if (mClosed) throw new IllegalStateException("Appearance settings are closed");
+        if (mPage != null) return mPage;
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(mUi.dp(16), mUi.dp(8), mUi.dp(16), mUi.dp(8));
@@ -206,18 +206,37 @@ final class AppearanceSettings implements AutoCloseable {
         addCommand(bundles, R.string.appearance_prune, R.drawable.ic_file_delete, this::pruneBundles);
         page.addView(bundles);
         final ScrollView scroll = new ScrollView(mActivity);
-        scroll.addView(page);
-        mDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_title).setView(scroll)
-                .setPositiveButton(android.R.string.ok, null).create();
-        mDialog.setOnDismissListener(d -> {
-            invalidateFiles();
-            dismissChildren();
-            AppearanceStore.unlisten(mChanged); mRefreshers.clear(); mDialog = null;
-        });
+        scroll.setFillViewport(true);
+        scroll.addView(new UiContentColumn(page, 640));
+        final LinearLayout root = new LinearLayout(mActivity);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(mUi.dp(14), mUi.dp(10), mUi.dp(14), mUi.dp(14));
+        UiAppearance.background(root, UiColor.PANEL);
+        SystemBarInsets.addToPadding(root);
+        final LinearLayout header = new LinearLayout(mActivity);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        final ImageButton previous = mUi.taskbarIconButton(R.drawable.ic_file_back, R.string.action_back, false);
+        previous.setOnClickListener(v -> back.run());
+        header.addView(previous, new LinearLayout.LayoutParams(mUi.dp(48), mUi.dp(48)));
+        final TextView title = mUi.sectionTitle(R.string.appearance_title);
+        title.setTextSize(18);
+        header.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        root.addView(new UiContentColumn(header, 640));
+        root.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
+        mPage = root;
         AppearanceStore.listen(mChanged);
         refresh();
-        mDialog.show();
-        UiAppearance.dialog(mDialog, mActivity);
+        return mPage;
+    }
+
+    boolean isOpen() { return mPage != null; }
+
+    void dismissPage() {
+        invalidateFiles();
+        dismissChildren();
+        AppearanceStore.unlisten(mChanged);
+        mRefreshers.clear();
+        mPage = null;
     }
 
     private static int colorLabel(UiColor role) {
@@ -243,7 +262,7 @@ final class AppearanceSettings implements AutoCloseable {
         text.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(7)});
         text.setText(String.format(Locale.ROOT, "#%06X", current().palette().color(role) & 0xffffff));
         UiAppearance.text(text, UiColor.TEXT);
-        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(colorLabel(role)).setView(text)
+        final AlertDialog dialog = UiDialogs.themedBuilder(mActivity).setTitle(colorLabel(role)).setView(text)
                 .setPositiveButton(android.R.string.ok, null).setNegativeButton(android.R.string.cancel, null).create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             if (!isCurrent(target)) { text.setError(mActivity.getString(R.string.appearance_changed)); return; }
@@ -293,7 +312,7 @@ final class AppearanceSettings implements AutoCloseable {
         catch (org.json.JSONException error) { throw new IllegalArgumentException(error); }
         UiAppearance.text(text, UiColor.TEXT);
         final ScrollView scroll = new ScrollView(mActivity); scroll.addView(text);
-        final AlertDialog editor = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_edit_document).setView(scroll)
+        final AlertDialog editor = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_edit_document).setView(scroll)
                 .setPositiveButton(R.string.appearance_preview, null).setNegativeButton(android.R.string.cancel, null).create();
         editor.setOnShowListener(d -> editor.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             try { preparePreview(text.getText().toString(), target, editor); }
@@ -318,7 +337,7 @@ final class AppearanceSettings implements AutoCloseable {
         try { id = scope == null ? AppearanceStore.preview(ShellAppearanceJson.parse(document), target.revision())
                 : AppearanceStore.preview(scope, document, target.revision()); }
         catch (org.json.JSONException error) { throw new IllegalArgumentException(error.getMessage(), error); }
-        mPreviewDialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_preview)
+        mPreviewDialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_preview)
                 .setPositiveButton(R.string.appearance_keep, (d, which) -> {
                     try {
                         if (id.equals(previewId(scope))) {
@@ -334,13 +353,13 @@ final class AppearanceSettings implements AutoCloseable {
             } catch (Exception error) { showError(error); }
             mPreviewDialog = null;
         });
-        mPreviewDialog.show(); UiAppearance.dialog(mPreviewDialog, mActivity);
+        mPreviewDialog.show();
     }
 
     private void chooseTheme() {
         final EditTarget target = target();
         String[] names = ShellThemes.ENTRIES.stream().map(entry -> mActivity.getString(entry.title())).toArray(String[]::new);
-        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_choose_theme)
+        final AlertDialog dialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_choose_theme)
                 .setSingleChoiceItems(names, -1, null)
                 .setPositiveButton(R.string.appearance_preview, null).setNegativeButton(android.R.string.cancel, null).create();
         dialog.setOnShowListener(d -> {
@@ -402,7 +421,7 @@ final class AppearanceSettings implements AutoCloseable {
     }
 
     private void pruneBundles() {
-        var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_prune)
+        var dialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_prune)
                 .setPositiveButton(R.string.action_delete, (d, which) -> {
                     if (mFileBusy || mPendingFile != null) {
                         Toast.makeText(mActivity, R.string.appearance_file_busy, Toast.LENGTH_SHORT).show(); return;
@@ -415,7 +434,7 @@ final class AppearanceSettings implements AutoCloseable {
                             cancellation.throwIfCanceled();
                             int removed = AppearanceStore.pruneUnusedBundles().size();
                             mActivity.runOnUiThread(() -> {
-                                if (!mClosed && mDialog != null && !cancellation.isCanceled()) Toast.makeText(mActivity,
+                                if (!mClosed && mPage != null && !cancellation.isCanceled()) Toast.makeText(mActivity,
                                         mActivity.getString(R.string.appearance_pruned, removed), Toast.LENGTH_SHORT).show();
                             });
                         } catch (Exception error) {
@@ -512,7 +531,7 @@ final class AppearanceSettings implements AutoCloseable {
         ImageButton remove = addCommand(commands, R.string.appearance_remove_panel, R.drawable.ic_remove, () -> {
             final String id = panel().id();
             final EditTarget editTarget = target();
-            var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_remove_panel)
+            var dialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_remove_panel)
                     .setMessage(id).setPositiveButton(R.string.action_delete, (d, which) -> {
                         if (!isCurrent(editTarget)) { showError(new IllegalStateException(mActivity.getString(R.string.appearance_changed))); return; }
                         var theme = current();
@@ -588,7 +607,7 @@ final class AppearanceSettings implements AutoCloseable {
                     var targets = draft[0].panels().stream().filter(p -> !p.id().equals(selected) && p.components().size() < 24).toList();
                     move.setEnabled(!targets.isEmpty());
                     move.setOnClickListener(v -> {
-                        var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_move_panel)
+                        var dialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_move_panel)
                                 .setItems(targets.stream().map(ShellPanel::id).toArray(String[]::new), (d, which) -> {
                                     draft[0] = moveComponent(draft[0], selected, index, targets.get(which).id()); run();
                                 }).create();
@@ -606,7 +625,7 @@ final class AppearanceSettings implements AutoCloseable {
                     var choices = java.util.Arrays.stream(ShellComposition.Kind.values()).filter(kind -> kind == ShellComposition.Kind.SPACER
                             || draft[0].panels().stream().flatMap(p -> p.components().stream()).noneMatch(item -> item.type() == kind)).toList();
                     String[] labels = choices.stream().map(AppearanceSettings.this::componentLabel).toArray(String[]::new);
-                    var dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_add_component)
+                    var dialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_add_component)
                             .setItems(labels, (d, which) -> { items.add(ShellComposition.Component.of(choices.get(which))); update.run(); }).create();
                     showChild(dialog);
                 });
@@ -616,7 +635,7 @@ final class AppearanceSettings implements AutoCloseable {
         };
         render.run();
         ScrollView scroll = new ScrollView(mActivity); scroll.addView(rows);
-        AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(R.string.appearance_panel_components).setView(scroll)
+        AlertDialog dialog = UiDialogs.themedBuilder(mActivity).setTitle(R.string.appearance_panel_components).setView(scroll)
                 .setPositiveButton(R.string.appearance_preview, null).setNegativeButton(android.R.string.cancel, null).create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             try {
@@ -656,7 +675,7 @@ final class AppearanceSettings implements AutoCloseable {
     }
     private EditTarget target() { return new EditTarget(mWorkspaceKey, revision(mWorkspaceKey), mGeneration); }
     private boolean isCurrent(EditTarget target) {
-        return !mClosed && mDialog != null && target.generation() == mGeneration
+        return !mClosed && mPage != null && target.generation() == mGeneration
                 && java.util.Objects.equals(target.workspaceKey(), mWorkspaceKey)
                 && target.revision() == revision(target.workspaceKey());
     }
@@ -699,7 +718,7 @@ final class AppearanceSettings implements AutoCloseable {
         }
     }
     private void showError(Exception error) {
-        if (!mClosed && mDialog != null) Toast.makeText(mActivity, error.getMessage(), Toast.LENGTH_LONG).show();
+        if (!mClosed && mPage != null) Toast.makeText(mActivity, error.getMessage(), Toast.LENGTH_LONG).show();
     }
     private TextView label(LinearLayout page, int title) {
         TextView text = new TextView(mActivity); text.setText(title); text.setTextSize(14);
@@ -750,10 +769,10 @@ final class AppearanceSettings implements AutoCloseable {
         finally { mRendering = false; }
     }
     private void showChild(AlertDialog dialog) {
-        if (mClosed || mDialog == null) return;
+        if (mClosed || mPage == null) return;
         mChildren.add(dialog);
         dialog.setOnDismissListener(d -> mChildren.remove(dialog));
-        dialog.show(); UiAppearance.dialog(dialog, mActivity);
+        dialog.show();
     }
     private void dismissChildren() {
         if (mPreviewDialog != null) mPreviewDialog.dismiss();
@@ -846,10 +865,7 @@ final class AppearanceSettings implements AutoCloseable {
     }
     public void close() {
         mClosed = true;
-        invalidateFiles();
-        dismissChildren();
-        if (mDialog != null) mDialog.dismiss();
-        AppearanceStore.unlisten(mChanged);
+        dismissPage();
         mFiles.shutdownNow();
     }
 }
