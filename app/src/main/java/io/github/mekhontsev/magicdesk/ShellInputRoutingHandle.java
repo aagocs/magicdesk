@@ -63,4 +63,13 @@ final class ShellInputRoutingHandle implements Closeable {
             throw new IOException("input routing restoration failed", error);
         }
     }
+
+    synchronized void requestKeyboard() throws IOException {
+        if (mClosed) throw new IOException("input routing is closed");
+        try {
+            mService.requestInputKeyboard(mOwnerToken);
+        } catch (RemoteException | RuntimeException error) {
+            throw new IOException(ShellAccess.usefulMessage(error), error);
+        }
+    }
 }

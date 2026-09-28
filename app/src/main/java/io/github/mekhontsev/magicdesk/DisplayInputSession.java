@@ -166,6 +166,27 @@ final class DisplayInputSession {
         });
     }
 
+    void showKeyboard(final int displayId, final TaskRepository.ActionCallback completion) {
+        if (mDestroyed || !isRoutingReady(displayId) || mTransitioning) {
+            completion.onComplete(new TaskRepository.ActionResult(false, "display input is not ready"));
+            return;
+        }
+        final long generation = mGeneration;
+        mWorker.execute(() -> {
+            TaskRepository.ActionResult result;
+            try {
+                if (generation != mGeneration || mRouting == null || mRouting.displayId() != displayId)
+                    throw new IOException("keyboard request was superseded");
+                mRouting.requestKeyboard();
+                result = new TaskRepository.ActionResult(true, "keyboard show requested");
+            } catch (IOException error) {
+                result = new TaskRepository.ActionResult(false, ShellAccess.usefulMessage(error));
+            }
+            final TaskRepository.ActionResult completed = result;
+            mHandler.post(() -> completion.onComplete(completed));
+        });
+    }
+
     void stop(final Runnable completion) {
         mError = "";
         mKeyboardError = "";

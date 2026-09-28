@@ -371,6 +371,16 @@ popup is attached only while the Activity is started and is dismissed on stop;
 it cannot remain over another phone application. The Activity itself retains
 normal focus and Back handling when no external editor is active.
 
+The touchpad's keyboard button explicitly requests the IME for the
+focused application window on the controlled display, including a focused child
+dialog. `DisplayInputSession` scopes the request to its current routing lease;
+`FrameworkInputWindowObservationSource` obtains a request-scoped input-window
+snapshot, and `FrameworkInputMethodApi` asks that window to show its IME through
+Android's editor connection. The touchpad does not acquire editor focus or relay
+text. Keyboard placement remains governed by `keyboardOnAppDisplay`. This path
+requires shared display input, not a Desktop session, and a successful request
+does not guarantee that an application without an editor will show a keyboard.
+
 Start initially focuses its search for hardware input without requesting the
 software keyboard. Clicking the search field enables and explicitly requests
 the IME. Other applications use their own editor's native show/hide behavior.

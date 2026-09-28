@@ -122,6 +122,9 @@ final class RuntimeDisplayInputCoordinator {
 
     int requestedDisplay() { return mInputDisplayId; }
     int readyDisplay() { return mInputSession.readyDisplay(); }
+    void showKeyboard(int displayId, TaskRepository.ActionCallback completion) {
+        mInputSession.showKeyboard(displayId, completion);
+    }
     boolean transitioning() { return mInputSession.transitioning(); }
     String error() { return mInputSession.error(); }
     String keyboardPlacementError() { return mInputSession.keyboardPlacementError(); }

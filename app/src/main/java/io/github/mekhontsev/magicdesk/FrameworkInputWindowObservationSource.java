@@ -187,6 +187,58 @@ final class FrameworkInputWindowObservationSource implements Closeable,
         return mLatestSnapshot;
     }
 
+    /** One request-scoped publication, independent of a Desktop observer. */
+    static IBinder focusedWindowForInputMethod(int displayId) throws Exception {
+        if (displayId < 0) throw new IllegalArgumentException("input display is required");
+        final Object lock = new Object();
+        final InputWindowHandle[][] observed = new InputWindowHandle[1][];
+        final WindowInfosListener listener = new WindowInfosListener() {
+            @Override public void onWindowInfosChanged(InputWindowHandle[] windows, DisplayInfo[] displays) {
+                synchronized (lock) {
+                    observed[0] = windows;
+                    lock.notifyAll();
+                }
+            }
+        };
+        final var initial = listener.register();
+        try {
+            final InputWindowHandle[] windows;
+            final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+            synchronized (lock) {
+                // register() can return an empty cache before the first Binder publication.
+                if (observed[0] == null && initial != null && initial.first != null && initial.first.length != 0)
+                    observed[0] = initial.first;
+                // EVENT_WAIT: first input-window publication; expiry rejects the keyboard request.
+                while (observed[0] == null) {
+                    long remaining = deadline - System.nanoTime();
+                    if (remaining <= 0) throw new IllegalStateException("input-window observation timed out");
+                    EventDrivenWaits.await(lock, EventDrivenWaits.Reason.INPUT_WINDOW_COMMIT,
+                            Math.max(1, TimeUnit.NANOSECONDS.toMillis(remaining)));
+                }
+                windows = observed[0];
+            }
+            return selectInputMethodWindow(windows, displayId);
+        } finally {
+            listener.unregister();
+        }
+    }
+
+    private static IBinder selectInputMethodWindow(InputWindowHandle[] windows, int displayId)
+            throws ReflectiveOperationException {
+        for (var handle : windows) {
+            if (handle == null) continue;
+            final var window = HANDLE_ADAPTER.read(handle);
+            if (window.displayId != displayId || !window.isFocusCandidate()) continue;
+            // Never fall through a focused system window or a tokenless target to an app behind it.
+            int type = InputWindowHandle.class.getField("layoutParamsType").getInt(handle);
+            if (type < 1 || type >= 2000) throw new IllegalStateException("focused window is not an application");
+            IBinder token = (IBinder) InputWindowHandle.class.getMethod("getWindowToken").invoke(handle);
+            if (token == null) throw new IllegalStateException("focused window has no input-method endpoint");
+            return token;
+        }
+        throw new IllegalStateException("no focused application on the controlled display");
+    }
+
     /** On-demand geometry observation; the caller owns cancellation and its deadline. */
     static Closeable observeTouchableRegion(IBinder window, int displayId, Region expected,
             Consumer<Throwable> completion) throws ReflectiveOperationException {

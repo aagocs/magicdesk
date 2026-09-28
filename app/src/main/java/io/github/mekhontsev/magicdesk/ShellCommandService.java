@@ -1140,6 +1140,24 @@ public final class ShellCommandService extends IShellCommandService.Stub {
         }
     }
 
+    @Override public void requestInputKeyboard(final IBinder ownerToken) {
+        final DisplayInputRoutingSession session;
+        synchronized (mInputRoutingLock) {
+            if (ownerToken == null || !ownerToken.equals(mInputRoutingOwner) || mInputRoutingSession == null)
+                throw new IllegalStateException("input routing owner is no longer active");
+            session = mInputRoutingSession;
+        }
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            session.requestKeyboard();
+        } catch (Exception error) {
+            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new IllegalStateException("cannot request screen keyboard: " + usefulMessage(error), error);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
     @Override
     public int cleanupInputRouting() {
         synchronized (mInputRoutingLock) {

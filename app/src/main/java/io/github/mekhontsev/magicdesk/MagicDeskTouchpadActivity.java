@@ -47,6 +47,8 @@ public final class MagicDeskTouchpadActivity extends Activity {
     private boolean mPointerDragActive;
     private FrameLayout mContentContainer;
     private ImageButton mHelpButton;
+    private ImageButton mKeyboardButton;
+    private boolean mKeyboardPending;
     private ScrollView mHelpView;
     private OnBackInvokedCallback mBackCallback;
     private PopupWindow mTouchSurface;
@@ -64,6 +66,13 @@ public final class MagicDeskTouchpadActivity extends Activity {
         for (final View view : mDesktopActions) {
             view.setEnabled(desktop);
             view.setAlpha(desktop ? 1f : 0.4f);
+        }
+        if (mKeyboardButton != null) {
+            boolean ready = !mKeyboardPending && mTargetDisplayId > 0
+                    && mTargetDisplayId == MagicDeskRuntime.readyInputDisplayId()
+                    && !MagicDeskRuntime.inputTransitioning();
+            mKeyboardButton.setEnabled(ready);
+            mKeyboardButton.setAlpha(ready ? 1f : 0.4f);
         }
     }
 
@@ -346,6 +355,11 @@ public final class MagicDeskTouchpadActivity extends Activity {
         header.addView(mHelpButton, new LinearLayout.LayoutParams(
                 ui.dp(48), ui.dp(48)));
 
+        mKeyboardButton = headerButton(R.drawable.ic_keyboard, R.string.touchpad_show_keyboard,
+                view -> showKeyboard());
+        header.addView(mKeyboardButton, headerButtonParams(ui));
+        updateDesktopActions();
+
         root.addView(header, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -396,6 +410,22 @@ public final class MagicDeskTouchpadActivity extends Activity {
         if (DesktopRuntimeBridge.getDesktopTarget(mTargetDisplayId) == null) { return; }
         hideHelp();
         DesktopOperations.manageActiveWindow(shortcut);
+    }
+
+    private void showKeyboard() {
+        if (mKeyboardPending) return;
+        hideHelp();
+        mKeyboardPending = true;
+        updateDesktopActions();
+        final int displayId = mTargetDisplayId;
+        MagicDeskRuntime.showInputKeyboard(displayId, result -> runOnUiThread(() -> {
+            mKeyboardPending = false;
+            if (isDestroyed() || isFinishing()) return;
+            updateDesktopActions();
+            if (!result.success && displayId == mTargetDisplayId)
+                Toast.makeText(this, getString(R.string.touchpad_keyboard_failed, result.message),
+                        Toast.LENGTH_LONG).show();
+        }));
     }
 
     private void presentDesktopWorkspace() {

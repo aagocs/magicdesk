@@ -52,9 +52,7 @@ public final class DisplayInputRoutingSession implements AutoCloseable {
     }
 
     synchronized void setKeyboardPlacement(final boolean onAppDisplay) throws IOException {
-        if (mClosed || !mDisplayUniqueId.equals(mApi.displayUniqueId(mDisplayId))) {
-            throw new IOException("input routing display is no longer owned");
-        }
+        requireOwnedDisplay();
         try {
             mImePolicy.configure(mDisplayId, onAppDisplay);
         } catch (ReflectiveOperationException | RuntimeException error) {
@@ -63,6 +61,21 @@ public final class DisplayInputRoutingSession implements AutoCloseable {
             throw new IOException("cannot change display IME placement: "
                     + ShellAccess.usefulMessage(cause), error);
         }
+    }
+
+    void requestKeyboard() throws Exception {
+        synchronized (this) { requireOwnedDisplay(); }
+        // Observation can wait for a Binder publication; do not hold routing/cleanup locks.
+        final var window = FrameworkInputWindowObservationSource.focusedWindowForInputMethod(mDisplayId);
+        synchronized (this) {
+            requireOwnedDisplay();
+            FrameworkRuntime.current().inputMethod().requestShow(window);
+        }
+    }
+
+    private void requireOwnedDisplay() throws IOException {
+        if (mClosed || !mDisplayUniqueId.equals(mApi.displayUniqueId(mDisplayId)))
+            throw new IOException("input routing display is no longer owned");
     }
 
     synchronized void refresh() throws IOException {

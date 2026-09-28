@@ -273,6 +273,9 @@ public final class MagicDeskRuntimeTest {
         @Override public boolean inputTransitioning() { return false; }
         @Override public String inputError() { return ""; }
         @Override public String inputKeyboardPlacementError() { return ""; }
+        @Override public void showInputKeyboard(int id, TaskRepository.ActionCallback callback) {
+            callback.onComplete(new TaskRepository.ActionResult(true, "keyboard show requested"));
+        }
         @Override public long inputSelectionVersion() { return 0; }
         @Override public void releaseSelectedInput(int id, TaskRepository.ActionCallback callback) {
             callback.onComplete(new TaskRepository.ActionResult(true, "requested"));

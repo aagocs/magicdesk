@@ -110,6 +110,10 @@ external-display presentation depends on the installed Android IME. A rejected
 placement is reported as `keyboardPlacementError`, separately from routing
 readiness, and does not disable a working touchpad or physical input. The live
 setting needs shell access but not Desktop on any supported Android version.
+The touchpad's **Show keyboard** button requests the keyboard for the current
+application on the controlled display without changing editor focus. It uses
+the same placement policy and requires an editor connection supplied by the
+application, including a Linux host's input adapter.
 Optional pointer observation and coordinate injection remain separate. Coordinate automation
 uses Android display-targeted mouse events; it does not move a global vendor
 cursor. A position query without a display identity is reported separately as

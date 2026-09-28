@@ -326,6 +326,12 @@ public final class MagicDeskRuntime {
         return backend == null ? -1 : backend.readyInputDisplayId();
     }
 
+    static void showInputKeyboard(int displayId, TaskRepository.ActionCallback completion) {
+        final MagicDeskRuntimeBackend backend = backend();
+        if (backend == null) completeTaskAction(completion, false, "input runtime is not active");
+        else backend.showInputKeyboard(displayId, completion);
+    }
+
     static boolean inputTransitioning() {
         final MagicDeskRuntimeBackend backend = backend();
         return backend != null && backend.inputTransitioning();

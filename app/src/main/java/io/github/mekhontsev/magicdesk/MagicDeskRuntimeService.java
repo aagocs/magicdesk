@@ -194,6 +194,14 @@ public final class MagicDeskRuntimeService extends Service
         return mDisplayInput == null ? "" : mDisplayInput.keyboardPlacementError();
     }
 
+    @Override public void showInputKeyboard(int displayId, TaskRepository.ActionCallback completion) {
+        if (!postIfAlive(() -> {
+            if (mDisplayInput == null)
+                completion.onComplete(new TaskRepository.ActionResult(false, "display input is not active"));
+            else mDisplayInput.showKeyboard(displayId, completion);
+        })) completion.onComplete(new TaskRepository.ActionResult(false, "input runtime is closed"));
+    }
+
     private final DisplayInputRequests mInputRequests = new DisplayInputRequests();
 
     @Override public long inputSelectionVersion() { return mInputRequests.version(); }
