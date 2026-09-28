@@ -1789,6 +1789,9 @@ desktop panels. Keep this split when adding vendor-specific behavior.
 ## Task Manager
 
 Task Manager is an independent shared tool, not a Desktop session owner.
+`SystemCpuReader` owns the bounded aggregate CPU read and `SystemCpuUsage` the
+rate calculation shared by the process monitor and appearance signals. CPU-only
+requests use a typed counter snapshot without enumerating processes.
 `SystemMonitorReader` publishes bounded procfs snapshots through the existing
 privileged service. `SystemMonitorRepository` calculates rates between samples;
 `ProcessCatalog` projects identities and process trees without knowing about
@@ -3095,7 +3098,7 @@ shared; playback never is. `ShaderWallpaper` is the typed description;
 `ShaderWallpaperAsset` validates compilation and bindings during worker-side
 appearance preparation. Per-output shaders are also constructed on the wallpaper
 executor. `ShaderWallpaperDrawable` owns vsync callbacks with a capped frame
-rate; frames only update time and invalidate, with no resource loading or
+rate; frames update time and explicitly bound cached device signals, with no resource loading or
 recompilation. The same resource snapshot and preview lifecycle owns its source,
 poster and textures. The existing wallpaper executor performs image decoding, while video preparation
 and first-frame readiness use Android callbacks with a bounded failure timeout.
@@ -3106,6 +3109,18 @@ does not stop animation. Stopping releases playback, cancels shader frames and r
 stale completions cannot attach a previous source. Playback failure leaves the
 desktop usable and records a compatibility event. Wallpaper hosts own no input,
 focus, shell reservation or task transition.
+
+`AppearanceSignalRegistry` reference-counts allowlisted normalized sources across
+outputs, independently of AGSL. `AppearanceSignalSources` lazily supplies public
+Android RAM and battery observations and aggregate counters from the already
+authorized shell service. Battery uses one shared receiver; CPU/RAM use a shared
+worker only while requested, with one-second telemetry samples and three-second
+expiry. Missing shell access stops CPU sampling without affecting other sources.
+No application-start hook initializes telemetry. `ShaderSignalBindings` owns
+per-output smoothing and preallocated uniform arrays; the drawable acquires its
+lease only on playback and releases it on stop. Themes without bindings never
+construct this adapter or acquire sources. `appearance.get` exposes active
+subscriptions without triggering collection.
 
 The desktop icon grid is a non-focusable container with the default View focus
 highlight disabled. Its click listener must not make the whole grid an

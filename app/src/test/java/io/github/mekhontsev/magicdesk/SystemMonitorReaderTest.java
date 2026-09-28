@@ -6,13 +6,13 @@ import static org.junit.Assert.*;
 
 public final class SystemMonitorReaderTest {
     @Test public void cpuExcludesGuestAndAcceptsWhitespace() throws Exception {
-        var cpu = SystemMonitorReader.parseCpuStat(" cpu 100 20 30 400 5 6 7 8 40 10 ");
+        var cpu = SystemCpuReader.parse(" cpu 100 20 30 400 5 6 7 8 40 10 ");
         assertEquals(576, cpu.total()); assertEquals(405, cpu.idle());
     }
     @Test public void invalidCountersRemainUnknown() {
         for (String row : new String[]{null, "", "cpu0 1 2 3 4", "cpu 1 2 3", "cpu 1 2 -3 4",
                 "cpu x 2 3 4", "cpu 9223372036854775807 1 0 0"})
-            assertThrows(IOException.class, () -> SystemMonitorReader.parseCpuStat(row));
+            assertThrows(IOException.class, () -> SystemCpuReader.parse(row));
     }
     static String stat(int pid, String name, int parent, long start, long cpu, long rss) {
         return pid + " (" + name + ") S " + parent + " 1 1 0 0 0 0 0 0 0 "

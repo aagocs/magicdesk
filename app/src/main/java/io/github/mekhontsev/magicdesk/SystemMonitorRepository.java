@@ -33,7 +33,8 @@ final class SystemMonitorRepository implements AutoCloseable {
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> new Thread(r, "MagicDeskSystemMonitor"));
     private Map<SystemProcessSnapshot.Identity, Long> previous = Map.of();
-    private long previousTime = -1, previousTotal = -1, previousIdle = -1, previousTicks = -1;
+    private long previousTime = -1, previousTicks = -1;
+    private final SystemCpuUsage cpuUsage = new SystemCpuUsage();
     private volatile boolean closed;
 
     void load(Consumer<Snapshot> callback) {
@@ -50,12 +51,12 @@ final class SystemMonitorRepository implements AutoCloseable {
 
     Snapshot convert(SystemMonitorSnapshot raw) {
         if (!raw.available) {
-            previous = Map.of(); previousTime = previousTotal = previousIdle = previousTicks = -1;
+            previous = Map.of(); previousTime = previousTicks = -1;
+            cpuUsage.sample(SystemCpuSnapshot.UNKNOWN);
             return Snapshot.unavailable(raw.error);
         }
-        float total = -1;
-        if (previousTotal >= 0 && raw.cpuTotal > previousTotal && raw.cpuIdle >= previousIdle)
-            total = Math.max(0, Math.min(100, 100f * (1 - (float) (raw.cpuIdle - previousIdle) / (raw.cpuTotal - previousTotal))));
+        float total = cpuUsage.sample(new SystemCpuSnapshot(raw.cpuTotal, raw.cpuIdle));
+        if (total >= 0) total *= 100;
         final var next = new LinkedHashMap<SystemProcessSnapshot.Identity, Long>();
         final var rows = new ArrayList<ProcessEntry>();
         final long elapsed = raw.sampledAtMillis - previousTime;
@@ -69,7 +70,6 @@ final class SystemMonitorRepository implements AutoCloseable {
             rows.add(new ProcessEntry(p, cpu));
         }
         previous = next; previousTime = raw.sampledAtMillis; previousTicks = raw.ticksPerSecond;
-        previousTotal = raw.cpuTotal; previousIdle = raw.cpuIdle;
         return new Snapshot(true, raw.totalMemoryKb, raw.availableMemoryKb, total, raw.loadAverage, List.copyOf(rows), raw.error);
     }
 

@@ -9,7 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.view.Choreographer;
 import java.util.function.Consumer;
 
-/** A borrowed Android render target. Frame callbacks only update time and invalidate the drawable. */
+/** A borrowed Android render target. Frames update uniforms from memory, never device services. */
 final class ShaderWallpaperDrawable extends Drawable implements Choreographer.FrameCallback {
     private final RuntimeShader shader;
     private final Paint paint = new Paint();
@@ -18,16 +18,28 @@ final class ShaderWallpaperDrawable extends Drawable implements Choreographer.Fr
     private final Choreographer frames = Choreographer.getInstance();
     private final Consumer<Throwable> failure;
     private final int width, height, fallbackColor;
+    private final ShaderSignalBindings signals;
     private boolean running, broken;
 
-    ShaderWallpaperDrawable(RuntimeShader shader, int width, int height, int fps, int fallbackColor, Consumer<Throwable> failure) {
+    ShaderWallpaperDrawable(RuntimeShader shader, int width, int height, int fps, int fallbackColor,
+            ShaderSignalBindings signals, Consumer<Throwable> failure) {
         this.shader = shader; this.width = width; this.height = height; this.failure = failure;
         this.fallbackColor = fallbackColor;
+        this.signals = signals;
         clock = new WallpaperFrameClock(fps);
         paint.setShader(shader);
     }
-    void start() { if (!running) { running = true; frames.postFrameCallback(this); } }
-    void close() { running = false; frames.removeFrameCallback(this); setCallback(null); }
+    void start() {
+        if (running || broken) return;
+        try {
+            if (signals != null) signals.start();
+            running = true; frames.postFrameCallback(this);
+        } catch (RuntimeException error) { fail(error); }
+    }
+    void close() {
+        running = false; frames.removeFrameCallback(this); setCallback(null);
+        if (signals != null) signals.close();
+    }
 
     @Override public void doFrame(long frameTimeNanos) {
         if (!running) return;
@@ -35,6 +47,10 @@ final class ShaderWallpaperDrawable extends Drawable implements Choreographer.Fr
             if (clock.frame(frameTimeNanos)) {
                 time[0] = clock.seconds();
                 shader.setFloatUniform("md_time", time);
+                if (signals != null) {
+                    signals.update(frameTimeNanos);
+                    for (int i = 0; i < signals.size(); i++) shader.setFloatUniform(signals.name(i), signals.value(i));
+                }
                 invalidateSelf();
             }
             frames.postFrameCallback(this);

@@ -106,11 +106,16 @@ public final class WallpaperPlaybackTest {
                     return last = new AnimatedImageDrawable();
                 }
             }
-            static class Spec { int fps() { return 30; } int fallbackColor() { return -1; } }
+            static class Spec { int fps() { return 30; } int fallbackColor() { return -1; } List<Object> signals() { return List.of(); } }
+            static class ShaderSignalBindings {
+                ShaderSignalBindings(List<Object> signals, java.util.function.Function<Object,Object> subscribe) { throw new AssertionError("unused signals subscribed"); }
+            }
+            static class AppearanceSignalSources { static Object acquire(Object context, Object requested) { throw new AssertionError("unused sources opened"); } }
+            Object getContext() { return null; }
             static class ShaderWallpaperDrawable {
                 static ShaderWallpaperDrawable last;
                 boolean started, closed;
-                ShaderWallpaperDrawable(Object shader, int w, int h, int fps, int color, java.util.function.Consumer<Throwable> failure) { last = this; }
+                ShaderWallpaperDrawable(Object shader, int w, int h, int fps, int color, ShaderSignalBindings signals, java.util.function.Consumer<Throwable> failure) { last = this; }
                 void start() { started = true; } void close() { closed = true; }
             }
             static class Image {

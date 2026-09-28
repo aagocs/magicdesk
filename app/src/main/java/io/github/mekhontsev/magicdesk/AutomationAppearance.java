@@ -150,7 +150,15 @@ final class AutomationAppearance {
     }
 
     private static JSONObject state(String scope) throws JSONException {
+        JSONArray signals = new JSONArray();
+        long now = System.nanoTime();
+        for (var signal : AppearanceSignalSources.snapshot()) {
+            boolean available = signal.sample().availableAt(now);
+            signals.put(new JSONObject().put("source", signal.source().id).put("subscribers", signal.subscribers())
+                    .put("available", available).put("value", available ? signal.sample().value() : JSONObject.NULL));
+        }
         JSONObject result = new JSONObject().put("workspaceKey", scope == null ? JSONObject.NULL : scope)
+                .put("signalSources", signals)
                 .put("workspaceKeys", new JSONArray(AppearanceStore.listScopes()))
                 .put("presets", new JSONArray().put("dark").put("light").put("contrast"));
         if (scope == null) {

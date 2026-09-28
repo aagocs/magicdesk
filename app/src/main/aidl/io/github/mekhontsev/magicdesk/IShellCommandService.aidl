@@ -495,4 +495,5 @@ interface IShellCommandService {
     void resizeTaskBounds(int displayId, int taskId, in Rect bounds) = 150;
     String getSystemNightMode(int userId) = 151;
     void setSystemNightMode(int userId, String mode) = 152;
+    io.github.mekhontsev.magicdesk.SystemCpuSnapshot readSystemCpuSnapshot() = 153;
 }

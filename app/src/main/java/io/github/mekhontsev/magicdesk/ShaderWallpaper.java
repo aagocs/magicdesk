@@ -6,7 +6,8 @@ import java.util.Set;
 
 /** Immutable single-pass wallpaper program. Android rendering and resource loading are adapters. */
 public record ShaderWallpaper(String source, int fps, int fallbackColor,
-        List<FloatUniform> floats, List<ColorUniform> colors, List<TextureUniform> textures) {
+        List<FloatUniform> floats, List<ColorUniform> colors, List<TextureUniform> textures,
+        List<SignalUniform> signals) {
     public static final int MAX_SOURCE_BYTES = 16384;
     public record FloatUniform(String name, List<Float> value) {
         public FloatUniform {
@@ -34,17 +35,26 @@ public record ShaderWallpaper(String source, int fps, int fallbackColor,
         }
     }
 
+    public record SignalUniform(String name, AppearanceSignal source, float fallback, int smoothingMillis) {
+        public SignalUniform {
+            ShaderWallpaper.name(name);
+            if (source == null || !Float.isFinite(fallback) || fallback < 0 || fallback > 1
+                    || smoothingMillis < 0 || smoothingMillis > 10000) throw new IllegalArgumentException("Invalid signal binding");
+        }
+    }
+
     public ShaderWallpaper {
         if (source == null || source.isBlank() || source.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_SOURCE_BYTES
                 || fps < 1 || fps > 60 || (fallbackColor >>> 24) != 255) {
             throw new IllegalArgumentException("Invalid shader source, frame rate or fallback color");
         }
-        floats = List.copyOf(floats); colors = List.copyOf(colors); textures = List.copyOf(textures);
-        if (floats.size() > 16 || colors.size() > 16 || textures.size() > 4) throw new IllegalArgumentException("Too many shader uniforms");
+        floats = List.copyOf(floats); colors = List.copyOf(colors); textures = List.copyOf(textures); signals = List.copyOf(signals);
+        if (floats.size() > 16 || colors.size() > 16 || textures.size() > 4 || signals.size() > 16) throw new IllegalArgumentException("Too many shader uniforms");
         Set<String> names = new HashSet<>();
         for (var uniform : floats) unique(names, uniform.name());
         for (var uniform : colors) unique(names, uniform.name());
         for (var uniform : textures) unique(names, uniform.name());
+        for (var uniform : signals) unique(names, uniform.name());
     }
 
     private static void name(String value) {
@@ -63,6 +73,7 @@ public record ShaderWallpaper(String source, int fps, int fallbackColor,
                 .append(' ').append(uniform.name()).append(";\n");
         for (var uniform : colors) result.append("layout(color) uniform half4 ").append(uniform.name()).append(";\n");
         for (var uniform : textures) result.append("uniform shader ").append(uniform.name()).append(";\n");
+        for (var uniform : signals) result.append("uniform float2 ").append(uniform.name()).append(";\n");
         return result.append(source).toString();
     }
 }

@@ -7,6 +7,28 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 public final class ShaderWallpaperTest {
+    @Test public void signalsRoundTripAndInvalidBindingsCannotAcquireSources() throws Exception {
+        String json = """
+            {"resources":{"shader":{"source":"half4 main(float2 p) { return half4(load.x, load.y, 0, 1); }",
+            "signals":[{"name":"load","source":"system.cpu.usage","fallback":0.3,"smoothingMillis":800}]}}}
+            """;
+        var theme = ShellAppearanceJson.parse(json);
+        assertEquals(theme, ShellAppearanceJson.parse(ShellAppearanceJson.encode(theme).toString()));
+        assertTrue(theme.resources().shader().program().contains("uniform float2 load;"));
+        assertEquals(.3, theme.resources().shader().signals().get(0).fallback(), .00001);
+        assertTrue(WorkspaceAppearancePatch.parse("{\"resources\":{\"shader\":{\"signals\":[]}}}")
+                .resolve(theme).resources().shader().signals().isEmpty());
+        for (String invalid : List.of(json.replace("system.cpu.usage", "shell.exec"), json.replace("0.3", "-1"),
+                json.replace("800", "10001"), json.replace("800", "0.5"), json.replace("\"load\"", "\"md_time\""),
+                json.replace("\"source\":\"system.cpu.usage\",", ""))) {
+            assertThrows(Exception.class, () -> ShellAppearanceJson.parse(invalid));
+        }
+        var uniform = new ShaderWallpaper.SignalUniform("speed", AppearanceSignal.CPU_USAGE, 0, 0);
+        assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper("x", 30, -1,
+                List.of(new ShaderWallpaper.FloatUniform("speed", List.of(1f))), List.of(), List.of(), List.of(uniform)));
+        assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper.SignalUniform("load", AppearanceSignal.CPU_USAGE, Float.NaN, 0));
+    }
+
     @Test public void documentRoundTripAndWorkspaceParametersShareTheUsualTransaction() throws Exception {
         ShellAppearance theme = ShellThemesTest.load("contours");
         ShaderWallpaper shader = theme.resources().shader();
@@ -41,12 +63,12 @@ public final class ShaderWallpaperTest {
             assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper.TextureUniform("image", path));
         }
         assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper("x", 30, 0xff202428,
-                List.of(value), List.of(new ShaderWallpaper.ColorUniform("direction", -1)), List.of()));
+                List.of(value), List.of(new ShaderWallpaper.ColorUniform("direction", -1)), List.of(), List.of()));
         for (int fps : new int[] {0, 61, Integer.MAX_VALUE}) {
-            assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper("x", fps, -1, List.of(), List.of(), List.of()));
+            assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper("x", fps, -1, List.of(), List.of(), List.of(), List.of()));
         }
         for (String source : List.of("", " ", "x".repeat(16385), "\u03a3".repeat(8193))) {
-            assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper(source, 30, -1, List.of(), List.of(), List.of()));
+            assertThrows(IllegalArgumentException.class, () -> new ShaderWallpaper(source, 30, -1, List.of(), List.of(), List.of(), List.of()));
         }
     }
 

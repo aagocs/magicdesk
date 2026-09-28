@@ -24,7 +24,8 @@ public final class ShaderWallpaperAssetTest {
                 var spec = new ShaderWallpaper("half4 main(float2 p) { return half4(1); }", 30, -1,
                     List.of(new ShaderWallpaper.FloatUniform("direction", List.of(1f, 2f))),
                     List.of(new ShaderWallpaper.ColorUniform("ink", -1)),
-                    List.of(new ShaderWallpaper.TextureUniform("paper", "wallpapers/paper.png")));
+                    List.of(new ShaderWallpaper.TextureUniform("paper", "wallpapers/paper.png")),
+                    List.of(new ShaderWallpaper.SignalUniform("load", AppearanceSignal.CPU_USAGE, .25f, 500)));
                 Map<String,Bitmap> textures = new HashMap<>(); textures.put("wallpapers/paper.png", new Bitmap());
                 var asset = new ShaderWallpaperAsset(spec, textures); textures.clear();
                 var first = asset.createShader(100, 200); var second = asset.createShader(400, 300);
@@ -34,6 +35,8 @@ public final class ShaderWallpaperAssetTest {
                 check(((float[]) first.values.get("direction"))[1] == 2 && first.values.get("paper") instanceof BitmapShader,
                     "uniform or texture not bound");
                 check(asset.retainedBytes() > 128, "retained texture or source omitted from budget");
+                check(((float[]) first.values.get("load"))[0] == .25f && ((float[]) first.values.get("load"))[1] == 0,
+                    "preparation did not initialize unavailable signal fallback");
                 boolean failed = false;
                 try { new ShaderWallpaperAsset(spec, Map.of()); } catch (IOException expected) { failed = true; }
                 check(failed, "missing texture accepted");
@@ -43,6 +46,6 @@ public final class ShaderWallpaperAssetTest {
                 }
                 check(failed, "compile error not returned before publication");
             }
-            """, "ShaderWallpaper", "ThemeBundleFiles", "ThemeBundle", "ThemeBundleLimits");
+            """, "ShaderWallpaper", "AppearanceSignal", "ThemeBundleFiles", "ThemeBundle", "ThemeBundleLimits");
     }
 }

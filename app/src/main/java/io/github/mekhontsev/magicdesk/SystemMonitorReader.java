@@ -17,7 +17,7 @@ final class SystemMonitorReader {
     static SystemMonitorSnapshot read() {
         try {
             final String memory = read(Path.of("/proc/meminfo"));
-            final Cpu cpu = parseCpuStat(read(Path.of("/proc/stat")).split("\n", 2)[0]);
+            final var cpu = SystemCpuReader.read();
             final float load = Float.parseFloat(read(Path.of("/proc/loadavg")).split(" ", 2)[0]);
             final long pageKb = Os.sysconf(OsConstants._SC_PAGESIZE) / 1024;
             final long ticks = Os.sysconf(OsConstants._SC_CLK_TCK);
@@ -46,7 +46,7 @@ final class SystemMonitorReader {
             final String warning = (denied == 0 ? "" : "Unreadable processes: " + denied)
                     + (truncated ? "; process list truncated" : "");
             return new SystemMonitorSnapshot(true, counter(memory, "MemTotal:"), counter(memory, "MemAvailable:"),
-                    cpu.total, cpu.idle, load, SystemClock.elapsedRealtime(), ticks,
+                    cpu.total(), cpu.idle(), load, SystemClock.elapsedRealtime(), ticks,
                     processes.toArray(new SystemProcessSnapshot[0]), warning);
         } catch (IOException | RuntimeException error) {
             return SystemMonitorSnapshot.unavailable(ShellAccess.usefulMessage(error));
@@ -92,25 +92,10 @@ final class SystemMonitorReader {
         throw new IOException("missing " + key);
     }
 
-    static Cpu parseCpuStat(String line) throws IOException {
-        try {
-            String[] f = line.trim().split("\\s+");
-            if (f.length < 5 || !"cpu".equals(f[0])) throw new IllegalArgumentException();
-            long total = 0;
-            for (int i = 1; i < Math.min(f.length, 9); i++) {
-                long value = Long.parseLong(f[i]);
-                if (value < 0) throw new IllegalArgumentException();
-                total = Math.addExact(total, value);
-            }
-            return new Cpu(total, Math.addExact(Long.parseLong(f[4]), f.length > 5 ? Long.parseLong(f[5]) : 0));
-        } catch (RuntimeException error) { throw new IOException("invalid aggregate /proc/stat", error); }
-    }
-
     private static String read(Path file) throws IOException {
         try (var in = Files.newInputStream(file)) {
             return new String(in.readNBytes(MAX_FILE_BYTES), StandardCharsets.UTF_8);
         }
     }
-    record Cpu(long total, long idle) { }
     private SystemMonitorReader() { }
 }

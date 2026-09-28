@@ -21,6 +21,8 @@ identity, not a display ID or live residency ID; omission selects global default
 Workspace documents are sparse patches over global defaults, with whole-array
 replacement. Resetting a workspace removes its override. Read results include
 the effective/committed documents, patches, known override keys and preview ID.
+`signalSources` reports process-wide active appearance-data subscriptions and
+their cached availability/values without initializing or sampling any source.
 Confirm/cancel use the exact preview ID and the same scope. The JSON Schema is
 also available at `magicdesk://appearance/schema`. These operations use
 app-private state without Desktop or shell prerequisites; mutations require control.

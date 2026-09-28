@@ -285,8 +285,10 @@ The host supplies declarations and bindings for:
   `paper.eval(position)` samples image-pixel coordinates with linear filtering
   and clamped edges. Only static PNG/JPEG/WebP images, up to 4 megapixels each,
   are accepted. Texture dimensions also count toward bundle pixel limits.
+- `signals`: up to 16 named device-data bindings, described below. These become
+  `float2` uniforms: `.x` is the value, `.y` is availability (0 or 1).
 
-Uniform names are unique across all three lists, start with an ASCII letter and
+Uniform names are unique across all lists, start with an ASCII letter and
 contain at most 32 letters, digits or underscores. `md_`, `sk_` and `gl_` prefixes
 are reserved. Do not redeclare generated uniforms in `source`. The source is at
 most 16 KiB UTF-8, inside the ordinary 32 KiB document limit. Return premultiplied
@@ -307,6 +309,59 @@ reduced-motion and **Animate wallpaper** policies stop callbacks and retain the
 poster. There is no touch/sensor capture, network access, multipass pipeline or
 application-window effect. Programs should be kept inexpensive: source and
 frame-rate limits do not guarantee GPU execution time for arbitrary AGSL code.
+
+### Device Signals
+
+Shaders may explicitly subscribe to normalized device measurements. For example,
+this wallpaper brightens as CPU usage rises, using a neutral level when counters
+are unavailable:
+
+```json
+{
+  "resources": {
+    "shader": {
+      "fps": 30,
+      "fallbackColor": "#202428",
+      "signals": [
+        { "name": "activity", "source": "system.cpu.usage", "fallback": 0.2, "smoothingMillis": 800 }
+      ],
+      "source": "half4 main(float2 p) { return half4(mix(float3(0.08, 0.12, 0.16), float3(0.25, 0.65, 0.5), activity.x), 1); }"
+    }
+  }
+}
+```
+
+| Source | Value | Availability |
+| --- | --- | --- |
+| `system.cpu.usage` | Aggregate busy CPU fraction, 0-1; idle includes I/O wait. Not load average. | Requires the already-authorized shell service, readable aggregate counters and two samples. No process enumeration. |
+| `system.memory.usage` | `1 - available / total` system RAM, 0-1. | Public Android `ActivityManager.MemoryInfo`; no shell required. |
+| `battery.level` | Charge fraction, 0-1. | Android battery broadcasts; missing battery/data remains unknown. |
+| `battery.charging` | 1 while charging, 0 while discharging, not charging or full. | Android battery status; unknown status is not reported as zero. |
+
+Each binding has `name`, `source`, optional `fallback` (0-1, default 0) and
+`smoothingMillis` (0-10000, default 0). Smoothing is an exponential response with
+that time constant, independent of FPS. Unknown or expired data immediately uses
+the fallback and sets `.y` to 0. Both declaration and initial fallback binding
+are validated during preparation without acquiring any data source.
+
+CPU and RAM are sampled at most once a second per active source; battery uses
+events and has no polling timer. CPU sampling stops when shell access disappears
+and restarts with a fresh baseline on reconnection. CPU/RAM observations expire
+after three seconds, so a stalled source cannot look like current data. Theme
+code cannot request permissions, execute commands or choose arbitrary sources.
+
+Sources are shared across active outputs and subscribed only during playback.
+Hiding or stopping the wallpaper releases its subscriptions; the last subscriber
+stops the source and releases its receiver/worker. Themes without `signals`
+create no telemetry subscription, timer or worker. A battery-only theme does not
+read CPU/RAM or contact the shell service. Frames consume cached samples through
+preallocated uniform arrays, with no service calls, I/O or per-frame allocations.
+The bundled Contours theme has no device subscriptions.
+
+`appearance.get` includes process-wide `signalSources` with active subscriber
+counts, availability and normalized values. Reading this diagnostic snapshot does
+not initialize or sample sources. Workspace preview/cancel, patches and JSON/ZIP
+import/export use the same binding schema.
 
 ## Feedback And Motion
 

@@ -12,7 +12,7 @@ final class AutomationCommandCatalog {
     static JSONArray create() throws JSONException {
         final JSONArray tools = new JSONArray()
                 .put(readTool("appearance.get", "Read shell appearance",
-                        "Read effective and committed native shell configuration, workspace patch, known override keys, active preview ID and revision. Omit workspaceKey for global defaults. Independent of Desktop, shell access and Termux.", appearanceSchema(new JSONObject())))
+                        "Read effective and committed native shell configuration, workspace patch, known override keys, active preview ID, revision and process-wide active signalSources. Signal diagnostics do not start collection. Omit workspaceKey for global defaults. Independent of Desktop, shell access and Termux.", appearanceSchema(new JSONObject())))
                 .put(readTool("appearance.schema", "Read shell configuration schema",
                         "Read the authoritative JSON Schema for native appearance, composition, symbols, feedback and motion. Does not change state.", emptySchema()))
                 .put(readTool("appearance.themes", "Read built-in shell themes",

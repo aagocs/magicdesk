@@ -23,6 +23,7 @@ final class ShaderWallpaperAsset {
             RuntimeShader shader = new RuntimeShader(program);
             shader.setFloatUniform("md_resolution", width, height);
             shader.setFloatUniform("md_time", 0);
+            for (var uniform : spec.signals()) shader.setFloatUniform(uniform.name(), uniform.fallback(), 0);
             for (var uniform : spec.floats()) {
                 float[] values = new float[uniform.value().size()];
                 for (int i = 0; i < values.length; i++) values[i] = uniform.value().get(i);

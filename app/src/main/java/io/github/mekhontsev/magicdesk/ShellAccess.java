@@ -362,6 +362,16 @@ public final class ShellAccess {
         }
     }
 
+    static SystemCpuSnapshot readSystemCpuSnapshot() throws IOException {
+        try {
+            SystemCpuSnapshot snapshot = requireService().readSystemCpuSnapshot();
+            return snapshot == null ? SystemCpuSnapshot.UNKNOWN : snapshot;
+        } catch (RemoteException | RuntimeException error) {
+            handleServiceFailure(error);
+            throw new IOException("Shell CPU counters unavailable: " + usefulMessage(error), error);
+        }
+    }
+
     static SystemMonitorSnapshot readSystemMonitorSnapshot() throws IOException {
         try {
             final SystemMonitorSnapshot snapshot = requireService()

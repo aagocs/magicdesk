@@ -139,6 +139,8 @@ import/export a [JSON theme](docs/appearance.md), or use a theme bundle containi
 icons, fonts and wallpaper. Wallpapers can be static, animated WebP/GIF, silent
 MP4/WebM loops, or configurable AGSL shaders such as the bundled Contours theme,
 with automatic pause for power saving and reduced motion.
+Shaders can opt into CPU, RAM and battery signals; themes without bindings do
+not start telemetry collection.
 Global defaults can be overridden per workspace.
 Styles apply to open panels and built-in tools without restarting them, including
 when no Desktop is running. The declarative document controls panel contents,

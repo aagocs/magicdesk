@@ -147,6 +147,8 @@ final class WallpaperView extends FrameLayout {
                     if (token != playbackGeneration || !shouldPlay()) return;
                     ShaderWallpaperDrawable drawable = new ShaderWallpaperDrawable(shader, width, height,
                             selected.shader().spec.fps(), selected.shader().spec.fallbackColor(),
+                            selected.shader().spec.signals().isEmpty() ? null : new ShaderSignalBindings(
+                                    selected.shader().spec.signals(), requested -> AppearanceSignalSources.acquire(getContext(), requested)),
                             error -> main.post(() -> failed(token, error)));
                     preparing = false;
                     playback = drawable::close;

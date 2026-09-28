@@ -20,7 +20,18 @@ final class ShaderWallpaperJson {
                 .put("floats", uniforms("value", type("array").put("items", number(false, -10000, 10000))
                         .put("minItems", 1).put("maxItems", 4), 16))
                 .put("colors", uniforms("value", color(), 16))
-                .put("textures", uniforms("path", assetPath(false), 4)))));
+                .put("textures", uniforms("path", assetPath(false), 4))
+                .put("signals", signals()))));
+    }
+    private static JSONObject signals() throws JSONException {
+        JSONArray sources = new JSONArray();
+        for (var signal : AppearanceSignal.values()) sources.put(signal.id);
+        return type("array").put("minItems", 0).put("maxItems", 16).put("items", object(new JSONObject()
+                .put("name", type("string").put("pattern", "^[A-Za-z][A-Za-z0-9_]{0,31}$"))
+                .put("source", type("string").put("enum", sources))
+                .put("fallback", number(false, 0, 1).put("default", 0))
+                .put("smoothingMillis", number(true, 0, 10000).put("default", 0)))
+                .put("required", new JSONArray().put("name").put("source")));
     }
     private static JSONObject color() throws JSONException { return type("string").put("pattern", "^#[0-9a-fA-F]{6}$"); }
     private static JSONObject uniforms(String field, JSONObject value, int max) throws JSONException {
@@ -46,8 +57,14 @@ final class ShaderWallpaperJson {
         for (JSONObject uniform : entries(object, "textures")) {
             textures.add(new ShaderWallpaper.TextureUniform(uniform.getString("name"), uniform.getString("path")));
         }
+        var signals = new ArrayList<ShaderWallpaper.SignalUniform>();
+        for (JSONObject uniform : entries(object, "signals")) {
+            signals.add(new ShaderWallpaper.SignalUniform(uniform.getString("name"),
+                    AppearanceSignal.parse(uniform.getString("source")), (float) uniform.optDouble("fallback", 0),
+                    uniform.optInt("smoothingMillis", 0)));
+        }
         return new ShaderWallpaper(object.getString("source"), object.optInt("fps", 30),
-                color(object.optString("fallbackColor", "#202428")), floats, colors, textures);
+                color(object.optString("fallbackColor", "#202428")), floats, colors, textures, signals);
     }
     private static List<JSONObject> entries(JSONObject object, String key) throws JSONException {
         JSONArray array = object.optJSONArray(key);
@@ -60,11 +77,13 @@ final class ShaderWallpaperJson {
 
     static Object encode(ShaderWallpaper spec) throws JSONException {
         if (spec == null) return JSONObject.NULL;
-        JSONArray floats = new JSONArray(), colors = new JSONArray(), textures = new JSONArray();
+        JSONArray floats = new JSONArray(), colors = new JSONArray(), textures = new JSONArray(), signals = new JSONArray();
         for (var uniform : spec.floats()) floats.put(new JSONObject().put("name", uniform.name()).put("value", new JSONArray(uniform.value())));
         for (var uniform : spec.colors()) colors.put(new JSONObject().put("name", uniform.name()).put("value", color(uniform.value())));
         for (var uniform : spec.textures()) textures.put(new JSONObject().put("name", uniform.name()).put("path", uniform.path()));
+        for (var uniform : spec.signals()) signals.put(new JSONObject().put("name", uniform.name()).put("source", uniform.source().id)
+                .put("fallback", uniform.fallback()).put("smoothingMillis", uniform.smoothingMillis()));
         return new JSONObject().put("source", spec.source()).put("fps", spec.fps()).put("fallbackColor", color(spec.fallbackColor()))
-                .put("floats", floats).put("colors", colors).put("textures", textures);
+                .put("floats", floats).put("colors", colors).put("textures", textures).put("signals", signals);
     }
 }

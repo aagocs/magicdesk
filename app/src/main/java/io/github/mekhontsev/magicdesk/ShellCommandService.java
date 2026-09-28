@@ -186,6 +186,11 @@ public final class ShellCommandService extends IShellCommandService.Stub {
         return SystemMonitorReader.read();
     }
 
+    @Override public SystemCpuSnapshot readSystemCpuSnapshot() {
+        try { return SystemCpuReader.read(); }
+        catch (IOException | RuntimeException error) { return SystemCpuSnapshot.UNKNOWN; }
+    }
+
     @Override
     public String execute(final String command) {
         if (command == null || command.isEmpty()) {
