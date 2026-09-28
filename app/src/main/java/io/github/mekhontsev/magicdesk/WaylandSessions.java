@@ -306,6 +306,9 @@ final class WaylandSessions {
         void confirmMaximized(long window, Object host, long serial, boolean actual) {
             if (ready() && windowControlOwners.owns(window, host)) renderer.confirmMaximized(window, serial, actual);
         }
+        void confirmInteraction(long window, Object host, io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.State actual) {
+            if (ready() && windowControlOwners.owns(window, host)) renderer.confirmMinimize(window, actual.serial());
+        }
         @Override public void windowGesture(long window, io.github.mekhontsev.magicdesk.hosted.HostedWindowGesture gesture) {
             if (!stopped()) for (var listener : listeners) listener.windowGesture(window, gesture);
         }

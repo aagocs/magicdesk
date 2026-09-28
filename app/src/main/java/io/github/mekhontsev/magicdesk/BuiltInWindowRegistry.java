@@ -13,7 +13,9 @@ import java.util.List;
 
 /** Live built-in windows for local UI services and full MagicDesk exit. */
 final class BuiltInWindowRegistry {
-    record Presentation(String title, Bitmap icon) { }
+    record Presentation(String title, Bitmap icon, boolean attention) {
+        Presentation(String title, Bitmap icon) { this(title, icon, false); }
+    }
     interface PresentationSource {
         Presentation taskPresentation();
     }

@@ -20,14 +20,18 @@ final class X11SurfaceOutput implements HostedShellOutput {
         output.pointer(x, y, X11InputEncoding.button(button), down);
     }
     @Override public void scroll(float x, float y, float horizontal, float vertical) {
-        X11InputEncoding.scroll(horizontal, vertical, button -> {
-            output.pointer(x, y, button, true);
-            output.pointer(x, y, button, false);
-        });
+        output.scroll(x, y, horizontal, -vertical);
     }
     @Override public void key(int androidKey, int scanCode, boolean down) {
         output.key(androidKey, X11InputEncoding.scanCode(scanCode), down);
     }
+    @Override public boolean supportsTouch() { return true; }
+    @Override public boolean supportsTablet() { return true; }
+    @Override public void touch(int contact, io.github.mekhontsev.magicdesk.hosted.HostedTouchPhase phase,
+            float x, float y, float pressure) { output.touch(contact, phase, x, y, pressure); }
+    @Override public void tablet(boolean eraser, boolean proximity, float x, float y, float pressure,
+            float tiltX, float tiltY, int buttons) { output.tablet(eraser, proximity, x, y, pressure, tiltX, tiltY, buttons); }
+    @Override public void cancelContacts() { output.cancelContacts(); }
     @Override public void text(io.github.mekhontsev.magicdesk.hosted.HostedTextState editor, String text) { output.text(text); }
     @Override public void close() { output.close(); }
 }

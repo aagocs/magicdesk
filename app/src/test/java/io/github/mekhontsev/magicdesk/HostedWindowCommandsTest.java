@@ -51,6 +51,8 @@ public final class HostedWindowCommandsTest {
                 static final HostedWindowConstraints NONE=new HostedWindowConstraints(1,1,4000,4000);
                 int width(int v) { return Math.max(minW,Math.min(maxW,v)); }
                 int height(int v) { return Math.max(minH,Math.min(maxH,v)); }
+                record Size(int width,int height) { }
+                Size size(int w,int h) { return new Size(width(w),height(h)); }
             }
             enum HostedWindowGesture {
                 MOVE(false,false,false,false),BOTTOM_RIGHT(false,false,true,true),CANCEL(false,false,false,false);

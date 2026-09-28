@@ -14,7 +14,8 @@ final class GraphicalSessions {
     record Identity(DesktopExecBackend backend, int executorUid, int serverUid) { }
     record Control(long serial, boolean requestedFullscreen, Boolean actualFullscreen,
             long maximizeSerial, io.github.mekhontsev.magicdesk.hosted.HostedMaximization requestedMaximization,
-            io.github.mekhontsev.magicdesk.hosted.HostedMaximization actualMaximization) { }
+            io.github.mekhontsev.magicdesk.hosted.HostedMaximization actualMaximization,
+            io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction interaction) { }
     record Window(long id, String title, boolean mapped, String appId, String role,
             io.github.mekhontsev.magicdesk.hosted.HostedWindowLayout layout, Control control) { }
     interface Session {
@@ -138,7 +139,8 @@ final class GraphicalSessions {
                 return new Window(window.id(), window.title(), window.mapped(), window.className(),
                         window.role().name().toLowerCase(java.util.Locale.ROOT), session.layout(window.id()),
                         new Control(Integer.toUnsignedLong(control.request().serial()), control.request().fullscreen(), control.actual().fullscreen(),
-                                Integer.toUnsignedLong(control.maximization().serial()), control.maximization().requested(), control.maximization().actual()));
+                                Integer.toUnsignedLong(control.maximization().serial()), control.maximization().requested(), control.maximization().actual(),
+                                control.interaction()));
             }).toList();
         }
         public List<HostedWindowPresentation.Observation> hosts() { return session.presentation.observations(); }
@@ -196,7 +198,7 @@ final class GraphicalSessions {
             return session.windows().stream().map(window -> new Window(window.id(), window.title(), window.mapped(),
                     window.appId(), "application", session.layout(window.id()), new Control(window.requestSerial(), window.fullscreen(), null,
                             window.maximizeSerial(), window.maximized() ? io.github.mekhontsev.magicdesk.hosted.HostedMaximization.BOTH
-                            : io.github.mekhontsev.magicdesk.hosted.HostedMaximization.NONE, null))).toList();
+                            : io.github.mekhontsev.magicdesk.hosted.HostedMaximization.NONE, null, window.interaction()))).toList();
         }
         public List<HostedWindowPresentation.Observation> hosts() { return session.presentation.observations(); }
         public void closeWindow(long window, boolean force) { session.closeWindow(window, force); }

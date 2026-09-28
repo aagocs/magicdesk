@@ -350,6 +350,11 @@ final class X11Sessions {
             if (windowControlOwners.owns(id, host) && current != null && state == State.READY)
                 current.confirmMaximized(id, serial, actual);
         }
+        void confirmInteraction(long id, Object host, io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.State actual) {
+            X11Session current = renderer;
+            if (windowControlOwners.owns(id, host) && current != null && state == State.READY)
+                current.confirmInteraction(id, actual);
+        }
         void claimClipboard(Listener owner) {
             clipboardOwner = owner;
             X11Session current = renderer;

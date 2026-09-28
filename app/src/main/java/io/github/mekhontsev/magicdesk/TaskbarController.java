@@ -808,7 +808,8 @@ final class TaskbarController {
 
         if (task != null) {
             final View running = new View(mActivity);
-            UiAppearance.background(running, task.active
+            var presentation = BuiltInWindowRegistry.presentation(task);
+            UiAppearance.background(running, task.active || presentation != null && presentation.attention()
                     ? UiColor.ATTENTION
                     : UiColor.ACCENT);
             final FrameLayout.LayoutParams runningParams =

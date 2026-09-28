@@ -25,7 +25,7 @@ public final class HostedInputInstrumentation extends Instrumentation {
                 catch (RuntimeException | AssertionError error) { failure.set(error); }
             });
             if (failure.get() != null) throw new AssertionError(failure.get());
-            result.putString("hosted_input", "PASS touch, mouse-source fingers, raw touchpad, mouse hover/click/wheel/drag, focus loss, output lifecycle, cursor shape/scale/hide/reset, IME composition/commit");
+            result.putString("hosted_input", "PASS direct touch/pressure/cancel, pen/eraser/tilt/buttons, touchpad fallback, mouse hover/click/wheel/drag, focus loss, output lifecycle, cursor shape/scale/hide/reset, IME composition/commit");
             finish(Activity.RESULT_OK, result);
         } catch (RuntimeException | AssertionError error) {
             result.putString("hosted_input", "FAIL " + error);
@@ -75,6 +75,38 @@ public final class HostedInputInstrumentation extends Instrumentation {
         send(view, InputDevice.SOURCE_TOUCHSCREEN, 1, 0, 0, 1, 200, 200);
         send(view, InputDevice.SOURCE_TOUCHSCREEN, 1, 1, 0, 1, 200, 200);
         require(replacement.presses == 0, "new output cannot use stale geometry");
+        view.release();
+        verifyDirect();
+    }
+
+    private void verifyDirect() {
+        HostedSurfaceView view = new HostedSurfaceView(getTargetContext());
+        view.layout(0, 0, 1000, 1000);
+        Output output = new Output(); output.direct = true;
+        view.bind(output); view.frame(1000, 1000);
+        send(view, InputDevice.SOURCE_TOUCHSCREEN, 1, MotionEvent.ACTION_DOWN, 0, 1, 200, 300, .4f, 0, 0);
+        send(view, InputDevice.SOURCE_TOUCHSCREEN, 1, MotionEvent.ACTION_POINTER_DOWN | 1 << 8, 0, 2, 200, 300, .7f, 0, 0);
+        require(output.contacts == 3 && output.presses == 0 && output.pressure == .7f, "two direct contacts with pressure, no host mouse emulation");
+        send(view, InputDevice.SOURCE_TOUCHSCREEN, 1, MotionEvent.ACTION_CANCEL, 0, 2, 200, 300);
+        require(output.contacts == 0 && output.cancels == 1, "cancel releases all contacts");
+        send(view, InputDevice.SOURCE_TOUCHSCREEN, 1, MotionEvent.ACTION_MOVE, 0, 1, 200, 300);
+        require(output.contacts == 0, "late motion cannot restart touch");
+        send(view, InputDevice.SOURCE_STYLUS, 2, MotionEvent.ACTION_HOVER_ENTER, 0, 1, 200, 300);
+        require(output.proximity && output.pressure == 0 && output.tabletButtons == 0, "pen proximity without tip");
+        send(view, InputDevice.SOURCE_STYLUS, 2, MotionEvent.ACTION_DOWN, MotionEvent.BUTTON_STYLUS_PRIMARY, 1, 200, 300,
+                .6f, (float)Math.PI / 4, (float)Math.PI / 2);
+        require(output.tabletButtons == 3 && output.pressure == .6f && Math.abs(output.tiltX + (float)Math.PI / 4) < .001f
+                && Math.abs(output.tiltY) < .001f, "pen pressure, tilt and barrel button");
+        send(view, InputDevice.SOURCE_STYLUS, 4, MotionEvent.ACTION_MOVE, 0, 1, 300, 400);
+        require(output.eraser && view.canStartContentDrag(), "eraser tip and drag ownership");
+        view.onWindowFocusChanged(false);
+        require(!output.proximity && output.cancels == 2, "focus loss releases pen");
+        int count = output.tablets;
+        send(view, InputDevice.SOURCE_STYLUS, 4, MotionEvent.ACTION_UP, 0, 1, 300, 400);
+        require(output.tablets == count, "late pen release cannot recreate proximity");
+        send(view, InputDevice.SOURCE_TOUCHPAD, 1, MotionEvent.ACTION_DOWN, 0, 1, 200, 200);
+        send(view, InputDevice.SOURCE_TOUCHPAD, 1, MotionEvent.ACTION_UP, 0, 1, 200, 200);
+        require(output.presses == 1 && output.releases == 1 && output.contacts == 0, "touchpad retains pointer semantics");
         view.release();
     }
 
@@ -206,6 +238,11 @@ public final class HostedInputInstrumentation extends Instrumentation {
     }
 
     private static void send(HostedSurfaceView view, int source, int tool, int action, int buttons, int count, float x, float y) {
+        send(view, source, tool, action, buttons, count, x, y, 1, 0, 0);
+    }
+
+    private static void send(HostedSurfaceView view, int source, int tool, int action, int buttons, int count,
+            float x, float y, float pressure, float tilt, float orientation) {
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[count];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[count];
         for (int i = 0; i < count; i++) {
@@ -215,7 +252,9 @@ public final class HostedInputInstrumentation extends Instrumentation {
             coords[i] = new MotionEvent.PointerCoords();
             coords[i].x = x + i * 100;
             coords[i].y = y;
-            coords[i].pressure = 1;
+            coords[i].pressure = pressure;
+            coords[i].setAxisValue(MotionEvent.AXIS_TILT, tilt);
+            coords[i].setAxisValue(MotionEvent.AXIS_ORIENTATION, orientation);
             if (action == MotionEvent.ACTION_SCROLL) coords[i].setAxisValue(MotionEvent.AXIS_VSCROLL, 1);
         }
         long now = SystemClock.uptimeMillis();
@@ -236,6 +275,21 @@ public final class HostedInputInstrumentation extends Instrumentation {
         int presses, releases, scrolls;
         float x;
         boolean closed;
+        boolean direct, proximity, eraser;
+        int contacts, cancels, tablets, tabletButtons;
+        float pressure, tiltX, tiltY;
+        public boolean supportsTouch() { return direct; }
+        public boolean supportsTablet() { return direct; }
+        public void touch(int id, io.github.mekhontsev.magicdesk.hosted.HostedTouchPhase phase, float x, float y, float pressure) {
+            if (phase == io.github.mekhontsev.magicdesk.hosted.HostedTouchPhase.END) contacts &= ~(1 << id);
+            else contacts |= 1 << id;
+            this.pressure = pressure;
+        }
+        public void tablet(boolean eraser, boolean proximity, float x, float y, float pressure, float tiltX, float tiltY, int buttons) {
+            tablets++; this.eraser = eraser; this.proximity = proximity; this.pressure = pressure;
+            this.tiltX = tiltX; this.tiltY = tiltY; tabletButtons = buttons;
+        }
+        public void cancelContacts() { cancels++; contacts = 0; proximity = false; tabletButtons = 0; }
         boolean clientPreedit = true, textEnabled = true;
         String preedit = "";
         String deletion = "";

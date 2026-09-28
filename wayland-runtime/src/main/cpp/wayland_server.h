@@ -26,6 +26,8 @@ typedef struct {
     bool fullscreen;
     uint64_t maximize_serial;
     bool maximized;
+    uint64_t minimize_serial;
+    bool minimize_requested;
 } MdwWindow;
 
 typedef enum { MDW_BACKGROUND, MDW_BOTTOM, MDW_TOP, MDW_OVERLAY } MdwLayer;
@@ -146,5 +148,6 @@ bool mdw_window_close(MdwServer *server, uint64_t window);
 bool mdw_window_disconnect(MdwServer *server, uint64_t window);
 bool mdw_window_confirm_fullscreen(MdwServer *server, uint64_t window, uint64_t request_serial, bool fullscreen);
 bool mdw_window_confirm_maximized(MdwServer *server, uint64_t window, uint64_t serial, bool maximized);
+bool mdw_window_confirm_minimize(MdwServer *server, uint64_t id, uint64_t serial);
 
 #endif

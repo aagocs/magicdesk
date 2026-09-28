@@ -31,10 +31,12 @@ struct MdwToplevel {
     struct MdwView view;
     struct wlr_xdg_toplevel *xdg;
     struct wl_listener map, unmap, commit, destroy, title, app_id, parent;
-    struct wl_listener fullscreen, maximize, move, resize;
+    struct wl_listener fullscreen, maximize, minimize, move, resize;
     MdwWindow published;
     uint64_t request_serial;
     uint64_t maximize_serial;
+    uint64_t minimize_serial;
+    bool minimize_requested;
     char *published_title, *published_app_id;
 };
 
@@ -99,6 +101,7 @@ static void publish(struct MdwToplevel *window) {
         .request_serial = window->request_serial,
         .fullscreen = window->xdg->requested.fullscreen,
         .maximize_serial = window->maximize_serial, .maximized = window->xdg->requested.maximized,
+        .minimize_serial = window->minimize_serial, .minimize_requested = window->minimize_requested,
     };
     MdwWindow *previous = &window->published;
     if (previous->id && previous->parent == info.parent && previous->mapped == info.mapped &&
@@ -107,6 +110,7 @@ static void publish(struct MdwToplevel *window) {
             previous->max_width == info.max_width && previous->max_height == info.max_height &&
             previous->request_serial == info.request_serial && previous->fullscreen == info.fullscreen &&
             previous->maximize_serial == info.maximize_serial && previous->maximized == info.maximized &&
+            previous->minimize_serial == info.minimize_serial && previous->minimize_requested == info.minimize_requested &&
             !strcmp(previous->title, info.title) && !strcmp(previous->app_id, info.app_id)) return;
     bool title_changed = !window->published_title || strcmp(window->published_title, info.title);
     bool app_changed = !window->published_app_id || strcmp(window->published_app_id, info.app_id);
@@ -374,6 +378,26 @@ bool mdw_window_confirm_maximized(MdwServer *server, uint64_t id, uint64_t seria
     return false;
 }
 
+static void window_minimize(struct wl_listener *listener, void *data) {
+    (void)data;
+    struct MdwToplevel *window = wl_container_of(listener, window, minimize);
+    ++window->minimize_serial;
+    window->minimize_requested = true;
+    publish(window);
+}
+
+bool mdw_window_confirm_minimize(MdwServer *server, uint64_t id, uint64_t serial) {
+    struct MdwToplevel *window;
+    wl_list_for_each(window, &server->windows, link) {
+        if (window->view.id != id) continue;
+        if (window->minimize_serial != serial) return false;
+        window->minimize_requested = false;
+        publish(window);
+        return true;
+    }
+    return false;
+}
+
 static void window_gesture(struct MdwToplevel *window, struct wlr_seat_client *seat, uint32_t serial, uint32_t edges) {
     MdwServer *server = window->view.server;
     if (seat->seat != server->seat || !server->pointer_owner
@@ -409,6 +433,7 @@ static void window_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&window->parent.link);
     wl_list_remove(&window->fullscreen.link);
     wl_list_remove(&window->maximize.link);
+    wl_list_remove(&window->minimize.link);
     wl_list_remove(&window->move.link);
     wl_list_remove(&window->resize.link);
     if (server->events.window) server->events.window(server->events.context, window->view.id, NULL);
@@ -482,6 +507,7 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
     listen_signal(&xdg->events.set_parent, &window->parent, window_parent);
     listen_signal(&xdg->events.request_fullscreen, &window->fullscreen, window_fullscreen);
     listen_signal(&xdg->events.request_maximize, &window->maximize, window_maximize);
+    listen_signal(&xdg->events.request_minimize, &window->minimize, window_minimize);
     listen_signal(&xdg->events.request_move, &window->move, window_move);
     listen_signal(&xdg->events.request_resize, &window->resize, window_resize);
     mdw_view_observe(&window->view);

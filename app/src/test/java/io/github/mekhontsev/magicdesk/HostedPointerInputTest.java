@@ -5,10 +5,47 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class HostedPointerInputTest {
+    @Test public void directContactsKeepIdsAndCancelWithoutResurrectingLateUpdates() throws Exception {
+        verify("""
+            var f=new Input(); f.out.direct=true;
+            f.send(0,1,100,200); f.send(5,2,300,400); f.send(2,2,500,600);
+            check(f.out.contacts.equals(List.of("0:BEGIN","1:BEGIN","0:UPDATE","1:UPDATE")),"XI contact identity");
+            check(f.out.x==.5f && f.out.y==.6f && f.out.pressure==.5f,"normalized coordinates and pressure");
+            check(f.out.edges.isEmpty() && f.out.scrolls.isEmpty(),"direct touchscreen must not duplicate pointer gestures");
+            f.send(6,2,600,700); f.input.release();
+            check(f.out.cancels==1 && !f.input.dragging(),"release contacts exactly once");
+            int count=f.out.contacts.size(); f.send(2,1,700,700); f.send(1,1,700,700);
+            check(f.out.contacts.size()==count,"late stream cannot resurrect a cancelled contact");
+            f.send(0,1,100,100); f.device=2; f.send(2,1,500,500);
+            check(f.out.cancels==2 && !f.input.dragging(),"device replacement cancels the previous device");
+            f.send(0,1,100,100); f.input.handoff();
+            count=f.out.contacts.size(); f.send(1,1,100,100);
+            check(f.out.cancels==2 && f.out.contacts.size()==count,"DND keeps native ownership of the terminal release");
+            """);
+    }
+
+    @Test public void tabletHoverPressureAndBarrelsRemainSeparateFromMouseButtons() throws Exception {
+        verify("""
+            var f=new Input(); f.out.direct=true; f.tool=MotionEvent.TOOL_TYPE_STYLUS;
+            f.send(9,1,300,400);
+            check(f.out.penButtons==0 && f.out.pressure==0,"hover is not a tip press");
+            f.buttons=MotionEvent.BUTTON_STYLUS_PRIMARY;
+            f.send(0,1,300,400);
+            check(f.out.penButtons==3 && f.out.pressure==.5f && f.input.dragging(),"tip and first barrel");
+            f.send(1,1,300,400);
+            check(f.out.penButtons==2 && f.out.pressure==0 && !f.input.dragging(),"tip up retains barrel");
+            f.tool=MotionEvent.TOOL_TYPE_ERASER; f.send(9,1,300,400);
+            check(f.out.eraser,"eraser identity survives transport");
+            f.send(10,1,300,400);
+            check(f.out.cancels==1 && f.out.edges.isEmpty(),"proximity loss releases the logical tool only");
+            """);
+    }
     private static void verify(String body) throws Exception {
         String source = Files.readString(Path.of(RuntimeSourceFixture.MAIN + "HostedPointerInput.java"));
+        String direct = Files.readString(Path.of(RuntimeSourceFixture.MAIN + "HostedDirectInput.java"));
         RuntimeSourceFixture.verify("io.github.mekhontsev.magicdesk",
-                "static " + source.substring(source.indexOf("final class HostedPointerInput")) + STUBS
+                "static " + source.substring(source.indexOf("final class HostedPointerInput"))
+                        + "static " + direct.substring(direct.indexOf("final class HostedDirectInput")) + STUBS
                         + "public static void verify() { " + body + " }", "HostedViewport");
     }
 
@@ -19,7 +56,7 @@ public final class HostedPointerInputTest {
             check(f.out.edges.isEmpty(), "first contact must not start selection");
             f.send(5, 2, 100, 100);
             f.send(2, 2, 130, 200);
-            check(f.out.scrolls.equals(List.of("-1,2")), "centroid produces natural scroll in wheel units");
+            check(f.out.scrolls.equals(List.of("-1.2,2")), "centroid produces fractional natural scroll in wheel units");
             check(f.out.edges.isEmpty(), "two-finger scroll is not a drag");
             check(f.out.x == .1f && f.out.y == .1f, "scroll leaves pointer at anchor");
             f.send(6, 2, 300, 500);
@@ -31,18 +68,18 @@ public final class HostedPointerInputTest {
             """);
     }
 
-    @Test public void fractionalMotionAccumulatesAndDirectionCanReverse() throws Exception {
+    @Test public void fractionalMotionIsDeliveredWithoutHostQuantization() throws Exception {
         verify("""
             var f = new Input(); f.send(0, 1, 100, 100); f.send(5, 2, 100, 100);
             for (int i=1; i<=49; i++) f.send(2, 2, 100, 100+i);
-            check(f.out.scrolls.isEmpty(), "not one wheel click per motion sample");
+            check(f.out.scrolls.equals(Collections.nCopies(49, "0,0.02")), "fractional units, not a click per sample");
             f.send(2, 2, 100, 151);
-            check(f.out.scrolls.equals(List.of("0,1")), "accumulated scroll");
+            check(f.out.scrolls.get(49).equals("0,0.04"), "remaining delta");
             f.send(2, 2, 100, 99);
-            check(f.out.scrolls.equals(List.of("0,1", "0,-1")), "reversed scroll");
+            check(f.out.scrolls.get(50).equals("0,-1.04"), "reversed scroll");
             f.send(3, 2, 100, 99);
             f.send(0, 1, 100, 100); f.send(5, 2, 100, 100); f.send(2, 2, 100, 101);
-            check(f.out.scrolls.size() == 2, "new gesture has no previous remainder");
+            check(f.out.scrolls.get(51).equals("0,0.02"), "new gesture has no previous remainder");
             """);
     }
 
@@ -139,7 +176,7 @@ public final class HostedPointerInputTest {
             var move=f.event(2,1,100,100); move.gy=20; move.historyY=new float[]{20,20}; f.input.event(move);
             f.send(1,1,100,100);
             check(f.out.edges.isEmpty(), "classified scroll does not click even with one mouse pointer");
-            check(f.out.scrolls.equals(List.of("0,-1")), "history participates in accumulated pixel scroll");
+            check(f.out.scrolls.equals(List.of("0,-0.4", "0,-0.4", "0,-0.4")), "all historical fractions are delivered");
             """);
     }
 
@@ -264,17 +301,33 @@ public final class HostedPointerInputTest {
     }
 
     private static final String STUBS = """
+        enum HostedTouchPhase { BEGIN, UPDATE, END }
         interface HostedSurfaceOutput {
             enum Button { PRIMARY, MIDDLE, SECONDARY }
             void pointer(float x,float y); void button(float x,float y,Button button,boolean down);
             void scroll(float x,float y,float h,float v);
+            default boolean supportsTouch(){return false;} default boolean supportsTablet(){return false;}
+            default void touch(int id,HostedTouchPhase phase,float x,float y,float pressure){}
+            default void tablet(boolean eraser,boolean proximity,float x,float y,float pressure,float tx,float ty,int buttons){}
+            default void cancelContacts(){}
         }
         static class Output implements HostedSurfaceOutput {
             final List<String> edges=new ArrayList<>(), scrolls=new ArrayList<>();
+            final List<String> contacts=new ArrayList<>();
+            boolean direct,eraser; int cancels,penButtons; float pressure;
+            public boolean supportsTouch(){return direct;} public boolean supportsTablet(){return direct;}
+            public void touch(int id,HostedTouchPhase phase,float x,float y,float pressure){
+                contacts.add(id+":"+phase);this.x=x;this.y=y;this.pressure=pressure;
+            }
+            public void tablet(boolean eraser,boolean proximity,float x,float y,float pressure,float tx,float ty,int buttons){
+                this.eraser=eraser;this.pressure=pressure;penButtons=buttons;
+            }
+            public void cancelContacts(){cancels++;}
             float x,y,pressX;
             public void pointer(float x,float y) { this.x=x; this.y=y; }
             public void button(float x,float y,Button b,boolean down) { edges.add(b+":"+down); if(down)pressX=x; }
-            public void scroll(float x,float y,float h,float v) { scrolls.add((int)h+","+(int)v); }
+            static String number(float n){return n==(int)n?""+(int)n:Float.toString(n);}
+            public void scroll(float x,float y,float h,float v) { scrolls.add(number(h)+","+number(v)); }
         }
         static class View {
             Runnable pending; int clicks;
@@ -290,7 +343,7 @@ public final class HostedPointerInputTest {
             float getScaledVerticalScrollFactor(){return 50;}
             static int getLongPressTimeout(){return 500;}
         }
-        static class InputDevice { static final int SOURCE_TOUCHPAD=0x100008, SOURCE_MOUSE=0x2002; }
+        static class InputDevice { static final int SOURCE_TOUCHPAD=0x100008, SOURCE_MOUSE=0x2002, SOURCE_TOUCHSCREEN=0x1002; }
         static class DesktopAutomationEventJournal {
             static int count;
             static final List<String> details=new ArrayList<>();
@@ -300,7 +353,8 @@ public final class HostedPointerInputTest {
             static final int ACTION_DOWN=0,ACTION_UP=1,ACTION_MOVE=2,ACTION_CANCEL=3,
                 ACTION_POINTER_DOWN=5,ACTION_POINTER_UP=6,ACTION_HOVER_MOVE=7,ACTION_SCROLL=8,
                 ACTION_HOVER_ENTER=9,ACTION_HOVER_EXIT=10,ACTION_BUTTON_PRESS=11,ACTION_BUTTON_RELEASE=12;
-            static final int TOOL_TYPE_FINGER=1,TOOL_TYPE_MOUSE=3,CLASSIFICATION_TWO_FINGER_SWIPE=3;
+            static final int TOOL_TYPE_FINGER=1,TOOL_TYPE_STYLUS=2,TOOL_TYPE_MOUSE=3,TOOL_TYPE_ERASER=4,CLASSIFICATION_TWO_FINGER_SWIPE=3;
+            static final int BUTTON_STYLUS_PRIMARY=32,BUTTON_STYLUS_SECONDARY=64,AXIS_TILT=25,AXIS_ORIENTATION=8;
             static final int BUTTON_PRIMARY=1,BUTTON_SECONDARY=2,BUTTON_TERTIARY=4;
             static final int AXIS_HSCROLL=10,AXIS_VSCROLL=9,
                 AXIS_GESTURE_SCROLL_X_DISTANCE=50,AXIS_GESTURE_SCROLL_Y_DISTANCE=51;
@@ -310,6 +364,10 @@ public final class HostedPointerInputTest {
             int getActionIndex(){return count-1;} int getSource(){return source;}
             int getToolType(int i){return tool;} int getClassification(){return classification;}
             int getButtonState(){return buttons;} int getDeviceId(){return device;}
+            int getPointerId(int i){return i;}
+            float getPressure(){return .5f;} float getPressure(int i){return .5f;}
+            float getHistoricalPressure(int i,int h){return .4f;}
+            float getHistoricalX(int i,int h){return x;} float getHistoricalY(int i,int h){return y;}
             boolean isFromSource(int mask){return (source & mask)==mask;}
             float getX(){return x;} float getY(){return y;}
             float getX(int i){return x;} float getY(int i){return y;}

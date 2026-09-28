@@ -18,6 +18,7 @@ final class X11HostBinding implements X11Sessions.Listener {
     private X11Session.Output dependentOutput;
     private volatile HostedFullscreen fullscreen;
     private HostedWindowCommands commands;
+    private HostedTaskRequests taskRequests;
     private X11WindowManagement.Request fullscreenRequest;
     private long window;
     private boolean closed;
@@ -100,6 +101,9 @@ final class X11HostBinding implements X11Sessions.Listener {
                 actual -> session.confirmFullscreen(window, this, fullscreenRequest, new X11WindowManagement.State(actual)));
         if (commands == null) commands = new HostedWindowCommands(activity, surface,
                 (serial, actual) -> session.confirmMaximized(window, this, serial, actual));
+        if (taskRequests == null) taskRequests = new HostedTaskRequests(activity, session.presentation::hasFocusedHost,
+                actual -> session.confirmInteraction(window, this, actual));
+        taskRequests.update(info.management().interaction());
         var maximize = info.management().maximization();
         commands.update(Integer.toUnsignedLong(maximize.serial()), maximize.requested(), info.layout().constraints(), 1);
         X11WindowManagement.Request request = info.management().request();
@@ -117,6 +121,8 @@ final class X11HostBinding implements X11Sessions.Listener {
     void rejectImmersive() { if (!closed && fullscreen != null) fullscreen.reject(); }
 
     private void releaseWindowControl() {
+        if (taskRequests != null) taskRequests.close();
+        taskRequests = null;
         if (commands != null) commands.close();
         commands = null;
         if (fullscreen != null) fullscreen.close();
@@ -135,12 +141,14 @@ final class X11HostBinding implements X11Sessions.Listener {
         updateDensity();
         if (family != null) family.focusChanged(); else session.host(activity.getTaskId(), window, focused);
         if (commands != null) commands.focusChanged();
+        if (taskRequests != null) taskRequests.observe();
     }
 
     void presentationChanged() {
         if (closed) return;
         if (fullscreen != null) fullscreen.changed();
         if (commands != null) commands.observe();
+        if (taskRequests != null) taskRequests.observe();
         if (family != null) family.refresh();
     }
     void updateExchangeFocus() {
@@ -148,6 +156,8 @@ final class X11HostBinding implements X11Sessions.Listener {
         if (exchange != null) exchange.focus(activity.hasWindowFocus());
         if (dependentExchange != null) dependentExchange.focus(family != null && family.focused() && !activity.hasWindowFocus());
     }
+    boolean attention() { return taskRequests != null && taskRequests.attention(); }
+    void visible(boolean visible) { if (taskRequests != null) taskRequests.visible(visible); }
 
     private void releaseExchange() {
         if (exchange != null) exchange.close();

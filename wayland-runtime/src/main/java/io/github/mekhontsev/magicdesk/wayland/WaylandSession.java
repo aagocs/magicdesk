@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class WaylandSession implements AutoCloseable {
     public record Window(long id, long parent, String title, String appId, boolean mapped, int width, int height,
             HostedWindowConstraints constraints, long requestSerial, boolean fullscreen,
-            long maximizeSerial, boolean maximized) { }
+            long maximizeSerial, boolean maximized, io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction interaction) { }
     public record Toplevel(long id, String title, String appId, boolean active, boolean maximized, boolean fullscreen, boolean minimized) { }
     public enum ToplevelAction { ACTIVATE, MAXIMIZE, FULLSCREEN, UNMAXIMIZE, UNFULLSCREEN, CLOSE, MINIMIZE, UNMINIMIZE }
     public interface Listener {
@@ -134,7 +134,8 @@ public final class WaylandSession implements AutoCloseable {
         }
         @Override public void window(long id, long parent, String title, String appId, boolean mapped,
                 int width, int height, int minWidth, int minHeight, int maxWidth, int maxHeight,
-                long requestSerial, boolean fullscreen, long maximizeSerial, boolean maximized, boolean removed) {
+                long requestSerial, boolean fullscreen, long maximizeSerial, boolean maximized,
+                long minimizeSerial, boolean minimizeRequested, boolean removed) {
             checkCaller();
             handler.post(() -> {
                 if (closed.get()) return;
@@ -146,7 +147,9 @@ public final class WaylandSession implements AutoCloseable {
                 }
                 else catalog.put(id, new Window(id, parent, title, appId, mapped, width, height,
                         new HostedWindowConstraints(minWidth, minHeight, maxWidth, maxHeight), requestSerial, fullscreen,
-                        maximizeSerial, maximized));
+                        maximizeSerial, maximized, new io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction(minimizeSerial,
+                                minimizeRequested ? io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.Action.MINIMIZE
+                                        : io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.Action.NONE, false)));
                 ArrayList<Window> snapshot = new ArrayList<>(catalog.size());
                 for (int index = 0; index < catalog.size(); ++index) snapshot.add(catalog.valueAt(index));
                 windows = List.copyOf(snapshot);
@@ -447,6 +450,9 @@ public final class WaylandSession implements AutoCloseable {
     }
     public void confirmMaximized(long window, long serial, boolean maximized) {
         handler.post(() -> { if (!closed.get()) remote(() -> server.confirmMaximized(window, serial, maximized)); });
+    }
+    public void confirmMinimize(long window, long serial) {
+        handler.post(() -> { if (!closed.get()) remote(() -> server.confirmMinimize(window, serial)); });
     }
 
     private void frameConsumed(long id, long serial) {

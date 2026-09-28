@@ -166,7 +166,7 @@ public final class X11Session implements AutoCloseable {
 
     private void onNativeWindow(int id, byte[] title, int[] pixels, boolean mapped, int role, X11WindowManagement management,
             byte[] instance, byte[] className, int parent, int width, int height,
-            int minWidth, int minHeight, int maxWidth, int maxHeight) {
+            int[] limits) {
         Bitmap icon = pixels == null ? null : Bitmap.createBitmap(pixels, 64, 64, Bitmap.Config.ARGB_8888);
         Window previous = windows.get(id);
         if (icon != null && previous != null && previous.icon() != null && icon.sameAs(previous.icon())) {
@@ -180,7 +180,9 @@ public final class X11Session implements AutoCloseable {
                 new String(instance, java.nio.charset.StandardCharsets.ISO_8859_1),
                 new String(className, java.nio.charset.StandardCharsets.ISO_8859_1),
                 new HostedWindowLayout(Integer.toUnsignedLong(parent), width, height,
-                        new HostedWindowConstraints(minWidth, minHeight, maxWidth, maxHeight))));
+                        new HostedWindowConstraints(limits[0], limits[1], limits[2], limits[3],
+                            new io.github.mekhontsev.magicdesk.hosted.HostedResizeRules(limits[4], limits[5], limits[6], limits[7],
+                                limits[8], limits[9], limits[10], limits[11], limits[12], limits[13])))));
         windowsChanged = true;
     }
 
@@ -194,6 +196,11 @@ public final class X11Session implements AutoCloseable {
     private void onNativeWindowGesture(int id, int direction) {
         var gesture = X11WindowGestures.decode(direction);
         if (gesture != null) callbacks.execute(() -> { if (!closed) listener.onWindowGesture(Integer.toUnsignedLong(id), gesture); });
+    }
+    public void confirmInteraction(long windowId, io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.State actual) {
+        if (windowId <= 0 || windowId > 0xffffffffL || actual == null) throw new IllegalArgumentException("Invalid window state");
+        int flags = (actual.active() ? 1 : 0) | (actual.minimized() ? 2 : 0) | (actual.attention() ? 4 : 0);
+        post(() -> { if (connected) nativeConfirmInteraction(nativeHandle, (int) windowId, (int) actual.serial(), flags); });
     }
 
     private void onNativeWindowRemoved(int id) {
@@ -458,6 +465,38 @@ public final class X11Session implements AutoCloseable {
             handler.post(() -> { if (acceptsInput()) nativePointer(nativeHandle, id, window, x, y, button, down); });
         }
 
+        /** Scroll valuators in wheel units, positive right/down. Xorg owns legacy button emulation. */
+        public void scroll(float x, float y, float horizontal, float vertical) {
+            if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(horizontal) || !Float.isFinite(vertical))
+                throw new IllegalArgumentException("Invalid scroll event");
+            if (released || closed || horizontal == 0 && vertical == 0) return;
+            handler.post(() -> { if (acceptsInput()) nativeScroll(nativeHandle, id, window, x, y, horizontal, vertical); });
+        }
+
+        public void touch(int contact, io.github.mekhontsev.magicdesk.hosted.HostedTouchPhase phase,
+                float x, float y, float pressure) {
+            java.util.Objects.requireNonNull(phase);
+            if (contact < 0 || contact > 31 || !Float.isFinite(x) || !Float.isFinite(y)
+                    || !Float.isFinite(pressure) || pressure < 0 || pressure > 1)
+                throw new IllegalArgumentException("Invalid touch event");
+            if (released || closed) return;
+            handler.post(() -> { if (acceptsInput()) nativeTouch(nativeHandle, id, window, contact, phase.ordinal(), x, y, pressure); });
+        }
+
+        public void tablet(boolean eraser, boolean proximity, float x, float y, float pressure,
+                float tiltX, float tiltY, int buttons) {
+            if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(pressure) || pressure < 0 || pressure > 1
+                    || !Float.isFinite(tiltX) || !Float.isFinite(tiltY) || (buttons & ~7) != 0)
+                throw new IllegalArgumentException("Invalid tablet event");
+            if (released || closed) return;
+            handler.post(() -> { if (acceptsInput()) nativeTablet(nativeHandle, id, window, eraser, proximity, x, y, pressure, tiltX, tiltY, buttons); });
+        }
+
+        public void cancelContacts() {
+            if (released || closed) return;
+            handler.post(() -> { if (acceptsInput()) nativeCancelContacts(nativeHandle, id, window); });
+        }
+
         public void key(int androidKeyCode, int scanCode, boolean down) {
             if (androidKeyCode < 0 || scanCode < 0 || scanCode > 247)
                 throw new IllegalArgumentException("Invalid keyboard event");
@@ -678,6 +717,11 @@ public final class X11Session implements AutoCloseable {
     private static native void nativePresent(long handle, int output, int window, int serial, int left, int top, int right, int bottom);
     private static native void nativeResize(long handle, int output, int window, int width, int height);
     private static native void nativePointer(long handle, int output, int window, float x, float y, int button, boolean down);
+    private static native void nativeScroll(long handle, int output, int window, float x, float y, float horizontal, float vertical);
+    private static native void nativeTouch(long handle, int output, int window, int contact, int phase, float x, float y, float pressure);
+    private static native void nativeTablet(long handle, int output, int window, boolean eraser, boolean proximity,
+            float x, float y, float pressure, float tiltX, float tiltY, int buttons);
+    private static native void nativeCancelContacts(long handle, int output, int window);
     private static native void nativeKey(long handle, int output, int window, int androidKeyCode, int scanCode, boolean down);
     private static native void nativeFocus(long handle, int output, int window);
     private static native void nativeBlur(long handle, int output, int window);
@@ -688,6 +732,7 @@ public final class X11Session implements AutoCloseable {
     private static native void nativeDpi(long handle, int dpi);
     private static native void nativeConfirmWindowState(long handle, int window, int requestSerial, boolean fullscreen);
     private static native void nativeConfirmMaximized(long handle, int window, int requestSerial, int axes);
+    private static native void nativeConfirmInteraction(long handle, int window, int requestSerial, int flags);
     private static native void nativeText(long handle, int output, int window, String text);
     private static native void nativeData(long handle, int operation, int channel, int serial, int offer,
             int output, int window, int x, int y, String type, int descriptor);

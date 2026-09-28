@@ -427,7 +427,11 @@ sessions: identity, lifecycle, native windows, Android hosts and shell binding.
 Native `windowId` is scoped to `sessionId`; it is not an Android `taskId`,
 `displayId`, workspace residency ID or shell `surfaceId`.
 Windows report title, app identity, role, parent, dimensions, constraints,
-fullscreen and maximization requests. `actual=null` means unavailable, not false.
+fullscreen and maximization requests. Constraints include paired base/increment/
+aspect resize rules. `interaction` carries the native request revision, pending
+activation/minimization action and attention; Android focus/concealment remain
+host observations, not inferred from request acceptance.
+`actual=null` means unavailable, not false.
 Requested state is not proof of a completed Android transition.
 `protocolDetails` preserves protocol-specific information: X11 session display,
 DPI and file environment, and each X window's instance/class and host

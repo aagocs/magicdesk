@@ -1,4 +1,5 @@
 #include "hosted_window_size.h"
+#include "hosted_resize_rules.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
@@ -9,6 +10,22 @@ static void check(int w, int h, int minw, int minh, int maxw, int maxh, int ew, 
 }
 
 int main(void) {
+    HostedResizeRules grid = {.baseWidth=10, .baseHeight=20, .widthIncrement=8, .heightIncrement=16};
+    int gw=800, gh=600;
+    hosted_resize_rules(&grid,10,20,1000,1000,&gw,&gh);
+    assert(gw==802 && gh==596);
+    grid.heightIncrement=8;
+    grid.minAspectX=grid.minAspectY=grid.maxAspectX=grid.maxAspectY=1;
+    grid.aspectBaseWidth=10; grid.aspectBaseHeight=20;
+    gw=800; gh=600;
+    hosted_resize_rules(&grid,10,20,1000,1000,&gw,&gh);
+    assert(gw==698 && gh==708);
+    for (int w=1;w<1000;w+=29) for (int h=1;h<1000;h+=41) {
+        gw=w; gh=h;
+        hosted_resize_rules(&grid,10,20,1000,1000,&gw,&gh);
+        assert((gw-10)%8==0 && (gh-20)%8==0 && gw-10==gh-20);
+        assert(gw>=10 && gh>=20 && gw<=1000 && gh<=1000);
+    }
     check(1216, 2688, 1, 1, 16384, 16384, 1216, 2688);
     check(1216, 2688, 1854, 1860, 16384, 16384, 1854, 4098);
     check(2688, 1216, 1854, 1860, 16384, 16384, 4112, 1860);

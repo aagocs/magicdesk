@@ -92,8 +92,9 @@ final class HostedWindowCommands implements AutoCloseable {
             else {
                 int width = initial.width() + (gesture.right ? dx : gesture.left ? -dx : 0);
                 int height = initial.height() + (gesture.bottom ? dy : gesture.top ? -dy : 0);
-                width = Math.round(constraints.width(Math.round((width - horizontalDecor) / scale)) * scale) + horizontalDecor;
-                height = Math.round(constraints.height(Math.round((height - verticalDecor) / scale)) * scale) + verticalDecor;
+                var size = constraints.size(Math.round((width - horizontalDecor) / scale), Math.round((height - verticalDecor) / scale));
+                width = Math.round(size.width() * scale) + horizontalDecor;
+                height = Math.round(size.height() * scale) + verticalDecor;
                 if (gesture.left) pending.left = pending.right - width; else pending.right = pending.left + width;
                 if (gesture.top) pending.top = pending.bottom - height; else pending.bottom = pending.top + height;
             }

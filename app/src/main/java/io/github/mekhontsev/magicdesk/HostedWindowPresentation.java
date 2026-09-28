@@ -107,6 +107,13 @@ final class HostedWindowPresentation {
     }
 
     void claim(long window) { if (window != 0) presented.add(window); }
+    boolean hasFocusedHost() {
+        for (var host : hosts.values()) {
+            Activity activity = host.activity.get();
+            if (activity != null && !activity.isDestroyed() && !activity.isFinishing() && activity.hasWindowFocus()) return true;
+        }
+        return false;
+    }
     java.util.List<Observation> observations() {
         var result = new java.util.ArrayList<Observation>();
         for (var entry : hosts.entrySet()) {

@@ -156,6 +156,8 @@ public final class WaylandActivity extends Activity implements WaylandSessions.L
     }
     @Override public void desktopPresentationChanged() { if (binding != null) binding.refresh(); }
     @Override public BuiltInWindowRegistry.Presentation taskPresentation() { return presentation; }
+    @Override protected void onStart() { super.onStart(); if (binding != null) binding.visible(true); }
+    @Override protected void onStop() { if (binding != null) binding.visible(false); super.onStop(); }
     @Override public BuiltInWindowRegistry.ImmersiveRequest immersiveRequest() {
         return binding == null ? null : binding.immersiveRequest();
     }

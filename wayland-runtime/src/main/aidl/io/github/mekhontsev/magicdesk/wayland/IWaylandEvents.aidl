@@ -8,7 +8,8 @@ oneway interface IWaylandEvents {
     void inspection(long request, in long[] nodes);
     void window(long id, long parent, String title, String appId, boolean mapped,
             int width, int height, int minWidth, int minHeight, int maxWidth, int maxHeight,
-            long requestSerial, boolean fullscreen, long maximizeSerial, boolean maximized, boolean removed);
+            long requestSerial, boolean fullscreen, long maximizeSerial, boolean maximized,
+            long minimizeSerial, boolean minimizeRequested, boolean removed);
     void windowGesture(long window, int edges);
     void frame(long output, long serial, long generation, in @nullable HostedFrame frame);
     void failed(long output, long generation, String message);

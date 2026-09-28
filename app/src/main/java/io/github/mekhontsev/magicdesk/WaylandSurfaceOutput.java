@@ -22,7 +22,8 @@ final class WaylandSurfaceOutput implements HostedShellOutput {
     }
     @Override public void scroll(float x, float y, float horizontal, float vertical) {
         output.pointer(x, y);
-        output.scroll(-horizontal * 15, -vertical * 15);
+        // Android axes point right/up; Wayland axes point right/down.
+        output.scroll(horizontal * 15, -vertical * 15);
     }
     @Override public void key(int androidKey, int scanCode, boolean down) { output.key(androidKey, scanCode, down); }
     @Override public boolean supportsText() { return output.supportsText(); }

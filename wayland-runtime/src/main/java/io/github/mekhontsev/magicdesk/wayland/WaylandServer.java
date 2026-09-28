@@ -253,6 +253,9 @@ public final class WaylandServer extends IWaylandServer.Stub {
     @Override public void confirmMaximized(long window, long serial, boolean maximized) {
         command(() -> nativeConfirmMaximized(handle, window, serial, maximized));
     }
+    @Override public void confirmMinimize(long window, long serial) {
+        command(() -> nativeConfirmMinimize(handle, window, serial));
+    }
 
     @Override public void contentActive(boolean active) { command(() -> nativeContentEnable(handle, active)); }
     @Override public void drag(long id, int action, long offer, double x, double y, boolean accepted) {
@@ -419,14 +422,16 @@ public final class WaylandServer extends IWaylandServer.Stub {
 
     private void onWindow(long id, long parent, byte[] title, byte[] appId, boolean mapped,
             int width, int height, int minWidth, int minHeight, int maxWidth, int maxHeight,
-            long requestSerial, boolean fullscreen, long maximizeSerial, boolean maximized, boolean removed) {
+            long requestSerial, boolean fullscreen, long maximizeSerial, boolean maximized,
+            long minimizeSerial, boolean minimizeRequested, boolean removed) {
         if (removed) applicationViews.remove(id);
         else applicationViews.add(id);
         if (removed) releaseSurfaceOutputs(id);
         try {
             owner.window(id, parent, new String(title, StandardCharsets.UTF_8),
                     new String(appId, StandardCharsets.UTF_8), mapped, width, height,
-                    minWidth, minHeight, maxWidth, maxHeight, requestSerial, fullscreen, maximizeSerial, maximized, removed);
+                    minWidth, minHeight, maxWidth, maxHeight, requestSerial, fullscreen, maximizeSerial, maximized,
+                    minimizeSerial, minimizeRequested, removed);
         } catch (RemoteException error) { requestStop(); }
     }
 
@@ -559,6 +564,7 @@ public final class WaylandServer extends IWaylandServer.Stub {
     private static native void nativeCloseWindow(long server, long window, boolean force);
     private static native void nativeConfirmFullscreen(long server, long window, long serial, boolean fullscreen);
     private static native void nativeConfirmMaximized(long server, long window, long serial, boolean maximized);
+    private static native void nativeConfirmMinimize(long server, long window, long serial);
     private static native void nativeContentEnable(long server, boolean active);
     private static native boolean nativeContentPublish(long server, int channel, long id, String types);
     private static native void nativeContentRead(long server, int channel, long id, long request, String type);

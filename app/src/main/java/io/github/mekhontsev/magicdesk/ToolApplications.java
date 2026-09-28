@@ -83,8 +83,9 @@ final class ToolApplications {
         // WindowMetrics can omit the caption reported by the attached window.
         if (source.isInMultiWindowMode() && published != null) decor = android.graphics.Insets.max(decor,
                 published.getInsets(android.view.WindowInsets.Type.captionBar()));
-        int width = Math.min(work.width(), Math.round(layout.constraints().width(layout.width()) * scale) + decor.left + decor.right);
-        int height = Math.min(work.height(), Math.round(layout.constraints().height(layout.height()) * scale) + decor.top + decor.bottom);
+        var size = layout.constraints().size(layout.width(), layout.height());
+        int width = Math.min(work.width(), Math.round(size.width() * scale) + decor.left + decor.right);
+        int height = Math.min(work.height(), Math.round(size.height() * scale) + decor.top + decor.bottom);
         int left = Math.max(work.left, Math.min(work.right - width, origin.centerX() - width / 2));
         int top = Math.max(work.top, Math.min(work.bottom - height, origin.centerY() - height / 2));
         var relative = RelativeWindowBounds.from(new android.graphics.Rect(left, top, left + width, top + height), work);

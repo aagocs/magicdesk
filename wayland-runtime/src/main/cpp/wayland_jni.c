@@ -124,6 +124,7 @@ static void window_event(void *context, uint64_t id, const MdwWindow *window) {
             (jlong)(window ? window->request_serial : 0),
             (jboolean)(window && window->fullscreen),
             (jlong)(window ? window->maximize_serial : 0), (jboolean)(window && window->maximized),
+            (jlong)(window ? window->minimize_serial : 0), (jboolean)(window && window->minimize_requested),
             (jboolean)(window == NULL));
         (*env)->DeleteLocalRef(env, app_id);
     }
@@ -280,7 +281,7 @@ JNIEXPORT jlong JNICALL JNI(nativeStart)(JNIEnv *env, jobject owner) {
     bridge->owner = (*env)->NewGlobalRef(env, owner);
     if (!bridge->owner) { free(bridge); return 0; }
     jclass type = (*env)->GetObjectClass(env, owner);
-    bridge->window = (*env)->GetMethodID(env, type, "onWindow", "(JJ[B[BZIIIIIIJZJZZ)V");
+    bridge->window = (*env)->GetMethodID(env, type, "onWindow", "(JJ[B[BZIIIIIIJZJZJZZ)V");
     if (!(*env)->ExceptionCheck(env)) bridge->window_gesture = (*env)->GetMethodID(env, type, "onWindowGesture", "(JI)V");
     if (!(*env)->ExceptionCheck(env)) bridge->shell = (*env)->GetMethodID(env, type, "onShell", "(J[BZZIIIJJIIIIIZ)V");
     if (!(*env)->ExceptionCheck(env)) bridge->geometry = (*env)->GetMethodID(env, type, "onGeometry", "(JJZIIIIZ[IZ)V");
@@ -322,6 +323,11 @@ JNIEXPORT void JNICALL JNI(nativeConfirmMaximized)(JNIEnv *env, jclass type, jlo
     (void)env; (void)type;
     struct Bridge *bridge = (void *)(intptr_t)handle;
     mdw_window_confirm_maximized(bridge->server, window, serial, maximized);
+}
+JNIEXPORT void JNICALL JNI(nativeConfirmMinimize)(JNIEnv *env, jclass type, jlong handle,
+        jlong window, jlong serial) {
+    (void)env; (void)type;
+    mdw_window_confirm_minimize(((struct Bridge *)handle)->server, window, serial);
 }
 
 JNIEXPORT void JNICALL JNI(nativeConfirmFullscreen)(JNIEnv *env, jclass type, jlong handle,

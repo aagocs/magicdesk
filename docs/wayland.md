@@ -167,6 +167,12 @@ mapping. XWayland is not enabled.
 
 ## Host Interaction
 
+Pointer and touchpad gestures use the common `HostedPointerInput` adapter.
+Fractional scroll deltas are retained through Wayland seat axes, including
+classified Android touchpad history. Direct touch/tablet protocols are not
+advertised; those tools retain pointer emulation until a backend implements the
+shared contact/proximity contract.
+
 `HostedSurfaceView` owns Android input and IME lifecycle. The Wayland adapter
 bridges `text-input-v3` preedit and committed UTF-8 text to the focused client.
 Other text-input protocols are not implemented.
@@ -220,6 +226,13 @@ Fullscreen requests carry a native revision through
 `HostedFullscreen` and the existing Android presentation gateway. A stale host
 or acknowledgement cannot confirm a newer request. Neither feature changes
 Android task-area ownership.
+
+`xdg_toplevel.set_minimized` uses `HostedTaskRequests`, shared with X11. Managed
+hosts request concealment through the Desktop task gateway; independent hosts
+demote their own Android task. The request is consumed only after observing the
+outcome, not on command acceptance. Revision and host ownership prevent replay
+after host replacement. Wayland has no minimized configure flag; no such protocol
+state is fabricated. The external task catalog reflects Android's observed state.
 
 Client minimum/maximum dimensions and parent identity use the shared
 `HostedWindowLayout` contract. Zero limits are unspecified. Native configure

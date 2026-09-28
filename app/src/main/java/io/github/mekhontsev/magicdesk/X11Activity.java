@@ -180,7 +180,12 @@ public final class X11Activity extends Activity implements
         if (binding != null) binding.rejectImmersive();
     }
 
-    @Override public BuiltInWindowRegistry.Presentation taskPresentation() { return presentation; }
+    @Override public BuiltInWindowRegistry.Presentation taskPresentation() {
+        return presentation == null ? null : new BuiltInWindowRegistry.Presentation(presentation.title(), presentation.icon(),
+                binding != null && binding.attention());
+    }
+    @Override protected void onStart() { super.onStart(); if (binding != null) binding.visible(true); }
+    @Override protected void onStop() { if (binding != null) binding.visible(false); super.onStop(); }
     @Override public AppReference windowApplication() { return windowApplication; }
     @Override public void desktopPresentationChanged() { if (binding != null) binding.presentationChanged(); }
 

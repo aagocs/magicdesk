@@ -140,6 +140,7 @@ static void pointer_enter(void *data, struct wl_pointer *pointer, uint32_t seria
         wl_surface_commit(client->cursor);
         xdg_toplevel_set_fullscreen(client->toplevel, NULL);
         xdg_toplevel_set_maximized(client->toplevel);
+        xdg_toplevel_set_minimized(client->toplevel);
     }
 }
 static void pointer_leave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface) {
@@ -404,7 +405,8 @@ static void window_event(void *data, uint64_t id, const MdwWindow *window) {
         host->previous.height != window->height || strcmp(host->title, window->title) ||
         strcmp(host->app_id, window->app_id) || host->previous.request_serial != window->request_serial ||
         host->previous.fullscreen != window->fullscreen || host->previous.maximize_serial != window->maximize_serial
-        || host->previous.min_width != window->min_width || host->previous.max_width != window->max_width);
+        || host->previous.min_width != window->min_width || host->previous.max_width != window->max_width
+        || host->previous.minimize_serial != window->minimize_serial || host->previous.minimize_requested != window->minimize_requested);
     host->previous = *window;
     snprintf(host->title, sizeof(host->title), "%s", window->title);
     snprintf(host->app_id, sizeof(host->app_id), "%s", window->app_id);
@@ -529,7 +531,7 @@ int main(int argc, char **argv) {
     if (connection >= 0) close(connection);
     MdwOutput *output = NULL;
     bool detached = false, closing = false, deferred = false, resumed = false;
-    bool input_sent = false, text_sent = false;
+    bool input_sent = false, text_sent = false, minimize_seen = false;
     while (!host.destroyed) {
         assert(mdw_server_dispatch(server, -1) >= 0);
         if (host.mapped && !output) {
@@ -586,6 +588,12 @@ int main(int argc, char **argv) {
             input_sent = true;
         }
         if (interaction && !host.destroyed && !closing && host.previous.fullscreen) {
+            if (host.previous.minimize_requested && !minimize_seen) {
+                assert(!mdw_window_confirm_minimize(server,host.window,host.previous.minimize_serial+1));
+                assert(mdw_window_confirm_minimize(server,host.window,host.previous.minimize_serial));
+                assert(!host.previous.minimize_requested);
+                minimize_seen=true;
+            }
             assert(!mdw_window_confirm_fullscreen(server, host.window, host.previous.request_serial + 1, true));
             assert(mdw_window_confirm_fullscreen(server, host.window, host.previous.request_serial, true));
             assert(!mdw_window_confirm_maximized(server, host.window, host.previous.maximize_serial + 1, true));
@@ -601,7 +609,7 @@ int main(int argc, char **argv) {
             }
         }
         if (input_sent && !closing && (!interaction ||
-                (host.cursor_seen && host.gestures == 2 && !strcmp(host.app_id, "io.magicdesk.committed")))) {
+                (host.cursor_seen && minimize_seen && host.gestures == 2 && !strcmp(host.app_id, "io.magicdesk.committed")))) {
             assert(mdw_output_focus(output, false));
             assert(!mdw_output_key(output, KEY_A, false));
             assert(mdw_window_close(server, host.window));

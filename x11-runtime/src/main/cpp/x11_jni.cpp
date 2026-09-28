@@ -9,6 +9,7 @@
 #include "x11_graphics.h"
 #include "android_keycodes.h"
 #include "hosted_window_size.h"
+#include "hosted_resize_rules.h"
 
 #define JNI(name) Java_io_github_mekhontsev_magicdesk_x11_##name
 
@@ -70,11 +71,25 @@ const LorieCallbacks callbacks = {
             jobject management = env->NewObject(c->managementClass, c->managementConstructor,
                     (jboolean)state.managed, (jint)state.request.serial,
                     (jboolean)state.request.fullscreen, (jboolean)state.actual.fullscreen,
-                    (jint)state.maximized.serial, (jint)state.maximized.requested, (jint)state.maximized.actual);
+                    (jint)state.maximized.serial, (jint)state.maximized.requested, (jint)state.maximized.actual,
+                    (jint)state.interaction.serial, (jint)state.interaction.action, (jboolean)state.interaction.attention);
             if (management) {
-                env->CallVoidMethod(c->owner, c->window, (jint)id, title, icon, (jboolean)info->mapped, (jint)info->role,
-                    management, instance, className, (jint)info->parent, (jint)info->width, (jint)info->height,
-                    (jint)info->minWidth, (jint)info->minHeight, (jint)info->maxWidth, (jint)info->maxHeight);
+                const auto& s = info->constraints;
+                const auto& r = s.resize;
+                jint values[] = {s.minWidth, s.minHeight,
+                    s.maxWidth == LORIE_WINDOW_SIZE_LIMIT ? 0 : s.maxWidth,
+                    s.maxHeight == LORIE_WINDOW_SIZE_LIMIT ? 0 : s.maxHeight,
+                    r.baseWidth, r.baseHeight, r.widthIncrement > 0 ? r.widthIncrement : 1,
+                    r.heightIncrement > 0 ? r.heightIncrement : 1,
+                    r.minAspectX, r.minAspectY, r.maxAspectX, r.maxAspectY, r.aspectBaseWidth, r.aspectBaseHeight};
+                jintArray limits = env->NewIntArray(14);
+                if (limits) {
+                    env->SetIntArrayRegion(limits, 0, 14, values);
+                    env->CallVoidMethod(c->owner, c->window, (jint)id, title, icon, (jboolean)info->mapped, (jint)info->role,
+                        management, instance, className, (jint)info->parent, (jint)info->width, (jint)info->height,
+                        limits);
+                    env->DeleteLocalRef(limits);
+                }
             }
             if (management) {
                 env->DeleteLocalRef(management);
@@ -209,6 +224,13 @@ void serverReady(void*, const char* display) {
     if (env->ExceptionCheck()) { env->ExceptionDescribe(); _exit(1); }
     serverVm->DetachCurrentThread();
 }
+void serverWindowSize(const LorieWindowConstraints* s, int* width, int* height) {
+    hosted_window_size(s->minWidth, s->minHeight, s->maxWidth, s->maxHeight, width, height);
+    const auto& r = s->resize;
+    const HostedResizeRules rules = {r.baseWidth, r.baseHeight, r.widthIncrement, r.heightIncrement,
+        r.minAspectX, r.minAspectY, r.maxAspectX, r.maxAspectY, r.aspectBaseWidth, r.aspectBaseHeight};
+    hosted_resize_rules(&rules, s->minWidth, s->minHeight, s->maxWidth, s->maxHeight, width, height);
+}
 }
 
 extern "C" JNIEXPORT jlong JNICALL JNI(X11Session_nativeCreate)(JNIEnv* env, jobject owner) {
@@ -224,7 +246,7 @@ extern "C" JNIEXPORT jlong JNICALL JNI(X11Session_nativeCreate)(JNIEnv* env, job
     c->family = env->GetMethodID(cls, "onNativeFamily", "(I[I)V");
     c->presented = env->GetMethodID(cls, "onNativePresented", "(IIZ)V");
     c->disconnected = env->GetMethodID(cls, "onNativeDisconnected", "()V");
-    c->window = env->GetMethodID(cls, "onNativeWindow", "(I[B[IZILio/github/mekhontsev/magicdesk/x11/X11WindowManagement;[B[BIIIIIII)V");
+    c->window = env->GetMethodID(cls, "onNativeWindow", "(I[B[IZILio/github/mekhontsev/magicdesk/x11/X11WindowManagement;[B[BIII[I)V");
     c->windowRemoved = env->GetMethodID(cls, "onNativeWindowRemoved", "(I)V");
     c->windows = env->GetMethodID(cls, "onNativeWindowsCommitted", "()V");
     c->windowGesture = env->GetMethodID(cls, "onNativeWindowGesture", "(II)V");
@@ -237,7 +259,7 @@ extern "C" JNIEXPORT jlong JNICALL JNI(X11Session_nativeCreate)(JNIEnv* env, job
         jclass management = env->FindClass("io/github/mekhontsev/magicdesk/x11/X11WindowManagement");
         if (management) {
             c->managementClass = (jclass)env->NewGlobalRef(management);
-            c->managementConstructor = env->GetMethodID(management, "<init>", "(ZIZZIII)V");
+            c->managementConstructor = env->GetMethodID(management, "<init>", "(ZIZZIIIIIZ)V");
             env->DeleteLocalRef(management);
         }
     }
@@ -298,11 +320,28 @@ extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativePointer)(JNIEnv*, jclass,
     lorieOutputPointer(((Connection*)ptr)->native, output, window, x, y, button, down);
 }
 
+extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeScroll)(JNIEnv*, jclass, jlong ptr,
+        jint output, jint window, jfloat x, jfloat y, jfloat horizontal, jfloat vertical) {
+    lorieOutputScroll(((Connection*)ptr)->native, output, window, x, y, horizontal, vertical);
+}
+
 extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeKey)(JNIEnv*, jclass, jlong ptr,
         jint output, jint window, jint androidKey, jint scanCode, jboolean down) {
     int evdev = hosted_evdev_keycode(androidKey, scanCode);
     int xKeyCode = evdev ? evdev + 8 : 0;
     lorieOutputKey(((Connection*)ptr)->native, output, window, xKeyCode, down);
+}
+extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeTouch)(JNIEnv*, jclass, jlong ptr,
+        jint output, jint window, jint contact, jint phase, jfloat x, jfloat y, jfloat pressure) {
+    lorieOutputTouch(((Connection*)ptr)->native, output, window, contact, (LorieTouchPhase)phase, x, y, pressure);
+}
+extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeTablet)(JNIEnv*, jclass, jlong ptr,
+        jint output, jint window, jboolean eraser, jboolean proximity, jfloat x, jfloat y,
+        jfloat pressure, jfloat tiltX, jfloat tiltY, jint buttons) {
+    lorieOutputTablet(((Connection*)ptr)->native, output, window, eraser, proximity, x, y, pressure, tiltX, tiltY, buttons);
+}
+extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeCancelContacts)(JNIEnv*, jclass, jlong ptr, jint output, jint window) {
+    lorieOutputCancelContacts(((Connection*)ptr)->native, output, window);
 }
 
 extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeFocus)(JNIEnv*, jclass, jlong ptr, jint output, jint window) {
@@ -341,6 +380,10 @@ extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeConfirmWindowState)(JNIEn
 extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeConfirmMaximized)(JNIEnv*, jclass, jlong ptr,
         jint window, jint requestSerial, jint axes) {
     lorieConfirmMaximized(((Connection*)ptr)->native, window, requestSerial, axes);
+}
+extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeConfirmInteraction)(JNIEnv*, jclass, jlong ptr,
+        jint window, jint requestSerial, jint flags) {
+    lorieConfirmInteraction(((Connection*)ptr)->native, window, requestSerial, flags);
 }
 
 extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeText)(JNIEnv* env, jclass, jlong ptr,
@@ -395,7 +438,7 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(X11Server_nativeStart)(JNIEnv* env, jo
         jclass cls = env->GetObjectClass(owner);
         readyMethod = env->GetMethodID(cls, "onNativeReady", "(Ljava/lang/String;)V");
         env->DeleteLocalRef(cls);
-        const LorieServerCallbacks host = {.ready = serverReady, .windowSize = hosted_window_size};
+        const LorieServerCallbacks host = {.ready = serverReady, .windowSize = serverWindowSize};
         ok = server && readyMethod && lorieServerStart(count, arguments, &host, nullptr);
         if (!ok && server) { env->DeleteGlobalRef(server); server = nullptr; }
     }

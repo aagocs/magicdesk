@@ -110,15 +110,23 @@ final class AutomationGraphics {
 
     static JSONObject window(GraphicalSessions.Window window) throws org.json.JSONException {
         var layout = window.layout(); var limits = layout.constraints(); var control = window.control();
+        var resize = limits.resize();
         return new JSONObject().put("windowId", window.id()).put("title", window.title()).put("mapped", window.mapped())
                 .put("appId", window.appId()).put("role", window.role()).put("parentWindowId", layout.parent())
                 .put("width", layout.width()).put("height", layout.height())
                 .put("constraints", new JSONObject().put("minWidth", limits.minWidth()).put("minHeight", limits.minHeight())
-                        .put("maxWidth", limits.maxWidth()).put("maxHeight", limits.maxHeight()))
+                        .put("maxWidth", limits.maxWidth()).put("maxHeight", limits.maxHeight())
+                        .put("resize", new JSONObject().put("baseWidth", resize.baseWidth()).put("baseHeight", resize.baseHeight())
+                                .put("widthIncrement", resize.widthIncrement()).put("heightIncrement", resize.heightIncrement())
+                                .put("minAspectX", resize.minAspectX()).put("minAspectY", resize.minAspectY())
+                                .put("maxAspectX", resize.maxAspectX()).put("maxAspectY", resize.maxAspectY())
+                                .put("aspectBaseWidth", resize.aspectBaseWidth()).put("aspectBaseHeight", resize.aspectBaseHeight())))
                 .put("fullscreen", new JSONObject().put("serial", control.serial()).put("requested", control.requestedFullscreen())
                         .put("actual", nullable(control.actualFullscreen())))
                 .put("maximization", new JSONObject().put("serial", control.maximizeSerial())
-                        .put("requested", name(control.requestedMaximization())).put("actual", name(control.actualMaximization())));
+                        .put("requested", name(control.requestedMaximization())).put("actual", name(control.actualMaximization())))
+                .put("interaction", new JSONObject().put("serial", control.interaction().serial())
+                        .put("action", name(control.interaction().action())).put("attention", control.interaction().attention()));
     }
 
     static JSONArray hosts(GraphicalSessions.Session session) throws org.json.JSONException {

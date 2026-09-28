@@ -23,6 +23,7 @@ final class WaylandHostBinding implements AutoCloseable {
     private boolean closed;
     private volatile HostedFullscreen fullscreen;
     private HostedWindowCommands commands;
+    private HostedTaskRequests taskRequests;
     private long fullscreenSerial = -1;
     private float scale;
 
@@ -98,6 +99,9 @@ final class WaylandHostBinding implements AutoCloseable {
                 (serial, actual) -> session.confirmMaximized(window, this, serial, actual == io.github.mekhontsev.magicdesk.hosted.HostedMaximization.BOTH));
         commands.update(info.maximizeSerial(), info.maximized() ? io.github.mekhontsev.magicdesk.hosted.HostedMaximization.BOTH
                 : io.github.mekhontsev.magicdesk.hosted.HostedMaximization.NONE, info.constraints(), scale);
+        if (taskRequests == null) taskRequests = new HostedTaskRequests(activity, session.presentation::hasFocusedHost,
+                actual -> session.confirmInteraction(window, this, actual));
+        taskRequests.update(info.interaction());
         if (fullscreen == null) fullscreen = new HostedFullscreen(activity, surface,
                 actual -> session.confirmFullscreen(window, this, fullscreenSerial, actual));
         if (fullscreenSerial != info.requestSerial()) {
@@ -106,6 +110,7 @@ final class WaylandHostBinding implements AutoCloseable {
         } else fullscreen.changed();
     }
     BuiltInWindowRegistry.ImmersiveRequest immersiveRequest() { return fullscreen == null ? null : fullscreen.snapshot(); }
+    void visible(boolean visible) { if (taskRequests != null) taskRequests.visible(visible); }
     void rejectImmersive() { if (!closed && fullscreen != null) fullscreen.reject(); }
     void frame(long id, int width, int height) { if (!closed && id == output.id) surface.frame(width, height); }
     void textInputChanged(long id) {
@@ -136,6 +141,7 @@ final class WaylandHostBinding implements AutoCloseable {
         if (closed) return;
         closed = true;
         if (commands != null) commands.close();
+        if (taskRequests != null) taskRequests.close();
         if (fullscreen != null) fullscreen.close();
         fullscreen = null;
         session.releaseWindowControl(this);

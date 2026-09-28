@@ -32,9 +32,22 @@ static void changed(GtkEditable *entry, gpointer data) {
     printf("TEXT:%s\n", gtk_entry_get_text(GTK_ENTRY(entry)));
     fflush(stdout);
 }
+static gboolean scrolled(GtkWidget *widget, GdkEventScroll *event, gpointer data) {
+    (void)widget; (void)data;
+    gdouble x, y;
+    if (gdk_event_get_scroll_deltas((GdkEvent *)event, &x, &y)) {
+        printf("SCROLL:%.4f:%.4f\n", x, y);
+        fflush(stdout);
+    }
+    return FALSE;
+}
 static void fullscreen(GtkButton *button, gpointer data) {
     (void)button;
     gtk_window_fullscreen(GTK_WINDOW(data));
+}
+static void minimize(GtkButton *button, gpointer data) {
+    (void)button;
+    gtk_window_iconify(GTK_WINDOW(data));
 }
 static gboolean key(GtkWidget *widget, GdkEventKey *event, gpointer data) {
     (void)data;
@@ -62,6 +75,8 @@ int main(int argc, char **argv) {
     gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "IME and clipboard");
     gtk_box_pack_start(GTK_BOX(box), entry, FALSE, FALSE, 0);
     GtkWidget *text = gtk_text_view_new();
+    gtk_widget_add_events(text, GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
+    g_signal_connect(text, "scroll-event", G_CALLBACK(scrolled), NULL);
     gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(text)), "Select, copy and drag this text.", -1);
     gtk_box_pack_start(GTK_BOX(box), text, TRUE, TRUE, 0);
     GtkWidget *files = gtk_button_new_with_label(argc > 1 ? "Drag file / drop file here" : "Drop file here");
@@ -76,6 +91,9 @@ int main(int argc, char **argv) {
     gtk_box_pack_start(GTK_BOX(box), button, FALSE, FALSE, 0);
     g_signal_connect(entry, "changed", G_CALLBACK(changed), NULL);
     g_signal_connect(button, "clicked", G_CALLBACK(fullscreen), window);
+    GtkWidget *minimize_button = gtk_button_new_with_label("Minimize");
+    gtk_box_pack_start(GTK_BOX(box), minimize_button, FALSE, FALSE, 0);
+    g_signal_connect(minimize_button, "clicked", G_CALLBACK(minimize), window);
     g_signal_connect(window, "key-press-event", G_CALLBACK(key), NULL);
     g_signal_connect(window, "delete-event", G_CALLBACK(closing), NULL);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);

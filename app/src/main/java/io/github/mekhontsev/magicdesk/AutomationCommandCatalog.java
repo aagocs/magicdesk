@@ -1424,9 +1424,10 @@ final class AutomationCommandCatalog {
                         .put("role", stringProperty("Client role."))
                         .put("width", integerProperty("Client-published layout width; inspection returns current native bounds."))
                         .put("height", integerProperty("Client-published layout height; inspection returns current native bounds."))
-                        .put("constraints", openObjectProperty("Native minWidth/minHeight/maxWidth/maxHeight."))
+                        .put("constraints", openObjectProperty("Native minWidth/minHeight/maxWidth/maxHeight and paired base/increment/aspect resize rules."))
                         .put("fullscreen", openObjectProperty("serial, requested boolean, actual boolean or null when unavailable."))
                         .put("maximization", openObjectProperty("serial, requested and actual axes: none, horizontal, vertical, both; actual may be null."))
+                        .put("interaction", openObjectProperty("Native request serial, pending action (none/activate/minimize) and attention; observed Android state is in hosts."))
                         .put("protocolDetails", openObjectProperty("Additional protocol-specific metadata."))));
     }
 

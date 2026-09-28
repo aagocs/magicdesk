@@ -83,6 +83,10 @@ Run these without Desktop; managed Desktop self-tests cannot prove isolation:
   release only its client; an ordinary shell remains retained.
 - [ ] On actual API 34, validate X11 and Wayland startup, individual/whole-desktop
   views, input, live DPI and shutdown with no Desktop or privileged service.
+- [ ] Validate X11 direct touch and real pen/eraser hardware: simultaneous contacts,
+  pressure/tilt, proximity, barrel buttons, tool/device changes, cancellation and
+  drag handoff. Compare XI2-aware and legacy clients; synthetic MotionEvents and
+  native fixtures do not establish physical device compatibility.
 - [ ] Exercise clipboard and copy drag-and-drop with Android and same-/cross-protocol
   Linux sessions: text, HTML, PNG, files, large transfers (including X11 INCR), denied URI grants,
   cancellation and owner loss. Include container paths accessible and inaccessible

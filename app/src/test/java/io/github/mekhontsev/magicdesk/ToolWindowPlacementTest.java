@@ -131,7 +131,8 @@ public final class ToolWindowPlacementTest {
                     .replace("android.graphics.Insets", "Insets")
                     .replace("android.graphics.Rect", "Rect"),
                 java.nio.file.Path.of("../hosted-runtime/src/main/java/io/github/mekhontsev/magicdesk/hosted/HostedWindowLayout.java").toAbsolutePath().toString(),
-                java.nio.file.Path.of("../hosted-runtime/src/main/java/io/github/mekhontsev/magicdesk/hosted/HostedWindowConstraints.java").toAbsolutePath().toString());
+                java.nio.file.Path.of("../hosted-runtime/src/main/java/io/github/mekhontsev/magicdesk/hosted/HostedWindowConstraints.java").toAbsolutePath().toString(),
+                java.nio.file.Path.of("../hosted-runtime/src/main/java/io/github/mekhontsev/magicdesk/hosted/HostedResizeRules.java").toAbsolutePath().toString());
     }
 
     @Test public void replacementReadsFinalLocalBoundsWithoutAnotherTaskQuery() throws Exception {

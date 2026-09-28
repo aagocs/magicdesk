@@ -44,8 +44,9 @@ final class HostedWindowSizing {
             initialized = true;
         }
         int horizontal = decor.left + decor.right, vertical = decor.top + decor.bottom;
-        int width = Math.min(work.width(), Math.round(layout.constraints().width(initialWidth) * scale) + horizontal);
-        int height = Math.min(work.height(), Math.round(layout.constraints().height(initialHeight) * scale) + vertical);
+        var size = layout.constraints().size(initialWidth, initialHeight);
+        int width = Math.min(work.width(), Math.round(size.width() * scale) + horizontal);
+        int height = Math.min(work.height(), Math.round(size.height() * scale) + vertical);
         int left = bounds.centerX() - width / 2;
         int top = bounds.centerY() - height / 2;
         left = Math.max(work.left, Math.min(work.right - width, left));

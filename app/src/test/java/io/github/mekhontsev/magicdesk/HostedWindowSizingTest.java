@@ -47,6 +47,8 @@ public final class HostedWindowSizingTest {
             record Constraints(int fixedWidth,int fixedHeight) {
                 int width(int value) { return fixedWidth>0 ? fixedWidth : value; }
                 int height(int value) { return fixedHeight>0 ? fixedHeight : value; }
+                record Size(int width,int height) { }
+                Size size(int w,int h) { return new Size(width(w),height(h)); }
             }
             record HostedWindowLayout(int width,int height,Constraints constraints) {
                 HostedWindowLayout(int width,int height) { this(width,height,new Constraints(width,height)); }

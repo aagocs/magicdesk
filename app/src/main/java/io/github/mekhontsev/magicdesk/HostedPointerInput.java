@@ -11,13 +11,13 @@ final class HostedPointerInput {
     private final View view;
     private final float slopSquared, horizontalFactor, verticalFactor;
     private final Runnable longPress = this::longPress;
+    private final HostedDirectInput direct = new HostedDirectInput();
     private final long[] observed = new long[32];
     private final int[] observedDevices = new int[observed.length];
     private int observedCount;
     private HostedSurfaceOutput output;
     private HostedViewport viewport = HostedViewport.EMPTY;
     private float x = .5f, y = .5f, startX, startY, previousX, previousY;
-    private float scrollX, scrollY;
     private int buttons, physicalButtons;
     private boolean contact, pendingTap, syntheticButton, scrolling, relative, moved, windowGesture;
 
@@ -34,12 +34,13 @@ final class HostedPointerInput {
         if (!viewport.equals(next) && !windowGesture) release();
         viewport = next;
     }
-    boolean dragging() { return (buttons & MotionEvent.BUTTON_PRIMARY) != 0; }
+    boolean dragging() { return (buttons & MotionEvent.BUTTON_PRIMARY) != 0 || direct.dragging(); }
 
     /** The host now tracks raw display coordinates until the window gesture releases the button. */
     void windowGesture() { windowGesture = true; view.removeCallbacks(longPress); }
 
     void release() {
+        direct.cancel(output);
         physicalButtons = 0;
         syntheticButton = false;
         updateButtons();
@@ -48,6 +49,7 @@ final class HostedPointerInput {
 
     /** Android drag-and-drop now owns the pressed button and its eventual release. */
     void handoff() {
+        direct.forget();
         forget();
         buttons = physicalButtons = 0;
         syntheticButton = false;
@@ -57,7 +59,6 @@ final class HostedPointerInput {
         windowGesture = false;
         view.removeCallbacks(longPress);
         contact = pendingTap = scrolling = moved = false;
-        scrollX = scrollY = 0;
     }
 
     private void longPress() {
@@ -70,6 +71,7 @@ final class HostedPointerInput {
 
     boolean event(MotionEvent event) {
         if (output == null || !viewport.available()) return false;
+        if (direct.event(event, output, viewport)) return true;
         int action = event.getActionMasked();
         boolean classified = event.getClassification() == MotionEvent.CLASSIFICATION_TWO_FINGER_SWIPE;
         boolean finger = event.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER;
@@ -203,10 +205,7 @@ final class HostedPointerInput {
     private void scrollPixels(float horizontal, float vertical) {
         if (!Float.isFinite(horizontal) || !Float.isFinite(vertical)) return;
         // Android content offsets grow right/down; wheel axes grow right/up.
-        scrollX += horizontal / horizontalFactor;
-        scrollY -= vertical / verticalFactor;
-        int h = (int) scrollX, v = (int) scrollY;
-        scrollX -= h; scrollY -= v;
+        float h = horizontal / horizontalFactor, v = -vertical / verticalFactor;
         if (h != 0 || v != 0) output.scroll(x, y, h, v);
     }
 

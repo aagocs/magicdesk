@@ -4,23 +4,26 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public final class X11WindowManagementTest {
+    private static final io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction INTERACTION =
+            new io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction(0,
+                    io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.Action.NONE, false);
     private static final X11WindowManagement.Maximization NONE = new X11WindowManagement.Maximization(0,
             io.github.mekhontsev.magicdesk.hosted.HostedMaximization.NONE, io.github.mekhontsev.magicdesk.hosted.HostedMaximization.NONE);
     @Test public void requestAndActualAreIndependent() {
         var request = new X11WindowManagement.Request(17, true);
-        var pending = new X11WindowManagement(true, request, new X11WindowManagement.State(false), NONE);
+        var pending = new X11WindowManagement(true, request, new X11WindowManagement.State(false), NONE, INTERACTION);
         assertTrue(pending.request().fullscreen());
         assertFalse(pending.actual().fullscreen());
-        var confirmed = new X11WindowManagement(true, request, new X11WindowManagement.State(true), NONE);
+        var confirmed = new X11WindowManagement(true, request, new X11WindowManagement.State(true), NONE, INTERACTION);
         assertEquals(pending.request(), confirmed.request());
         assertNotEquals(pending, confirmed);
     }
 
     @Test public void nativeConstructorRetainsUnsignedSerialBitsAndManagement() throws Exception {
         var constructor = X11WindowManagement.class.getDeclaredConstructor(boolean.class, int.class, boolean.class, boolean.class,
-                int.class, int.class, int.class);
+                int.class, int.class, int.class, int.class, int.class, boolean.class);
         constructor.setAccessible(true);
-        var state = constructor.newInstance(false, -1, false, true, -2, 3, 1);
+        var state = constructor.newInstance(false, -1, false, true, -2, 3, 1, -3, 2, true);
         assertFalse(state.managed());
         assertEquals(0xffffffffL, Integer.toUnsignedLong(state.request().serial()));
         assertFalse(state.request().fullscreen());
@@ -28,13 +31,16 @@ public final class X11WindowManagementTest {
         assertEquals(0xfffffffeL, Integer.toUnsignedLong(state.maximization().serial()));
         assertEquals(io.github.mekhontsev.magicdesk.hosted.HostedMaximization.BOTH, state.maximization().requested());
         assertEquals(io.github.mekhontsev.magicdesk.hosted.HostedMaximization.HORIZONTAL, state.maximization().actual());
+        assertEquals(0xfffffffdL, state.interaction().serial());
+        assertEquals(io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction.Action.MINIMIZE, state.interaction().action());
+        assertTrue(state.interaction().attention());
     }
 
     @Test(expected = NullPointerException.class) public void missingRequestIsNotInvented() {
-        new X11WindowManagement(true, null, new X11WindowManagement.State(false), NONE);
+        new X11WindowManagement(true, null, new X11WindowManagement.State(false), NONE, INTERACTION);
     }
 
     @Test(expected = NullPointerException.class) public void missingActualIsNotInvented() {
-        new X11WindowManagement(true, new X11WindowManagement.Request(0, false), null, NONE);
+        new X11WindowManagement(true, new X11WindowManagement.Request(0, false), null, NONE, INTERACTION);
     }
 }

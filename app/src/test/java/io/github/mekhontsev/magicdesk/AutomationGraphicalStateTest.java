@@ -5,10 +5,12 @@ import org.junit.Test;
 import org.json.JSONObject;
 import io.github.mekhontsev.magicdesk.hosted.HostedWindowLayout;
 import io.github.mekhontsev.magicdesk.hosted.HostedMaximization;
+import io.github.mekhontsev.magicdesk.hosted.HostedWindowInteraction;
 
 public final class AutomationGraphicalStateTest {
     @Test public void requestsAreNotObservedStates() throws Exception {
-        var control = new GraphicalSessions.Control(7, true, null, 8, HostedMaximization.HORIZONTAL, null);
+        var control = new GraphicalSessions.Control(7, true, null, 8, HostedMaximization.HORIZONTAL, null,
+                new HostedWindowInteraction(9, HostedWindowInteraction.Action.MINIMIZE, true));
         var window = AutomationGraphics.window(new GraphicalSessions.Window(31, "Editor", true, "editor", "application", HostedWindowLayout.NONE, control));
         assertTrue(window.getJSONObject("fullscreen").getBoolean("requested"));
         assertTrue(window.getJSONObject("fullscreen").isNull("actual"));
@@ -16,6 +18,10 @@ public final class AutomationGraphicalStateTest {
         assertTrue(window.getJSONObject("maximization").isNull("actual"));
         assertEquals(31, window.getLong("windowId"));
         assertFalse(window.has("taskId"));
+        assertEquals("minimize", window.getJSONObject("interaction").getString("action"));
+        assertTrue(window.getJSONObject("interaction").getBoolean("attention"));
+        assertFalse(window.getJSONObject("interaction").has("minimized"));
+        assertEquals(1, window.getJSONObject("constraints").getJSONObject("resize").getInt("widthIncrement"));
     }
     @Test public void unknownDoesNotProveDisabled() throws Exception {
         var args = new JSONObject().put("state", "fullscreen").put("enabled", false);
