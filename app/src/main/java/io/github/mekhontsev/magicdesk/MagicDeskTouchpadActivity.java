@@ -168,10 +168,11 @@ public final class MagicDeskTouchpadActivity extends Activity {
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DesktopTaskDescription.apply(this, R.string.app_name, R.drawable.ic_magicdesk);
         mDisplayManager = getSystemService(DisplayManager.class);
         updateTargetDisplay(getIntent());
         final FrameLayout host = new FrameLayout(this);
-        UiAppearance.background(host, UiColor.BACKGROUND);
+        host.setBackgroundColor(Color.BLACK);
         setContentView(host);
         // Touching this child must not take input focus from the external
         // editor. The ordinary Activity remains a valid phone focus/Back host;
@@ -283,7 +284,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
         final LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setMotionEventSplittingEnabled(true);
-        UiAppearance.background(root, UiColor.BACKGROUND);
+        root.setBackgroundColor(Color.BLACK);
         root.setOnApplyWindowInsetsListener((view, windowInsets) -> {
             final Insets bars = windowInsets.getInsets(
                     WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
@@ -297,7 +298,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
 
         final ImageButton close = new ImageButton(this);
         close.setImageResource(R.drawable.ic_close);
-        UiAppearance.image(close, UiColor.TEXT);
+        touchpadIcon(close);
         close.setBackgroundColor(Color.TRANSPARENT);
         close.setContentDescription(getString(R.string.action_close));
         close.setTooltipText(getString(R.string.action_close));
@@ -328,7 +329,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
         desktop.setImageResource(R.drawable.ic_show_desktop);
         mDesktopActions.add(desktop);
         updateDesktopActions();
-        UiAppearance.image(desktop, UiColor.TEXT);
+        touchpadIcon(desktop);
         desktop.setBackgroundColor(Color.TRANSPARENT);
         desktop.setContentDescription(
                 getString(R.string.touchpad_present_desktop_workspace));
@@ -343,7 +344,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
 
         mHelpButton = new ImageButton(this);
         mHelpButton.setImageResource(R.drawable.ic_help);
-        UiAppearance.image(mHelpButton, UiColor.TEXT);
+        touchpadIcon(mHelpButton);
         mHelpButton.setBackgroundColor(Color.TRANSPARENT);
         mHelpButton.setContentDescription(
                 getString(R.string.touchpad_help));
@@ -365,10 +366,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
         final TouchSurface touchSurface = new TouchSurface(this);
-        touchSurface.setBackground(ui.rounded(
-                UiColor.PANEL,
-                ui.dp(8),
-                UiColor.SURFACE));
+        touchSurface.setBackgroundColor(Color.BLACK);
         mContentContainer = new FrameLayout(this);
         final FrameLayout.LayoutParams surfaceParams =
                 new FrameLayout.LayoutParams(
@@ -390,7 +388,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
             final View.OnClickListener listener) {
         final ImageButton button = new ImageButton(this);
         button.setImageResource(iconResource);
-        UiAppearance.image(button, UiColor.TEXT);
+        touchpadIcon(button);
         button.setBackgroundColor(Color.TRANSPARENT);
         button.setContentDescription(getString(descriptionResource));
         button.setTooltipText(getString(descriptionResource));
@@ -404,6 +402,12 @@ public final class MagicDeskTouchpadActivity extends Activity {
     private static LinearLayout.LayoutParams headerButtonParams(
             final DesktopUiFactory ui) {
         return new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
+    }
+
+    private static void touchpadIcon(ImageButton button) {
+        button.setImageTintList(new android.content.res.ColorStateList(
+                new int[][] {new int[] {-android.R.attr.state_enabled}, new int[] {android.R.attr.state_selected}, new int[0]},
+                new int[] {0xff777777, 0xff80caff, Color.WHITE}));
     }
 
     private void manageActiveWindow(final int shortcut) {
@@ -451,7 +455,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
                 FrameLayout.LayoutParams.MATCH_PARENT);
         params.setMargins(ui.dp(12), 0, ui.dp(12), ui.dp(12));
         mContentContainer.addView(mHelpView, params);
-        UiAppearance.image(mHelpButton, UiColor.ACCENT);
+        mHelpButton.setSelected(true);
     }
 
     private void hideHelp() {
@@ -463,7 +467,7 @@ public final class MagicDeskTouchpadActivity extends Activity {
         }
         mHelpView = null;
         if (mHelpButton != null) {
-            UiAppearance.image(mHelpButton, UiColor.TEXT);
+            mHelpButton.setSelected(false);
         }
     }
 

@@ -20,18 +20,22 @@ final class X11LaunchSpec {
     final String keyboardDirectory;
     final String fileEnvironment;
     private final HostedGuestFiles guestFiles;
+    private final LinuxAppearanceLaunch appearance;
+    private final String shell;
     final java.util.Map<String, String> environment;
     final java.util.List<String> arguments;
 
     X11LaunchSpec(String apk, String nativeLibraryDirectory, String hostPackage, String executorPackage,
             String runtimeParent, String temporaryDirectory, String keyboardDirectory, boolean sharedFiles,
-            int dpi, boolean application, String fileEnvironment) {
+            int dpi, boolean application, String fileEnvironment, String shell, int colorScheme) {
         if (dpi < 24 || dpi > 1536) throw new IllegalArgumentException("Invalid X11 DPI");
         byte[] secret = new byte[32], cookie = new byte[16];
         SecureRandom random = new SecureRandom();
         random.nextBytes(secret);
         random.nextBytes(cookie);
         this.fileEnvironment = fileEnvironment;
+        this.shell = shell;
+        appearance = new LinuxAppearanceLaunch(nativeLibraryDirectory, application, !fileEnvironment.isEmpty(), colorScheme);
         guestFiles = new HostedGuestFiles(nativeLibraryDirectory, !fileEnvironment.isEmpty());
         token = Base64.getUrlEncoder().withoutPadding().encodeToString(secret);
         directory = runtimeParent + "/" + id;
@@ -47,6 +51,7 @@ final class X11LaunchSpec {
         env.put("MAGICDESK_X11_CONTENT_DIR", directory + "/content");
         env.put("MAGICDESK_X11_SHARED_FILES", sharedFiles || !fileEnvironment.isEmpty() ? "1" : "0");
         guestFiles.configure(env);
+        appearance.configure(env);
         env.put("MAGICDESK_X11_XSETTINGS", application ? "1" : "0");
         env.put("MAGICDESK_X11_HOST_WM", application ? "1" : "0");
         env.put("MAGICDESK_X11_SESSION", id);
@@ -78,7 +83,8 @@ final class X11LaunchSpec {
                 + " MAGICDESK_X11_RUNTIME=" + q(directory)
                 + " MAGICDESK_X11_TMPDIR=" + q(temporaryDirectory)
                 + guestFiles.exports()
-                + "\n" + command;
+                + appearance.exports()
+                + "\n" + appearance.command(command, shell);
     }
 
     static byte[] authority(byte[] cookie) {

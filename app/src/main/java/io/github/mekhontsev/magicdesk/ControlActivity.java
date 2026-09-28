@@ -62,6 +62,7 @@ public final class ControlActivity extends Activity
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DesktopTaskDescription.apply(this, R.string.app_name, R.drawable.ic_magicdesk);
         MagicDeskRuntime.startTools(this);
         synchronized (ControlActivity.class) {
             sActive = new WeakReference<>(this);

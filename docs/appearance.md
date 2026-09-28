@@ -42,10 +42,26 @@ Closing Settings cancels its preview and pending work; process restart discards
 unconfirmed previews. Edits and imports capture scope and revision so a late
 result cannot overwrite a newer configuration or a different workspace.
 
-Appearance does not restyle third-party applications, arbitrary Android dialogs,
-Android captions or terminal protocol colors. Widget bindings, Android
+MagicDesk windows publish their scoped palette's background and panel colors in
+Android's task description, retaining each window's title and icon. Native
+captions remain rendered by Android; the system may use these colors to select
+light or dark decorations. Live theme edits and workspace changes update the
+metadata without recreating the window. Linux client contents and their themes
+are independent of the host's task description.
+
+Individual Linux application sessions receive Android's current light/dark
+preference through [XSettings and the Settings portal](linux-appearance.md).
+This follows the Android system theme, including its temporary Desktop override,
+not the shell's independent palette. Whole Linux desktops retain their own settings.
+
+Appearance does not restyle third-party applications, their captions, arbitrary
+Android dialogs or terminal protocol colors. Widget bindings, Android
 application identities and permissions are independent. **System theme during
-Desktop** is a separate, temporary system-wide preference.
+Desktop** at the top of this page is a separate, temporary system-wide preference.
+It is shared by all Desktop workspaces, independently of the appearance scope,
+and is not part of theme JSON or bundles.
+The phone touchpad keeps a black input surface and high-contrast toolbar,
+independently of shell themes; its help panel uses the normal dialog palette.
 
 ## Ownership And Scope
 

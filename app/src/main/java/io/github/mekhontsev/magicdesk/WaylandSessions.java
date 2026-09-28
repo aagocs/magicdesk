@@ -54,7 +54,7 @@ final class WaylandSessions {
         if (name == null || name.isBlank() || name.length() > 128)
             throw new IllegalArgumentException("Session name must contain 1 to 128 characters");
         Session session = new Session(context.getApplicationContext(), name.trim(), new WaylandExecution(context, backend, keyboard,
-                recipe == null || recipe.shortcut().graphics == null ? "" : recipe.shortcut().graphics.fileEnvironment()), recipe, desktop);
+                recipe == null || recipe.shortcut().graphics == null ? "" : recipe.shortcut().graphics.fileEnvironment(), desktop), recipe, desktop);
         synchronized (SESSIONS) { SESSIONS.put(session.id(), session); }
         MAIN.post(() -> session.start(command, directory));
         return session;
@@ -127,6 +127,10 @@ final class WaylandSessions {
             if (stopped()) return;
             socket = endpoint;
             state = "READY";
+            if (!desktop) resources.reserve().attach(new LinuxAppearance(context, value -> {
+                var connection = renderer;
+                if (!stopped() && connection != null) connection.setColorScheme(value);
+            }));
             MAIN.removeCallbacks(timeout);
             // EVENT_WAIT: first client map after a recipe launch; expiry fails the launch.
             if (recipe != null) MAIN.postDelayed(applicationTimeout, 60_000);

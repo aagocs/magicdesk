@@ -70,7 +70,7 @@ the provider probe could not be read, not that the provider is absent. These
 statuses do not change access grants or independent tool availability. Native
 provider detection is not a guarantee of correct captions on every firmware.
 
-**Settings > Session > System theme during Desktop** can temporarily select
+**Settings > Appearance > System theme during Desktop** can temporarily select
 Light or Dark for the whole Android system, including the phone. The default is
 Do not change. Changes apply to running sessions; the last Desktop closing
 restores the previous policy unless a later system-theme change was observed.

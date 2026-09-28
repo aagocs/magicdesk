@@ -42,14 +42,17 @@ public final class LinuxLaunchRecipeTest {
             assertFalse(shortcut.terminal);
             assertEquals(mode == LinuxLaunchRecipe.Presentation.DESKTOP, shortcut.graphics != null && shortcut.graphics.desktop());
             var args = arguments(shortcut);
-            assertEquals(List.of("login", "--isolated", "--shared-tmp", "--bind",
+            var expected = new java.util.ArrayList<>(List.of("login", "--isolated", "--shared-tmp", "--bind",
                     "/private/runtime ' dir:/tmp/magicdesk-x11", "--env", "DISPLAY=:37", "--env", "XAUTHORITY=/tmp/magicdesk-x11/Xauthority",
                     "--bind", "/apk/helper:/tmp/magicdesk-guest-files",
-                    "--env", "MAGICDESK_GUEST_FILES_SOCKET=channel", "--env", "MAGICDESK_GUEST_FILES_TOKEN=secret",
-                    "ubuntu", "--", "/tmp/magicdesk-guest-files", "--", "/bin/sh", "-lc"),
-                    args.subList(0, args.size() - 1));
+                    "--env", "MAGICDESK_GUEST_FILES_SOCKET=channel", "--env", "MAGICDESK_GUEST_FILES_TOKEN=secret"));
+            if (mode == LinuxLaunchRecipe.Presentation.APPLICATION) expected.addAll(appearanceArguments());
+            expected.addAll(List.of("ubuntu", "--", "/tmp/magicdesk-guest-files", "--", "/bin/sh", "-lc"));
+            assertEquals(expected, args.subList(0, args.size() - 1));
             String guest = args.get(args.size() - 1);
-            assertTrue(guest.contains("dbus-run-session -- /bin/sh -lc 'xfce4-session'"));
+            assertTrue(guest.contains("dbus-run-session -- "
+                    + (mode == LinuxLaunchRecipe.Presentation.APPLICATION ? "/tmp/magicdesk-linux-settings -- " : "")
+                    + "/bin/sh -lc 'xfce4-session'"));
             assertTrue(guest.contains("mktemp -d /tmp/magicdesk-runtime.XXXXXX"));
             assertTrue(guest.contains("trap 'rm -rf -- \"$XDG_RUNTIME_DIR\"' EXIT"));
             var parsed = DesktopEntryFile.parseTermuxApplication(DesktopEntryFile.encodeApplication(shortcut));
@@ -71,11 +74,13 @@ public final class LinuxLaunchRecipeTest {
             var shortcut = LinuxLaunchRecipe.build("Guest Wayland", proot(), "weston --backend=wayland --renderer=pixman",
                     "", "alice", mode, GraphicalProtocol.WAYLAND);
             var args = arguments(shortcut);
-            assertEquals(List.of("login", "--isolated", "--user", "alice", "--bind",
+            var expected = new java.util.ArrayList<>(List.of("login", "--isolated", "--user", "alice", "--bind",
                     "/private/wayland ' dir:/tmp/magicdesk-wayland", "--env", "WAYLAND_DISPLAY=/tmp/magicdesk-wayland/wayland-0",
                     "--bind", "/apk/helper:/tmp/magicdesk-guest-files", "--env", "MAGICDESK_GUEST_FILES_SOCKET=channel",
-                    "--env", "MAGICDESK_GUEST_FILES_TOKEN=secret", "ubuntu", "--", "/tmp/magicdesk-guest-files", "--", "/bin/sh", "-lc"),
-                    args.subList(0, args.size() - 1));
+                    "--env", "MAGICDESK_GUEST_FILES_TOKEN=secret"));
+            if (mode == LinuxLaunchRecipe.Presentation.APPLICATION) expected.addAll(appearanceArguments());
+            expected.addAll(List.of("ubuntu", "--", "/tmp/magicdesk-guest-files", "--", "/bin/sh", "-lc"));
+            assertEquals(expected, args.subList(0, args.size() - 1));
             assertTrue(args.get(args.size() - 1).contains("XDG_SESSION_TYPE=wayland"));
             assertFalse(shortcut.exec.contains("XAUTHORITY"));
             assertFalse(shortcut.exec.contains("MAGICDESK_X11"));
@@ -93,6 +98,11 @@ public final class LinuxLaunchRecipeTest {
 
     private static LinuxLaunchRecipe.Environment proot() {
         return new LinuxLaunchRecipe.Environment(LinuxLaunchRecipe.Kind.PROOT, "ubuntu");
+    }
+
+    private static List<String> appearanceArguments() {
+        return List.of("--bind", "/apk/settings:/tmp/magicdesk-linux-settings", "--env",
+                "MAGICDESK_APPEARANCE_SOCKET=appearance", "--env", "MAGICDESK_APPEARANCE_TOKEN=preference-secret");
     }
 
     @Test public void fileEnvironmentIsSharedByGuestApplicationsButNotOtherGuestsOrUsers() {
@@ -206,6 +216,9 @@ public final class LinuxLaunchRecipeTest {
         builder.environment().put("MAGICDESK_GUEST_FILES_HELPER", "/apk/helper");
         builder.environment().put("MAGICDESK_GUEST_FILES_SOCKET", "channel");
         builder.environment().put("MAGICDESK_GUEST_FILES_TOKEN", "secret");
+        builder.environment().put("MAGICDESK_APPEARANCE_HELPER", "/apk/settings");
+        builder.environment().put("MAGICDESK_APPEARANCE_SOCKET", "appearance");
+        builder.environment().put("MAGICDESK_APPEARANCE_TOKEN", "preference-secret");
         var result = BoundedProcessRunner.run(builder.start(), 5000, 16384);
         assertEquals(result.output, 0, result.exitCode);
         return Arrays.asList(result.output.split("\0"));

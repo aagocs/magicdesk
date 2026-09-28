@@ -14,12 +14,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
+import java.util.function.Consumer;
 
 /** UI and SAF adapters to the same validated appearance document used by automation. */
 final class AppearanceSettings implements AutoCloseable {
     private static final int IMPORT = 6201, EXPORT = 6202, SCHEMA = 6203, IMPORT_BUNDLE = 6204, EXPORT_BUNDLE = 6205;
     private final Activity mActivity;
     private final DesktopUiFactory mUi;
+    private final Consumer<DesktopSystemThemeSession.Preference> mSetSystemTheme;
+    private DesktopSystemThemeSession.Preference mSystemTheme = DesktopSystemThemeSession.Preference.UNCHANGED;
+    private boolean mSystemThemeAvailable;
+    private Spinner mSystemThemeChoice;
     private final ExecutorService mFiles = Executors.newSingleThreadExecutor();
     private final List<Runnable> mRefreshers = new ArrayList<>();
     private final List<AlertDialog> mChildren = new ArrayList<>();
@@ -38,7 +43,9 @@ final class AppearanceSettings implements AutoCloseable {
     private volatile Thread mFileThread;
     private android.os.CancellationSignal mFileCancellation;
 
-    AppearanceSettings(Activity activity) { mActivity = activity; mUi = new DesktopUiFactory(activity); }
+    AppearanceSettings(Activity activity, Consumer<DesktopSystemThemeSession.Preference> setSystemTheme) {
+        mActivity = activity; mUi = new DesktopUiFactory(activity); mSetSystemTheme = setSystemTheme;
+    }
 
     View createPage(Runnable back) {
         if (mClosed) throw new IllegalStateException("Appearance settings are closed");
@@ -46,6 +53,7 @@ final class AppearanceSettings implements AutoCloseable {
         final LinearLayout page = new LinearLayout(mActivity);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(mUi.dp(16), mUi.dp(8), mUi.dp(16), mUi.dp(8));
+        systemThemeControls(page);
         final String workspace = AppearanceScopeBindings.find(mActivity);
         choice(page, R.string.appearance_scope, workspace == null ? new int[] {R.string.appearance_global}
                         : new int[] {R.string.appearance_global, R.string.appearance_workspace},
@@ -231,12 +239,36 @@ final class AppearanceSettings implements AutoCloseable {
 
     boolean isOpen() { return mPage != null; }
 
+    private void systemThemeControls(LinearLayout page) {
+        mSystemThemeChoice = choice(page, R.string.settings_system_theme,
+                new int[] {R.string.settings_system_theme_unchanged, R.string.settings_system_theme_light,
+                        R.string.settings_system_theme_dark},
+                () -> mSystemTheme.ordinal(), index -> {
+                    if (mSystemThemeAvailable) mSetSystemTheme.accept(DesktopSystemThemeSession.Preference.values()[index]);
+                });
+        mSystemThemeChoice.setEnabled(mSystemThemeAvailable);
+        final TextView summary = label(page, R.string.settings_system_theme_summary);
+        UiAppearance.text(summary, UiColor.MUTED);
+        summary.setTextSize(12);
+        summary.setPadding(0, 0, 0, mUi.dp(16));
+    }
+
+    void renderSystemTheme(DesktopSystemThemeSession.Preference theme, boolean available) {
+        mSystemTheme = theme;
+        mSystemThemeAvailable = available;
+        if (mSystemThemeChoice != null) {
+            mSystemThemeChoice.setSelection(theme.ordinal());
+            mSystemThemeChoice.setEnabled(available);
+        }
+    }
+
     void dismissPage() {
         invalidateFiles();
         dismissChildren();
         AppearanceStore.unlisten(mChanged);
         mRefreshers.clear();
         mPage = null;
+        mSystemThemeChoice = null;
     }
 
     private static int colorLabel(UiColor role) {
@@ -724,7 +756,7 @@ final class AppearanceSettings implements AutoCloseable {
         TextView text = new TextView(mActivity); text.setText(title); text.setTextSize(14);
         UiAppearance.text(text, UiColor.TEXT); page.addView(text); return text;
     }
-    private void choice(LinearLayout page, int title, int[] names, IntSupplier get, IntConsumer set) {
+    private Spinner choice(LinearLayout page, int title, int[] names, IntSupplier get, IntConsumer set) {
         label(page, title);
         final String[] labels = new String[names.length];
         for (int i = 0; i < names.length; i++) labels[i] = mActivity.getString(names[i]);
@@ -738,6 +770,7 @@ final class AppearanceSettings implements AutoCloseable {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
         page.addView(spinner, new LinearLayout.LayoutParams(-1, mUi.dp(48)));
+        return spinner;
     }
     private void slider(LinearLayout page, int title, int min, int max, IntSupplier get, IntConsumer set) {
         final TextView label = label(page, title);

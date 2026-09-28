@@ -708,7 +708,7 @@ runtime integration and are not distributed through the same release path.
   current float brightness before switching to manual mode. The controller
   restores automatic mode only when it owned the change and has not observed a
   subsequent user mode change. Manual brightness adjustments remain available.
-  **System theme during Desktop** in **Settings > Session** is a live, opt-in
+  **System theme during Desktop** in **Settings > Appearance** is a live, opt-in
   system-wide override (Do not change / Light / Dark), shared by all workspaces.
   `DesktopSystemThemeSession` journals the previous and applied policies before
   writing through `FrameworkSystemThemeApi`; schedule and bedtime remain distinct
@@ -1110,6 +1110,12 @@ runtime integration and are not distributed through the same release path.
   `UiAppearance` updates existing native Views and drawables. `PanelGeometry`
   resolves density-independent dimensions through `DesktopShellLayout`, retaining
   the existing focus, input and task-area owners. See [Native appearance](appearance.md).
+- `DesktopTaskDescription` publishes app-owned titles, icons and scoped palette
+  colors through the public Activity API. Appearance publication and host
+  attachment/layout callbacks refresh changed metadata only; weak ownership
+  does not retain closed Activities. `FrameworkTaskDescriptionApi` isolates the
+  public bitmap-icon API difference across supported Android versions. Native
+  captions remain WMShell-owned; third-party task descriptions are not modified.
 - Backdrop blur is an optional compositor effect behind a surface, clipped to its
   visible rounded region; native text, icons and other content remain sharp and
   opaque. Radius 0 disables blur, and density conversion caps the radius at 150

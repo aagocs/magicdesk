@@ -372,6 +372,10 @@ extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeDpi)(JNIEnv*, jclass, jlo
     lorieSetScreenDpi(((Connection*)ptr)->native, dpi);
 }
 
+extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeColorScheme)(JNIEnv*, jclass, jlong ptr, jint value) {
+    lorieSetScreenColorScheme(((Connection*)ptr)->native, value);
+}
+
 extern "C" JNIEXPORT void JNICALL JNI(X11Session_nativeConfirmWindowState)(JNIEnv*, jclass, jlong ptr,
         jint window, jint requestSerial, jboolean fullscreen) {
     lorieConfirmWindowState(((Connection*)ptr)->native, window, requestSerial, {.fullscreen = fullscreen != 0});

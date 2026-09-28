@@ -16,6 +16,7 @@ public final class AppearanceSettingsTest {
                     static void unlisten(Runnable listener) { listeners--; }
                 }
                 Object mPage=new Object();
+                Object mSystemThemeChoice=new Object();
                 Runnable mChanged=()->{};
                 List<Runnable> mRefreshers=new ArrayList<>(List.of(()->{}));
                 int generation, childClosures;
@@ -27,8 +28,46 @@ public final class AppearanceSettingsTest {
                     check(page.isOpen(), "page not open");
                     page.dismissPage();
                     check(!page.isOpen() && page.mRefreshers.isEmpty(), "page retained detached views");
+                    check(page.mSystemThemeChoice==null, "page retained system theme control");
                     check(page.generation==1 && page.childClosures==1, "page retained pending edits or modals");
                     check(AppearanceStore.listeners==0, "page retained appearance subscription");
+                }
+                """);
+    }
+
+    @Test public void systemThemeKeepsIndependentStateAndAccessAvailability() throws Exception {
+        String create = RuntimeSourceFixture.methods("AppearanceSettings", "createPage");
+        assertTrue(create.indexOf("systemThemeControls(page)") < create.indexOf("R.string.appearance_scope"));
+        assertFalse(RuntimeSourceFixture.methods("SettingsView", "create").contains("R.string.settings_system_theme"));
+        String controls = RuntimeSourceFixture.methods("AppearanceSettings", "systemThemeControls");
+        assertTrue(controls.contains("mSetSystemTheme.accept"));
+        assertTrue(controls.contains("if (mSystemThemeAvailable)"));
+        assertFalse(controls.contains("mWorkspaceKey"));
+        assertTrue(RuntimeSourceFixture.methods("SettingsActivity", "setSystemTheme")
+                .contains("saveSetting(MagicDeskSettings.setSystemTheme(theme))"));
+        RuntimeSourceFixture.verify("""
+                static class DesktopSystemThemeSession { enum Preference { UNCHANGED,LIGHT,DARK } }
+                static class Spinner {
+                    int selected; boolean enabled;
+                    void setSelection(int index) { selected=index; }
+                    void setEnabled(boolean value) { enabled=value; }
+                }
+                DesktopSystemThemeSession.Preference mSystemTheme;
+                boolean mSystemThemeAvailable;
+                Spinner mSystemThemeChoice;
+                """ + RuntimeSourceFixture.methods("AppearanceSettings", "renderSystemTheme") + """
+                public static void verify() {
+                    var page=new Fixture();
+                    page.renderSystemTheme(DesktopSystemThemeSession.Preference.LIGHT,false);
+                    check(page.mSystemTheme==DesktopSystemThemeSession.Preference.LIGHT && !page.mSystemThemeAvailable,
+                            "state before page creation was lost");
+                    page.mSystemThemeChoice=new Spinner();
+                    page.renderSystemTheme(DesktopSystemThemeSession.Preference.DARK,true);
+                    check(page.mSystemThemeChoice.selected==2 && page.mSystemThemeChoice.enabled,
+                            "saved preference or access grant not rendered");
+                    page.renderSystemTheme(DesktopSystemThemeSession.Preference.UNCHANGED,false);
+                    check(page.mSystemThemeChoice.selected==0 && !page.mSystemThemeChoice.enabled,
+                            "access loss left system theme editable");
                 }
                 """);
     }

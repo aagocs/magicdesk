@@ -31,6 +31,8 @@ guest_wayland=
 guest_session=
 guest_file_socket=
 guest_file_token=
+guest_appearance_socket=
+guest_appearance_token=
 if [ -n "${DISPLAY:-}" ]; then
     : "${MAGICDESK_X11_RUNTIME:?Missing X11 runtime}" "${MAGICDESK_X11_TMPDIR:?Missing X socket directory}"
     mkdir -p "$root/tmp/magicdesk-x11" "$root/tmp/.X11-unix"
@@ -56,10 +58,17 @@ if [ -n "$guest_session" ] && [ -n "${MAGICDESK_GUEST_FILES_HELPER:-}" ]; then
 fi
 
 # The guest chooses its login shell and home. No passwords or host loader variables cross the boundary.
+if [ -n "$guest_session" ] && [ -n "${MAGICDESK_APPEARANCE_HELPER:-}" ]; then
+    touch "$root/tmp/magicdesk-linux-settings"
+    mount --bind "$MAGICDESK_APPEARANCE_HELPER" "$root/tmp/magicdesk-linux-settings"
+    guest_appearance_socket=$MAGICDESK_APPEARANCE_SOCKET
+    guest_appearance_token=$MAGICDESK_APPEARANCE_TOKEN
+fi
 exec /system/bin/chroot "$root" /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
     TERM="${TERM:-xterm-256color}" LANG=C.UTF-8 DISPLAY="$guest_display" XAUTHORITY="$guest_auth" \
     WAYLAND_DISPLAY="$guest_wayland" XDG_SESSION_TYPE="$guest_session" \
     MAGICDESK_GUEST_FILES_SOCKET="$guest_file_socket" MAGICDESK_GUEST_FILES_TOKEN="$guest_file_token" \
+    MAGICDESK_APPEARANCE_SOCKET="$guest_appearance_socket" MAGICDESK_APPEARANCE_TOKEN="$guest_appearance_token" \
     /bin/sh -c '
         user=$1; work=$2; shift 2
         entry=$(awk -F: -v name="$user" '\''$1 == name { print $0; exit }'\'' /etc/passwd)

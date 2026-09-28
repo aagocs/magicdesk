@@ -268,7 +268,7 @@ brightness preserves the current brightness and still allows manual adjustment;
 automatic mode is restored after the last Desktop closes unless the user changed
 the mode meanwhile. These options are off by default.
 
-**System theme during Desktop** in the same section offers **Do not change**,
+**Settings > Appearance > System theme during Desktop** offers **Do not change**,
 **Light** and **Dark**. It applies immediately to the whole Android system while
 any Desktop is running. The previous theme returns after the last session closes,
 unless it was changed in Android settings meanwhile. This is a session override,

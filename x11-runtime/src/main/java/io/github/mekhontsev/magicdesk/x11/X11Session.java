@@ -65,6 +65,7 @@ public final class X11Session implements AutoCloseable {
     private final X11DataExchange dataExchange;
     private boolean windowsChanged;
     private int dpi;
+    private int colorScheme = -1;
     private int nextInspection;
     private int nextShell;
     private ShellBinding shell;
@@ -121,6 +122,7 @@ public final class X11Session implements AutoCloseable {
                 connected = true;
                 nativeData(nativeHandle, X11DataExchange.ENABLE, 0, 0, 0, 0, 0, 0, 0, "", -1);
                 if (dpi != 0) nativeDpi(nativeHandle, dpi);
+                if (colorScheme >= 0) nativeColorScheme(nativeHandle, colorScheme);
                 windows.clear();
                 nativeObserveWindows(nativeHandle);
                 for (Output output : outputs.values()) {
@@ -151,6 +153,16 @@ public final class X11Session implements AutoCloseable {
             if (dpi == value) return;
             dpi = value;
             if (connected) nativeDpi(nativeHandle, dpi);
+        });
+    }
+
+    /** Standard XSettings preference, published only while this server owns the selection. */
+    public void setColorScheme(int value) {
+        io.github.mekhontsev.magicdesk.hosted.HostedColorScheme.require(value);
+        post(() -> {
+            if (colorScheme == value) return;
+            colorScheme = value;
+            if (connected) nativeColorScheme(nativeHandle, value);
         });
     }
 
@@ -730,6 +742,7 @@ public final class X11Session implements AutoCloseable {
     private static native void nativeInspectWindow(long handle, int serial, int window, int limit);
     private static native void nativeCloseWindow(long handle, int window, boolean force);
     private static native void nativeDpi(long handle, int dpi);
+    private static native void nativeColorScheme(long handle, int value);
     private static native void nativeConfirmWindowState(long handle, int window, int requestSerial, boolean fullscreen);
     private static native void nativeConfirmMaximized(long handle, int window, int requestSerial, int axes);
     private static native void nativeConfirmInteraction(long handle, int window, int requestSerial, int flags);

@@ -102,6 +102,12 @@ directory. The Linux editor emits `X-MagicDesk-FileEnvironment`, an explicit
 environment/user identity retained in Recent and used to isolate launch correlation.
 This is a MagicDesk desktop-entry extension, not a freedesktop standard key.
 
+Individual-application recipes also use the [Linux appearance](linux-appearance.md)
+helper. When `MAGICDESK_APPEARANCE_HELPER` is present, bind it at
+`/tmp/magicdesk-linux-settings` and forward `MAGICDESK_APPEARANCE_SOCKET` and
+`MAGICDESK_APPEARANCE_TOKEN` to the guest command. Whole Linux desktop recipes
+keep their own settings provider.
+
 Wayland scripts inherit `WAYLAND_DISPLAY` and `MAGICDESK_WAYLAND_RUNTIME` and
 must expose the corresponding socket at the absolute guest `WAYLAND_DISPLAY`.
 Named sockets are available through Termux or the explicitly selected root

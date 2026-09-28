@@ -49,6 +49,7 @@ public final class DeviceSetupActivity extends Activity {
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DesktopTaskDescription.apply(this, R.string.action_device_setup, R.drawable.ic_magicdesk);
         if (!RuntimeCapabilities.allowsDesktop(android.os.Build.VERSION.SDK_INT)) {
             android.widget.Toast.makeText(this, RuntimeCapabilities.supportsDesktop(android.os.Build.VERSION.SDK_INT)
                     ? R.string.limit_desktop_disabled : R.string.capability_android_15_required,

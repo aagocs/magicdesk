@@ -115,6 +115,42 @@ def processSignalTask = registerNativeHelper(
 def guestFilesTask = registerNativeHelper(
         'buildMagicDeskGuestFiles', 'magicdesk_guest_files.c', 'libmagicdesk_guest_files.so', true)
 
+def settingsBuild = layout.buildDirectory.dir('linuxSettings').get().asFile
+def settingsLicenses = layout.buildDirectory.dir('linuxSettingsLicenses').get().asFile
+android.sourceSets.main.assets.srcDir settingsLicenses
+def configureSettings = tasks.register('configureLinuxSettings', Exec) {
+    inputs.files rootProject.fileTree('native/linux-settings')
+    outputs.file new File(settingsBuild, 'build.ninja')
+    doFirst {
+        def compiler = resolveNativeCompilerCommand()
+        def localMeson = rootProject.file('build/wayland-tools/bin/meson')
+        def meson = providers.gradleProperty('magicDeskMeson').orElse(localMeson.isFile() ? localMeson.path : 'meson').get()
+        def target = termuxCompiler?.isFile() ? [
+                "-DCMAKE_C_COMPILER=${compiler[0]}", "-DCMAKE_C_FLAGS=${compiler[1]}",
+                '-DCMAKE_EXE_LINKER_FLAGS=-fno-termux-rpath'
+        ] : [
+                "-DCMAKE_TOOLCHAIN_FILE=${findNdkHomes()[0]}/build/cmake/android.toolchain.cmake",
+                '-DANDROID_ABI=arm64-v8a', "-DANDROID_PLATFORM=android-${android.defaultConfig.minSdk}"
+        ]
+        commandLine(['cmake', '-S', rootProject.file('native/linux-settings'), '-B', settingsBuild,
+                '-G', 'Ninja', "-DMESON=${meson}"] + target)
+    }
+}
+def buildSettings = tasks.register('buildLinuxSettings', Exec) {
+    dependsOn configureSettings
+    commandLine 'cmake', '--build', settingsBuild, '--parallel', '2'
+}
+def packageSettings = tasks.register('packageLinuxSettings', Copy) {
+    dependsOn buildSettings
+    from new File(settingsBuild, 'libmagicdesk_linux_settings.so')
+    into new File(nativeOutputRoot, 'arm64-v8a')
+}
+def packageSettingsLicenses = tasks.register('packageLinuxSettingsLicenses', Sync) {
+    dependsOn buildSettings
+    from new File(settingsBuild, 'prefix/licenses/dbus')
+    into new File(settingsLicenses, 'licenses/dbus')
+}
+
 tasks.named('preBuild').configure {
-    dependsOn uinputTask, ptyTask, serviceTask, processSignalTask, guestFilesTask
+    dependsOn uinputTask, ptyTask, serviceTask, processSignalTask, guestFilesTask, packageSettings, packageSettingsLicenses
 }

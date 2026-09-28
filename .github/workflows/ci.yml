@@ -313,8 +313,11 @@ jobs:
           printf 'MAGICDESK_TEST_BASH=%s\n' "$(cygpath -w /usr/bin/bash.exe)" >> "$GITHUB_ENV"
 
       - name: Verify Windows build
+        # libdbus is cross-built as a client library; no message-bus executable is packaged.
         shell: pwsh
-        run: .\gradlew.bat --no-daemon "-PmagicDeskWaylandRuntime=$env:RUNNER_TEMP/wayland-runtime" verifyDevelopment
+        run: |
+          python -m pip install meson==1.9.1 ninja
+          .\gradlew.bat --no-daemon "-PmagicDeskWaylandRuntime=$env:RUNNER_TEMP/wayland-runtime" verifyDevelopment
 
       - name: Verify independent X11 host
         shell: pwsh

@@ -31,6 +31,7 @@ public final class CompatibilityOnboardingActivity extends Activity {
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DesktopTaskDescription.apply(this, R.string.onboarding_title, R.drawable.ic_magicdesk);
         setContentView(createContentView());
         load(CompatibilityOnboardingStore.load(this).target);
     }

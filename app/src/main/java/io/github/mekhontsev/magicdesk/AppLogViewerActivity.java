@@ -1,7 +1,6 @@
 package io.github.mekhontsev.magicdesk;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -84,10 +83,8 @@ public final class AppLogViewerActivity extends Activity
         if (mLabel == null || mLabel.isEmpty()) {
             mLabel = mPackageName;
         }
-        setTaskDescription(new ActivityManager.TaskDescription.Builder()
-                .setLabel(getString(R.string.app_logs_title, mLabel))
-                .setIcon(R.drawable.ic_magicdesk)
-                .build());
+        DesktopTaskDescription.apply(this, getString(R.string.app_logs_title, mLabel),
+                R.drawable.ic_magicdesk);
         BuiltInWindowRegistry.register(this);
         setContentView(createContent());
         startStream();

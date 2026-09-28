@@ -41,6 +41,8 @@ public final class WaylandServer extends IWaylandServer.Stub {
     private long handle, lastOutput, lastClient, shellRevision;
     private ParcelFileDescriptor eventDescriptor;
     private final HostedFileExchange contentFiles;
+    private final io.github.mekhontsev.magicdesk.hosted.HostedAppearanceBridge appearance =
+            io.github.mekhontsev.magicdesk.hosted.HostedAppearanceBridge.fromEnvironment();
 
     private static final class Output {
         final long id, window, handle;
@@ -498,7 +500,13 @@ public final class WaylandServer extends IWaylandServer.Stub {
 
     @Override public void stop() { lifecycle.checkCaller(Binder.getCallingUid()); requestStop(); }
 
+    @Override public void setColorScheme(int value) {
+        lifecycle.checkReady(Binder.getCallingUid());
+        if (appearance != null) appearance.update(value);
+    }
+
     private void requestStop() {
+        if (appearance != null) appearance.close();
         handler.post(() -> {
             HostedServerLifecycle.Stop action = lifecycle.stop();
             if (action == HostedServerLifecycle.Stop.EXIT) System.exit(0);

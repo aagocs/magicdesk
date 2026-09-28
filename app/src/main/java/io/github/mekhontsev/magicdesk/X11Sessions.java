@@ -520,8 +520,18 @@ final class X11Sessions {
                 }
                 changed();
                 if (!application) recordUse();
-                if (!startupCommand.isBlank()) MAIN.post(() -> {
+                MAIN.post(() -> {
                     if (stopped()) return;
+                    if (application) resources.reserve().attach(new LinuxAppearance(context, value -> {
+                        X11Session connection = renderer;
+                        if (stopped() || connection == null) return;
+                        connection.setColorScheme(value);
+                        try { process.setColorScheme(value); }
+                        catch (RemoteException failure) {
+                            android.util.Log.w("LinuxAppearance", "X11 settings receiver unavailable", failure);
+                        }
+                    }));
+                    if (startupCommand.isBlank()) return;
                     if (application) {
                         String expected = recipe == null || recipe.shortcut().graphics == null ? "" : recipe.shortcut().graphics.startupClass();
                         LAUNCHES.begin(id(), launchScope(), expected);

@@ -6,6 +6,7 @@ interface IX11Server {
     void retain(IBinder owner);
     ParcelFileDescriptor openConnection();
     oneway void stop();
+    oneway void setColorScheme(int value);
     ParcelFileDescriptor openContentFile(String uri);
     String importContentFile(in ParcelFileDescriptor source, String name);
 }

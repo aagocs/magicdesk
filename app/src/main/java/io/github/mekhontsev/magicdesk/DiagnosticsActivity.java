@@ -71,6 +71,7 @@ public final class DiagnosticsActivity extends Activity {
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DesktopTaskDescription.apply(this, R.string.diagnostics_title, R.drawable.ic_magicdesk);
         mObservedRunId = savedInstanceState == null ? 0L
                 : savedInstanceState.getLong("observedRunId");
         setContentView(createContentView());

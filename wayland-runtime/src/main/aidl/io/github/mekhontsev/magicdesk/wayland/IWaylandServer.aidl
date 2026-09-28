@@ -30,6 +30,7 @@ interface IWaylandServer {
     @nullable ParcelFileDescriptor openContentFile(String uri);
     String importContentFile(in ParcelFileDescriptor file, String name);
     oneway void stop();
+    oneway void setColorScheme(int value);
     oneway void openClient(long request);
     oneway void setShellOutput(long owner, int width, int height);
     oneway void releaseShell(long owner);

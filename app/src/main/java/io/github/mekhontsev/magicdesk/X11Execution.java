@@ -34,7 +34,8 @@ final class X11Execution {
                 : keyboardSource.isEmpty() ? prefix + "/share/X11/xkb" : keyboardSource;
         return new X11LaunchSpec(context.getApplicationInfo().sourceDir, context.getApplicationInfo().nativeLibraryDir,
                 context.getPackageName(), serverPackage, parent, commands.termux == null ? "" : prefix + "/tmp",
-                keyboard, commands.termux == null, dpi, application, fileEnvironment);
+                keyboard, commands.termux == null, dpi, application, fileEnvironment,
+                commands.termux == null ? "/system/bin/sh" : prefix + "/bin/sh", LinuxAppearance.read(context));
     }
 
     Closeable startServer(X11LaunchSpec spec, CommandExecution.Completion completion) throws IOException {

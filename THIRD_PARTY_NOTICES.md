@@ -22,6 +22,17 @@ selection, and rendering; it does not package Termux's native `libtermux.so`.
 - License: Apache License 2.0; see
   [`third_party/termux-terminal-emulator/LICENSE`](third_party/termux-terminal-emulator/LICENSE)
 
+## D-Bus Client Library
+
+The Linux appearance helper statically links libdbus 1.16.2 from unmodified,
+hash-verified upstream sources. The APK includes neither `dbus-daemon` nor the
+D-Bus command-line tools. Copyright and license texts are packaged under
+`assets/licenses/dbus`.
+
+- Source: https://dbus.freedesktop.org/releases/dbus/dbus-1.16.2.tar.xz
+- License: AFL-2.1 OR GPL-2.0-or-later; MagicDesk uses the GPL option.
+- Build and adapter: [`native/linux-settings`](native/linux-settings).
+
 ## Embedded Termux:X11
 
 MagicDesk embeds the native X server and protocol/graphics adapters from its

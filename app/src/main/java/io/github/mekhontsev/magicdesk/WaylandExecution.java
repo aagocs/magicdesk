@@ -25,12 +25,17 @@ final class WaylandExecution {
     private final String executorPackage;
     private final HostedGuestFiles guestFiles;
     private final String fileEnvironment;
+    private final LinuxAppearanceLaunch appearance;
 
-    WaylandExecution(Context context, DesktopExecBackend backend, String keyboardDirectory, String fileEnvironment) {
+    private String shell() { return commands.termux == null ? "/system/bin/sh" : new java.io.File(commands.home).getParent() + "/usr/bin/sh"; }
+
+    WaylandExecution(Context context, DesktopExecBackend backend, String keyboardDirectory, String fileEnvironment, boolean desktop) {
         this.context = context.getApplicationContext();
         commands = new CommandExecution(context, backend);
         this.fileEnvironment = fileEnvironment;
         guestFiles = new HostedGuestFiles(context.getApplicationInfo().nativeLibraryDir, !fileEnvironment.isEmpty());
+        appearance = new LinuxAppearanceLaunch(context.getApplicationInfo().nativeLibraryDir, !desktop,
+                !fileEnvironment.isEmpty(), LinuxAppearance.read(context));
         serverUid = commands.termux == null ? Process.myUid() : commands.uid;
         executorPackage = commands.termux == null ? context.getPackageName() : commands.termux.packageName;
         keyboard = DesktopExecWorkingDirectory.normalize(keyboardDirectory);
@@ -58,6 +63,7 @@ final class WaylandExecution {
         environment.put("XDG_RUNTIME_DIR", directory);
         if (commands.uid == 0) environment.put("MAGICDESK_WAYLAND_GUEST_SOCKET", "1");
         guestFiles.configure(environment);
+        appearance.configure(environment);
         if (!fileEnvironment.isEmpty()) environment.put("MAGICDESK_WAYLAND_GUEST_CONTENT", "/tmp/magicdesk-wayland/content");
         environment.put("XKB_CONFIG_ROOT", commands.termux == null ? HostedKeyboardData.prepare(context, keyboard)
                 : keyboard.isEmpty() ? new java.io.File(commands.home).getParent() + "/usr/share/X11/xkb" : keyboard);
@@ -92,7 +98,8 @@ final class WaylandExecution {
         String identity = commands.termux == null ? "com.android.shell" : commands.termux.packageName;
         String shell = commands.termux == null ? "/system/bin/sh" : new java.io.File(commands.home).getParent() + "/usr/bin/sh";
         // WAYLAND_SOCKET is assigned only after app_process hands the connection to the native helper.
-        String script = "unset DISPLAY WAYLAND_DISPLAY\nexport XDG_SESSION_TYPE=wayland\n" + command;
+        String script = "unset DISPLAY WAYLAND_DISPLAY\nexport XDG_SESSION_TYPE=wayland"
+                + appearance.exports() + "\n" + appearance.command(command, shell);
         String invocation = "env -u LD_PRELOAD -u LD_LIBRARY_PATH CLASSPATH=" + q(info.sourceDir) + " "
                 + String.join(" ", handoff.arguments(identity, info.nativeLibraryDir + "/libmagicdesk_wayland_client.so",
                         shell, "-c", script).stream().map(WaylandExecution::q).toList());
@@ -116,7 +123,7 @@ final class WaylandExecution {
             throw new IllegalArgumentException("No accessible Wayland socket");
         String script = "unset DISPLAY WAYLAND_SOCKET\nexport XDG_SESSION_TYPE=wayland XDG_RUNTIME_DIR=" + q(directory)
                 + " WAYLAND_DISPLAY=" + q(socket) + " MAGICDESK_WAYLAND_RUNTIME=" + q(directory)
-                + guestFiles.exports() + "\n" + command;
+                + guestFiles.exports() + appearance.exports() + "\n" + appearance.command(command, shell());
         return commands.start(script, workingDirectory, id + "-client", null, completion);
     }
 

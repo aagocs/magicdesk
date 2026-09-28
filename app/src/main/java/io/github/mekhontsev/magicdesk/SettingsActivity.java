@@ -31,7 +31,7 @@ public final class SettingsActivity extends Activity
     private final android.window.OnBackInvokedCallback mAppearanceBack = this::closeAppearance;
     private boolean mSystemDesktopModeBusy;
     private final ShellAccess.StateListener mShellStateListener = state ->
-            runOnUiThread(this::renderSystemDesktopMode);
+            runOnUiThread(this::render);
 
     static Intent createIntent(final Context context) {
         return new Intent(context, SettingsActivity.class);
@@ -50,7 +50,7 @@ public final class SettingsActivity extends Activity
                 R.mipmap.ic_launcher);
         BuiltInWindowRegistry.register(this);
         mView = new SettingsView(this, this);
-        mAppearance = new AppearanceSettings(this);
+        mAppearance = new AppearanceSettings(this, this::setSystemTheme);
         mSettingsContent = mView.create();
         setContentView(mSettingsContent);
         ShellAccess.addStateListener(mShellStateListener);
@@ -155,18 +155,8 @@ public final class SettingsActivity extends Activity
                 .setDisableAdaptiveBrightness(enabled));
     }
 
-    @Override public void configureSystemTheme() {
-        final DesktopSystemThemeSession.Preference[] values = DesktopSystemThemeSession.Preference.values();
-        final String[] labels = new String[values.length];
-        for (int index = 0; index < values.length; index++) labels[index] = getString(SettingsView.systemThemeLabel(values[index]));
-        UiDialogs.builder(this)
-                .setTitle(R.string.settings_system_theme)
-                .setSingleChoiceItems(labels, MagicDeskSettings.load().systemTheme.ordinal(), (dialog, index) -> {
-                    dialog.dismiss();
-                    saveSetting(MagicDeskSettings.setSystemTheme(values[index]));
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+    private void setSystemTheme(DesktopSystemThemeSession.Preference theme) {
+        saveSetting(MagicDeskSettings.setSystemTheme(theme));
     }
 
     @Override
@@ -572,11 +562,15 @@ public final class SettingsActivity extends Activity
     }
 
     private void render() {
-        if (mView != null) {
+        if (mView != null && !isFinishing() && !isDestroyed()) {
+            final MagicDeskSettings.Values settings = ShellAccess.isReady() ? MagicDeskSettings.load() : null;
             mView.render(
-                    ShellAccess.isReady() ? MagicDeskSettings.load() : null,
+                    settings,
                     MagicDeskMcpPreferences.load(this),
                     MagicDeskMcpRuntime.snapshot());
+            mAppearance.renderSystemTheme(settings == null ? DesktopSystemThemeSession.Preference.UNCHANGED
+                            : settings.systemTheme,
+                    settings != null && RuntimeCapabilities.allowsDesktop(android.os.Build.VERSION.SDK_INT));
             renderSystemDesktopMode();
         }
     }

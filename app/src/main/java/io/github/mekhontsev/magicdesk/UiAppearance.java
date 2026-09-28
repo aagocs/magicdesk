@@ -14,7 +14,7 @@ import java.util.WeakHashMap;
 
 /** Live native View styling. Weak registrations retain neither Activities nor detached tools. */
 public final class UiAppearance {
-    private enum Property { TEXT, HINT, BACKGROUND, BACKGROUND_TINT, IMAGE, COMPOUND, BUTTON, PROGRESS }
+    private enum Property { TEXT, HINT, BACKGROUND, BACKGROUND_TINT, IMAGE, COMPOUND, BUTTON, CHECK_MARK, PROGRESS }
     @FunctionalInterface private interface Style { void apply(View view, ShellAppearance theme); }
     private static final WeakHashMap<Binding, Boolean> BINDINGS = new WeakHashMap<>();
     private static final WeakHashMap<Paint, Boolean> PAINTS = new WeakHashMap<>();
@@ -89,7 +89,26 @@ public final class UiAppearance {
         dialogContents(root);
     }
     private static void dialogContents(View view) {
-        if (view instanceof TextView text && view.getTag(R.id.appearance_binding) == null) text(text, UiColor.TEXT);
+        if (view instanceof TextView text && view.getTag(R.id.appearance_binding) == null) textStates(text, UiColor.TEXT);
+        if (view instanceof android.widget.CheckedTextView) {
+            bind(view, Property.CHECK_MARK, (v, t) -> {
+                var tint = new ColorStateList(new int[][] {new int[] {-android.R.attr.state_enabled},
+                            new int[] {android.R.attr.state_checked}, new int[0]},
+                            new int[] {t.palette().color(UiColor.MUTED), t.palette().color(UiColor.ACCENT),
+                                    t.palette().color(UiColor.TEXT)});
+                var choice = (android.widget.CheckedTextView) v;
+                choice.setCheckMarkTintList(tint);
+                // Platform choice layouts can put the indicator in drawableStart instead of checkMark.
+                choice.setCompoundDrawableTintList(tint);
+            });
+        }
+        // Adapter rows are materialized after dialog creation, and again as the list scrolls.
+        if (view instanceof android.widget.AbsListView list) {
+            list.setOnHierarchyChangeListener(new android.view.ViewGroup.OnHierarchyChangeListener() {
+                @Override public void onChildViewAdded(View parent, View child) { dialogContents(child); }
+                @Override public void onChildViewRemoved(View parent, View child) { }
+            });
+        }
         if (view instanceof android.view.ViewGroup group) {
             for (int i = 0; i < group.getChildCount(); i++) dialogContents(group.getChildAt(i));
         }
@@ -115,6 +134,7 @@ public final class UiAppearance {
         binding.applyTypography(appearance.theme(), appearance.assets());
     }
     static void refresh() {
+        DesktopTaskDescription.refresh();
         UiMotion.refresh();
         for (var span : new ArrayList<>(SPANS.keySet())) span.refresh();
         for (var control : new ArrayList<>(FEEDBACK.keySet())) control.refresh();

@@ -441,6 +441,15 @@ public final class WaylandSession implements AutoCloseable {
         closeWindow(window, false);
     }
 
+    public void setColorScheme(int value) {
+        io.github.mekhontsev.magicdesk.hosted.HostedColorScheme.require(value);
+        handler.post(() -> {
+            if (closed.get()) return;
+            try { server.setColorScheme(value); }
+            catch (RemoteException error) { android.util.Log.w("LinuxAppearance", "Wayland settings receiver unavailable", error); }
+        });
+    }
+
     public void closeWindow(long window, boolean force) {
         handler.post(() -> { if (!closed.get()) remote(() -> server.closeWindow(window, force)); });
     }

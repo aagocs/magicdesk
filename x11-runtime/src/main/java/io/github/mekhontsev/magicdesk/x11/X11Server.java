@@ -21,6 +21,8 @@ public final class X11Server extends IX11Server.Stub {
                     "1".equals(System.getenv("MAGICDESK_X11_SHARED_FILES")) ? "/tmp/magicdesk-x11/content" : null,
                     System.getenv("MAGICDESK_GUEST_FILES_SOCKET"), System.getenv("MAGICDESK_GUEST_FILES_TOKEN"));
     private final Context context;
+    private final io.github.mekhontsev.magicdesk.hosted.HostedAppearanceBridge appearance =
+            io.github.mekhontsev.magicdesk.hosted.HostedAppearanceBridge.fromEnvironment();
     private final String hostPackage, session, token;
     private final int hostUid;
     private final String[] arguments;
@@ -79,12 +81,18 @@ public final class X11Server extends IX11Server.Stub {
     }
 
     private void requestStop() {
+        if (appearance != null) appearance.close();
         files.close();
         handler.post(() -> {
             HostedServerLifecycle.Stop action = lifecycle.stop();
             if (action == HostedServerLifecycle.Stop.EXIT) System.exit(0);
             if (action == HostedServerLifecycle.Stop.NATIVE) nativeStop();
         });
+    }
+
+    @Override public void setColorScheme(int value) {
+        lifecycle.checkReady(Binder.getCallingUid());
+        if (appearance != null) appearance.update(value);
     }
 
     // Called once at ddxReady, after display allocation and input initialization.

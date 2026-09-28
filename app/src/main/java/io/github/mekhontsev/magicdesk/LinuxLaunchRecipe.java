@@ -71,6 +71,10 @@ final class LinuxLaunchRecipe {
             host.append(" --bind \"$MAGICDESK_GUEST_FILES_HELPER:/tmp/magicdesk-guest-files\""
                     + " --env \"MAGICDESK_GUEST_FILES_SOCKET=$MAGICDESK_GUEST_FILES_SOCKET\""
                     + " --env \"MAGICDESK_GUEST_FILES_TOKEN=$MAGICDESK_GUEST_FILES_TOKEN\"");
+            if (presentation == Presentation.APPLICATION) host.append(
+                    " --bind \"$MAGICDESK_APPEARANCE_HELPER:/tmp/magicdesk-linux-settings\""
+                    + " --env \"MAGICDESK_APPEARANCE_SOCKET=$MAGICDESK_APPEARANCE_SOCKET\""
+                    + " --env \"MAGICDESK_APPEARANCE_TOKEN=$MAGICDESK_APPEARANCE_TOKEN\"");
         }
         if (proot) host.append(' ').append(q(environment.target()));
         if (!command.isEmpty()) {
@@ -80,7 +84,9 @@ final class LinuxLaunchRecipe {
                 guest = "set -eu; umask 077; XDG_RUNTIME_DIR=$(mktemp -d /tmp/magicdesk-runtime.XXXXXX); "
                         + "export XDG_RUNTIME_DIR XDG_SESSION_TYPE=" + protocol.wireName + "; "
                         + "trap 'rm -rf -- \"$XDG_RUNTIME_DIR\"' EXIT; "
-                        + "dbus-run-session -- /bin/sh -lc " + q(command);
+                        + "dbus-run-session -- "
+                        + (presentation == Presentation.APPLICATION ? "/tmp/magicdesk-linux-settings -- " : "")
+                        + "/bin/sh -lc " + q(command);
             }
             host.append(graphical ? " -- /tmp/magicdesk-guest-files -- /bin/sh -lc " : " -- /bin/sh -lc ").append(q(guest));
         }
