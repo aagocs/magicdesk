@@ -83,7 +83,7 @@ final class AppearanceSettings implements AutoCloseable {
             final View swatch = new View(mActivity);
             swatch.setBackground(mUi.rounded(role, mUi.dp(2), UiColor.MUTED));
             mRefreshers.add(() -> swatch.setBackgroundTintList(android.content.res.ColorStateList.valueOf(current().palette().color(role))));
-            swatch.setContentDescription(role.name().toLowerCase(Locale.ROOT));
+            swatch.setContentDescription(mActivity.getString(colorLabel(role)));
             swatch.setTooltipText(swatch.getContentDescription());
             swatch.setFocusable(true);
             swatch.setOnClickListener(v -> editColor(role));
@@ -220,6 +220,22 @@ final class AppearanceSettings implements AutoCloseable {
         UiAppearance.dialog(mDialog, mActivity);
     }
 
+    private static int colorLabel(UiColor role) {
+        return switch (role) {
+            case BACKGROUND -> R.string.appearance_color_background;
+            case PANEL -> R.string.appearance_color_panel;
+            case SURFACE -> R.string.appearance_color_surface;
+            case TEXT -> R.string.appearance_color_text;
+            case MUTED -> R.string.appearance_color_muted;
+            case ACCENT -> R.string.appearance_color_accent;
+            case DANGER -> R.string.appearance_color_danger;
+            case ATTENTION -> R.string.appearance_color_attention;
+            case HOVER -> R.string.appearance_color_hover;
+            case DESKTOP_TEXT -> R.string.appearance_color_desktop_text;
+            case TRANSPARENT -> R.string.appearance_color_transparent;
+        };
+    }
+
     private void editColor(UiColor role) {
         final EditTarget target = target();
         final EditText text = new EditText(mActivity);
@@ -227,7 +243,7 @@ final class AppearanceSettings implements AutoCloseable {
         text.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(7)});
         text.setText(String.format(Locale.ROOT, "#%06X", current().palette().color(role) & 0xffffff));
         UiAppearance.text(text, UiColor.TEXT);
-        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(role.name().toLowerCase(Locale.ROOT)).setView(text)
+        final AlertDialog dialog = new AlertDialog.Builder(mActivity).setTitle(colorLabel(role)).setView(text)
                 .setPositiveButton(android.R.string.ok, null).setNegativeButton(android.R.string.cancel, null).create();
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             if (!isCurrent(target)) { text.setError(mActivity.getString(R.string.appearance_changed)); return; }

@@ -1,4 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="settings_language">App language</string>
+    <string name="settings_language_system">System default</string>
     <string name="graphics_nested_desktop">Nested Linux desktop</string>
     <string name="graphics_whole_desktop">Whole Linux desktop</string>
     <string name="display_always_unlocked">Available while phone is locked</string>
@@ -480,7 +482,7 @@
     <string name="charge_separation_enabled_description">Bypass charging is enabled</string>
     <string name="charge_separation_disabled_description">Bypass charging is disabled</string>
     <string name="charge_separation_power_required">Connect a charger to enable bypass charging</string>
-    <string name="charge_separation_battery_required">Battery must be at least 20% to enable bypass charging</string>
+    <string name="charge_separation_battery_required" formatted="false">Battery must be at least 20% to enable bypass charging</string>
     <string name="charge_separation_privileged_required">Bypass charging requires the privileged service</string>
     <string name="status_charge_separation_enabled">Bypass charging enabled</string>
     <string name="status_charge_separation_disabled">Bypass charging disabled</string>

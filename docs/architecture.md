@@ -656,6 +656,15 @@ runtime integration and are not distributed through the same release path.
   visual language on phone and desktop. The phone opens it normally, while the
   desktop task controller launches the same Activity in a dedicated reusable
   freeform task.
+- UI translations are standard Android string, array and plural resources.
+  `locales_config.xml` declares supported languages; `SettingsActivity` reads
+  that declaration and uses the public `LocaleManager` for the per-app language
+  preference. An empty locale list follows the system. Android owns persistence,
+  resource selection and Activity recreation; retained terminal sessions keep
+  their PTYs across that recreation. `ApplicationCatalog` invalidates Android
+  labels on locale changes, and the runtime service refreshes its notification.
+  Linux process environments, diagnostic report formats and automation
+  identifiers do not depend on the UI language.
 - Diagnostics follows that same built-in-window path on a desktop. It therefore
   cannot replace the desktop host Activity or hide every application
   merely because a report was opened. Phone-side callers may still open the

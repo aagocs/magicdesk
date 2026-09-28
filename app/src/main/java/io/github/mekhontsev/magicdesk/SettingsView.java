@@ -18,6 +18,7 @@ import android.widget.TextView;
 final class SettingsView {
     interface Actions {
         void configureAppearance();
+        void configureLanguage();
         void setTaskbarAutoHide(boolean enabled);
 
         void setKeepDesktopAwake(boolean enabled);
@@ -136,6 +137,7 @@ final class SettingsView {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         addAction(content, R.drawable.ic_quick_controls, R.string.appearance_title, mActions::configureAppearance);
+        addAction(content, R.drawable.ic_keyboard, R.string.settings_language, mActions::configureLanguage);
         addSection(content, R.string.settings_section_desktop);
         mDesktopSettingsStatus = mUi.sectionTitle(R.string.capability_access_required);
         content.addView(mDesktopSettingsStatus);

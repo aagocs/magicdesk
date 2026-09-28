@@ -217,6 +217,20 @@ transactions in their existing executors. Extend `PlatformSourceIsolationTest`
 when adding a new vendor package so vendor identifiers cannot leak into shared
 runtime code.
 
+## Translations
+
+English UI resources in `app/src/main/res/values` are the source and fallback.
+Keep translations in Android `values-<locale>` resource directories and declare
+supported language tags in `app/src/main/res/xml/locales_config.xml`. Keep
+resource names, format argument positions/types and array order unchanged;
+provide the locale's plural forms. Use resource labels for visible enum choices,
+not translated protocol keys. Logs, diagnostic reports and automation identifiers
+remain in English. Linux application languages are independent of the Android UI.
+
+Run `LocalizationResourcesTest`, `:app:lintDebug` and `:app:assembleDebug` after
+translation changes. Check long labels and language switching in native windows;
+changing the app language must not end a retained terminal session.
+
 ## Licensing
 
 MagicDesk is distributed under GNU GPL version 3 (`GPL-3.0-only`).

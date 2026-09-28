@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -793,6 +794,13 @@ public final class MagicDeskRuntimeService extends Service
         mDesktopTaskRuntime.reconcile(
                 DesktopRuntimeBridge.getWorkspaces(),
                 ShellAccess.isReady());
+    }
+
+    @Override
+    public void onConfigurationChanged(final Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        createNotificationChannel();
+        updateNotification();
     }
 
     private void updateNotification() {

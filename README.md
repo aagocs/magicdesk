@@ -169,6 +169,13 @@ app outside MagicDesk's session.
 
 ## Native Appearance
 
+MagicDesk's interface supports English, Russian, Simplified Chinese, Spanish,
+German, Japanese, Brazilian Portuguese and French. It follows the system language
+by default; **Settings > App language** selects a language for MagicDesk only,
+using Android's per-app language preference. This does not change Linux
+applications' language. Diagnostic reports and automation identifiers stay in
+English.
+
 **Settings > Appearance** customizes MagicDesk's own interface. Choose Workbench,
 Glass Dock, Two Panels or Contours, then keep or cancel the live preview. Styles
 apply to open panels and built-in tools without restarting them; settings and

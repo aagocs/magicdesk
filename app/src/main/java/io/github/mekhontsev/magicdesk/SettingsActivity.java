@@ -3,16 +3,24 @@ package io.github.mekhontsev.magicdesk;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
+import android.app.LocaleConfig;
+import android.app.LocaleManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.LocaleList;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 
 public final class SettingsActivity extends Activity
         implements SettingsView.Actions {
@@ -65,6 +73,36 @@ public final class SettingsActivity extends Activity
     }
 
     @Override public void configureAppearance() { mAppearance.show(); }
+
+    @Override public void configureLanguage() {
+        final LocaleManager manager = getSystemService(LocaleManager.class);
+        final LocaleList configured = new LocaleConfig(this).getSupportedLocales();
+        final List<Locale> supported = new ArrayList<>();
+        for (int index = 0; index < configured.size(); index++) supported.add(configured.get(index));
+        // LocaleConfig does not guarantee ordering; keep native names in a stable order.
+        supported.sort(Comparator.comparing(locale -> locale.getDisplayName(locale),
+                Collator.getInstance(Locale.ROOT)));
+        final LocaleList selected = manager.getApplicationLocales();
+        final String[] labels = new String[supported.size() + 1];
+        labels[0] = getString(R.string.settings_language_system);
+        int checked = 0;
+        for (int index = 0; index < supported.size(); index++) {
+            final Locale locale = supported.get(index);
+            labels[index + 1] = locale.getDisplayName(locale);
+            if (!selected.isEmpty() && LocaleList.matchesLanguageAndScript(locale, selected.get(0))) {
+                checked = index + 1;
+            }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_language)
+                .setSingleChoiceItems(labels, checked, (dialog, index) -> {
+                    dialog.dismiss();
+                    manager.setApplicationLocales(index == 0
+                            ? LocaleList.getEmptyLocaleList() : new LocaleList(supported.get(index - 1)));
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         if (mAppearance != null && mAppearance.onResult(request, result, data)) return;
