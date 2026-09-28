@@ -2324,12 +2324,6 @@ public abstract class DesktopShellActivity extends Activity
         return mTaskbarVisible;
     }
 
-    void setTaskbarAvailable(final boolean available) {
-        if (mTaskbarRevealController != null) {
-            mTaskbarRevealController.setAvailable(available);
-        }
-    }
-
     void refreshSettings() {
         final MagicDeskSettings.Values settings = MagicDeskSettings.load();
         mTaskbarAutoHide = settings.taskbarAutoHide;

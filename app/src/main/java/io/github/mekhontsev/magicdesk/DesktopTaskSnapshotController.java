@@ -47,26 +47,11 @@ final class DesktopTaskSnapshotController {
                 findActiveTask(desktopSnapshot.tasks);
         final TaskRepository.TaskEntry displayActiveTask =
                 findActiveTask(snapshot.tasks);
-        final boolean taskbarAvailable = isDesktopChromeAvailable(
-                snapshot.tasks, desktopSnapshot.tasks);
-        // The desktop chrome host remains available for edge reveal during an
-        // active session. Policy visibility instead follows the physical
-        // workspace: treating session foreground as HOME foreground would
-        // keep the taskbar pinned over a selected fullscreen task.
-        final boolean desktopHostActive =
-                isDesktopHostForeground(snapshot.tasks);
-        final boolean hasVisibleFreeformTask = hasVisibleFreeformTask(
-                snapshot.tasks);
-        final boolean hasVisibleFullscreenTask = hasVisibleFullscreenTask(
-                snapshot.tasks);
         final boolean taskbarVisible = mSystemDialogHold.applySnapshot(
                 DesktopTaskbarVisibilityPolicy.isVisible(
                         mActivity.getCurrentDisplayId()
                                 == android.view.Display.DEFAULT_DISPLAY,
-                        displayActiveTask != null,
-                        hasVisibleFreeformTask,
-                        hasVisibleFullscreenTask,
-                        desktopHostActive,
+                        DesktopWorkspaceScene.resolve(snapshot.tasks),
                         mActivity.isTaskbarVisible()));
         mSnapshot = desktopSnapshot;
         if (activeTask != null
@@ -76,9 +61,10 @@ final class DesktopTaskSnapshotController {
         mRecentTaskId = activeTask == null ? -1 : activeTask.taskId;
         mActivity.renderTaskbarPins(mActivity.getLauncherApps());
         mActivity.setTaskbarVisible(taskbarVisible);
-        mActivity.setTaskbarAvailable(taskbarAvailable);
+        // Presentation looks beneath PiP; keyboard focus still belongs to the
+        // foreground task, including an independent or pinned application.
         mActivity.setDesktopWindowFocusable(
-                displayActiveTask == null || desktopHostActive);
+                displayActiveTask == null || isDesktopHostForeground(snapshot.tasks));
     }
 
     boolean setSystemDialogVisible(final boolean visible) {
@@ -94,11 +80,6 @@ final class DesktopTaskSnapshotController {
         return true;
     }
 
-    static boolean hasVisibleFreeformTask(
-            final List<TaskRepository.TaskEntry> tasks) {
-        return hasVisibleFreeformTask(tasks, -1);
-    }
-
     static TaskRepository.TaskEntry findActiveTask(
             final List<TaskRepository.TaskEntry> tasks) {
         if (tasks == null) {
@@ -110,88 +91,6 @@ final class DesktopTaskSnapshotController {
             }
         }
         return null;
-    }
-
-    static boolean isDesktopChromeAvailable(
-            final List<TaskRepository.TaskEntry> displayTasks,
-            final List<TaskRepository.TaskEntry> desktopTasks) {
-        if (displayTasks == null) {
-            return true;
-        }
-        for (final TaskRepository.TaskEntry task : displayTasks) {
-            if (task == null || !task.visible
-                    || DesktopInfrastructureTasks.isTask(task)) {
-                continue;
-            }
-            // A freeform window shares the visible desktop even when its task
-            // is not ours to control. Ownership only gates fullscreen escape.
-            if (task.isFreeform()) {
-                return true;
-            }
-            if (desktopTasks == null) {
-                return false;
-            }
-            for (final TaskRepository.TaskEntry desktopTask : desktopTasks) {
-                if (desktopTask != null
-                        && desktopTask.taskId == task.taskId) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return true;
-    }
-
-    static boolean hasVisibleFreeformTask(
-            final List<TaskRepository.TaskEntry> tasks,
-            final int excludedTaskId) {
-        if (tasks == null) {
-            return false;
-        }
-        // Running tasks are top-first. Independent task-display areas may
-        // report a freeform task as visible even while an opaque fullscreen
-        // plane covers it, so only inspect windows above that plane. Scene
-        // visibility is independent of permission to operate on those tasks.
-        for (final TaskRepository.TaskEntry task : tasks) {
-            if (task == null || task.taskId == excludedTaskId
-                    || !task.visible
-                    || DesktopInfrastructureTasks.isTask(task)) {
-                continue;
-            }
-            if (DesktopTaskController.isDesktopHostTask(task)) {
-                return false;
-            }
-            if (task.isFreeform()) {
-                return true;
-            }
-            if (task.isFullscreen()) {
-                return false;
-            }
-        }
-        return false;
-    }
-
-    static boolean hasVisibleFullscreenTask(
-            final List<TaskRepository.TaskEntry> tasks) {
-        if (tasks == null) {
-            return false;
-        }
-        for (final TaskRepository.TaskEntry task : tasks) {
-            if (task == null || !task.visible
-                    || DesktopInfrastructureTasks.isTask(task)) {
-                continue;
-            }
-            if (DesktopTaskController.isDesktopHostTask(task)) {
-                return false;
-            }
-            if (task.isFreeform()) {
-                return false;
-            }
-            if (task.isFullscreen()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     static boolean isDesktopHostForeground(

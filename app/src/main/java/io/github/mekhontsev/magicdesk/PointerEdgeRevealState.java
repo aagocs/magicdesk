@@ -16,9 +16,9 @@ final class PointerEdgeRevealState {
     private boolean mRevealPending;
     private boolean mHidePending;
 
-    void setArmed(final boolean armed) {
+    boolean setArmed(final boolean armed) {
         if (mArmed == armed) {
-            return;
+            return false;
         }
         mArmed = armed;
         // Pointer presence is independent of the current visibility policy.
@@ -27,6 +27,7 @@ final class PointerEdgeRevealState {
         mRevealed = armed && mPointerInside;
         mRevealPending = false;
         mHidePending = false;
+        return true;
     }
 
     TimerAction onPointerEntered() {

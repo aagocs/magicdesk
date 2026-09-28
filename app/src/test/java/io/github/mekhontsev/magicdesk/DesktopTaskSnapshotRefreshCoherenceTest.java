@@ -4,6 +4,37 @@ import org.junit.Test;
 
 public final class DesktopTaskSnapshotRefreshCoherenceTest {
     @Test
+    public void pictureInPictureOverHomeDoesNotConcealTaskbar() throws Exception {
+        verify("""
+                MagicDeskRuntime.excludeTasks = true;
+                MagicDeskRuntime.observed = new TaskRepository.Snapshot(List.of(
+                        new TaskRepository.TaskEntry("2"),
+                        new TaskRepository.TaskEntry("home")), true, "");
+                f.mActivity.visible = false;
+                f.refresh();
+                check(f.mActivity.visible, "PiP concealed the HOME taskbar");
+                check(!f.mActivity.focusable, "PiP presentation gave HOME keyboard focus");
+                check(f.mSnapshot.tasks.isEmpty(), "presentation acquired independent tasks");
+                check(TaskRepository.loads == 0, "presentation issued a second query");
+                """);
+    }
+
+    @Test
+    public void pictureInPictureFollowsTheSceneBelowIt() throws Exception {
+        verify("""
+                for (String mode : List.of("freeform", "fullscreen")) {
+                    MagicDeskRuntime.observed = new TaskRepository.Snapshot(List.of(
+                            new TaskRepository.TaskEntry("2"),
+                            new TaskRepository.TaskEntry(mode),
+                            new TaskRepository.TaskEntry("home")), true, "");
+                    f.refresh();
+                    check(f.mActivity.visible == mode.equals("freeform"),
+                            "PiP overrode the underlying " + mode + " scene");
+                }
+                """);
+    }
+
+    @Test
     public void repeatedSnapshotsDoNotRewriteHistory() throws Exception {
         verify("""
                 f.refresh(); f.refresh(); f.refresh();
@@ -44,14 +75,13 @@ public final class DesktopTaskSnapshotRefreshCoherenceTest {
         verify("""
                 MagicDeskRuntime.excludeTasks = true;
                 f.refresh();
-                check(f.mActivity.visible && f.mActivity.chromeAvailable,
-                        "foreign freeform disabled taskbar or its reveal edge");
+                check(f.mActivity.visible, "foreign freeform concealed taskbar");
                 check(f.mSnapshot.tasks.isEmpty(), "chrome policy acquired foreign task ownership");
                 check(TaskRepository.loads == 0, "chrome policy issued another query");
                 MagicDeskRuntime.observed = TaskRepository.raw;
                 f.refresh();
-                check(!f.mActivity.visible && !f.mActivity.chromeAvailable,
-                        "foreign fullscreen stopped disabling desktop chrome");
+                check(!f.mActivity.visible, "foreign fullscreen did not conceal taskbar");
+                check(f.mSnapshot.tasks.isEmpty(), "fullscreen presentation acquired independent task");
                 """);
     }
 
@@ -144,7 +174,7 @@ public final class DesktopTaskSnapshotRefreshCoherenceTest {
                     }
                 }
                 static class Activity {
-                    int displayId = 66, hidden, updates; boolean visible = true, unavailable, chromeAvailable;
+                    int displayId = 66, hidden, updates; boolean visible = true, unavailable, focusable;
                     int getCurrentDisplayId() { return displayId; }
                     boolean isActivityUnavailable() { return unavailable; }
                     void runOnUiThread(Runnable action) { action.run(); }
@@ -156,10 +186,9 @@ public final class DesktopTaskSnapshotRefreshCoherenceTest {
                     void renderTaskbarPins(Object apps) {}
                     boolean isTaskbarVisible() { return visible; }
                     void setTaskbarVisible(boolean value) { if (visible && !value) hidden++; visible = value; }
-                    void setTaskbarAvailable(boolean value) { chromeAvailable = value; }
-                    void setDesktopWindowFocusable(boolean value) {}
+                    void setDesktopWindowFocusable(boolean value) { focusable = value; }
                 }
-                static class DesktopTaskController { static boolean isDesktopHostTask(TaskRepository.TaskEntry task) { return false; } }
+                static class DesktopTaskController { static boolean isDesktopHostTask(TaskRepository.TaskEntry task) { return "home".equals(task.mode); } }
                 static class DesktopInfrastructureTasks { static boolean isTask(TaskRepository.TaskEntry task) { return false; } }
                 static class RecentApplications { static int records; static void recordTask(Activity activity, TaskRepository.TaskEntry task, Object apps) { records++; } }
                 record AppReference(String key) {}
@@ -172,8 +201,10 @@ public final class DesktopTaskSnapshotRefreshCoherenceTest {
                 public static void verify() { Fixture f = new Fixture();
                 """ + scenario + "}\n" + RuntimeSourceFixture.methods("DesktopTaskSnapshotController",
                 "refresh", "applyRefreshSnapshot", "release", "sync", "selectDesktopTaskSnapshot",
-                "findActiveTask", "isDesktopChromeAvailable", "isDesktopHostForeground",
-                "hasVisibleFreeformTask", "hasVisibleFullscreenTask"),
-                "DesktopTaskbarVisibilityPolicy", "DesktopTaskbarDialogHold");
+                "findActiveTask", "isDesktopHostForeground")
+                + RuntimeSourceFixture.nestedClass("DesktopWorkspaceScene", "DesktopWorkspaceScene")
+                + "static class DesktopTaskbarVisibilityPolicy {"
+                + RuntimeSourceFixture.methods("DesktopTaskbarVisibilityPolicy", "isVisible") + "}",
+                "DesktopTaskbarDialogHold");
     }
 }

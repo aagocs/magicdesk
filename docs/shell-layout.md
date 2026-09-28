@@ -137,12 +137,12 @@ lease. A native focusable panel takes precedence. Pointer admission is independe
 
 `ShellPresentationScope` publishes the visible semantic layers for one workspace,
 separately from layout. `DesktopTaskbarRevealController` supplies the existing
-fullscreen, availability and temporary-reveal decisions. Managed fullscreen
+fullscreen and temporary-reveal decisions. Fullscreen
 conceals external `TOP` panels; edge reveal or the native Start/IME visibility
-hold presents them again. An independent fullscreen foreground suppresses automatic
-chrome presentation; explicit phone Home reveal can present it without changing
-the application's focus or ownership. Start retains presentation for the menu's
-lifetime, while IME alone remains subject to automatic chrome availability.
+hold presents them again. Managed and independent tasks share this policy;
+PiP follows the underlying HOME, windowed or fullscreen scene. Explicit phone
+Home reveal presents chrome without changing application focus or ownership.
+Start retains presentation for the menu's lifetime; IME retains its own visibility hold.
 The native taskbar's auto-hide preference does not
 hide external panels. HOME layers remain in their existing Android view hierarchy
 and are naturally covered by application tasks. `OVERLAY` remains a separate

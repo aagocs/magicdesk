@@ -121,6 +121,25 @@ public final class UiBackdropTest {
                 """);
     }
 
+    @Test public void panelDecorationForwardsOutsideTouchesToItsContentOwner() throws Exception {
+        verify("""
+                var content = new View(); content.setBackground(paint);
+                var host = new UiPanelWindow(content);
+                var outside = new MotionEvent(MotionEvent.ACTION_OUTSIDE);
+                content.handled = true;
+                check(host.view().dispatchTouchEvent(outside), "outside was not handled by content");
+                check(content.events.size() == 1 && content.events.get(0) == outside,
+                        "outside notification was lost or duplicated");
+                content.handled = false;
+                check(!host.view().dispatchTouchEvent(outside), "unhandled outside was consumed");
+                host.view().dispatchTouchEvent(new MotionEvent(MotionEvent.ACTION_DOWN));
+                check(content.events.size() == 2, "ordinary input bypassed normal child dispatch");
+                host.close();
+                host.view().dispatchTouchEvent(outside);
+                check(content.events.size() == 2, "released decor retained input owner");
+                """);
+    }
+
     private static void verify(String scenario) throws Exception {
         RuntimeSourceFixture.verify(STUBS + "\nstatic "
                 + RuntimeSourceFixture.nestedClass("UiBackdrop", "UiBackdrop")
@@ -146,7 +165,20 @@ public final class UiBackdropTest {
                     void setAlpha(int value) { alpha = value; }
                 }
             }
+            record MotionEvent(int action) {
+                static final int ACTION_OUTSIDE=4, ACTION_DOWN=0;
+                int getActionMasked() { return action; }
+            }
             static class View {
+                interface OnTouchListener { boolean onTouch(View view, MotionEvent event); }
+                OnTouchListener touchListener;
+                List<MotionEvent> events = new ArrayList<>();
+                boolean handled;
+                void setOnTouchListener(OnTouchListener value) { touchListener = value; }
+                boolean dispatchTouchEvent(MotionEvent event) {
+                    events.add(event);
+                    return touchListener != null && touchListener.onTouch(this, event) || handled;
+                }
                 interface OnAttachStateChangeListener {
                     void onViewAttachedToWindow(View view);
                     void onViewDetachedFromWindow(View view);

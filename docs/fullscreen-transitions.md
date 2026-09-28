@@ -261,16 +261,18 @@ successful initialization. This does not replace hierarchy or input-focus
 confirmation and does not add a worker, timer, or transaction retry.
 On the phone display the taskbar child window also covers the stable lower
 system-bar inset. It paints that portion with the taskbar background, while the
-taskbar controls remain above the inset. When managed fullscreen policy conceals
+taskbar controls remain above the inset. When fullscreen policy conceals
 the taskbar, the child window collapses to its reveal edge with a transparent
-background; its window opacity and input handling remain unchanged. An unrelated
-foreground fullscreen task suppresses its automatic presentation. Phone Home
-can explicitly reveal it without changing that task's focus or ownership;
+background; its window opacity and input handling remain unchanged. Managed and
+independent fullscreen tasks use the same edge-reveal policy. Phone Home
+can explicitly reveal the taskbar without changing that task's focus or ownership;
 outside touch or a taskbar action releases the transient reveal. An open Start
 or another panel independently holds the taskbar visible until it closes.
-Visible freeform windows retain the panel and reveal edge regardless of task
-ownership; this does not authorize
-window operations on those tasks. The transparent chrome host remains
+`DesktopWorkspaceScene` classifies HOME, freeform or fullscreen from the complete
+top-first display snapshot. PiP does not replace the scene beneath it. HOME and
+visible freeform windows retain normal taskbar presentation, subject to auto-hide,
+regardless of task ownership; this does not authorize window operations on those
+tasks. The transparent chrome host remains
 structurally stable without covering fullscreen content.
 
 Taskbar, task overview, MCP, and Alt+Tab use the same focus gateway.

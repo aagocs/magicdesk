@@ -1,7 +1,6 @@
 package io.github.mekhontsev.magicdesk;
 
 import static io.github.mekhontsev.magicdesk.DesktopTaskbarRevealController.Presentation.EDGE;
-import static io.github.mekhontsev.magicdesk.DesktopTaskbarRevealController.Presentation.UNAVAILABLE;
 import static io.github.mekhontsev.magicdesk.DesktopTaskbarRevealController.Presentation.VISIBLE;
 import static io.github.mekhontsev.magicdesk.DesktopTaskbarRevealController.resolvePresentation;
 import static org.junit.Assert.assertEquals;
@@ -10,17 +9,58 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public final class DesktopTaskbarRevealControllerTest {
-    @Test public void externalLayersFollowFullscreenRevealAndAvailabilityWithoutChangingHome() {
-        for (int flags = 0; flags < 32; flags++) {
-            boolean available = (flags & 1) != 0, policy = (flags & 2) != 0,
-                    automaticHold = (flags & 4) != 0, pointer = (flags & 8) != 0,
-                    explicit = (flags & 16) != 0;
+    @Test public void unchangedArmingPreservesPendingRevealAndHideCallbacks() throws Exception {
+        RuntimeSourceFixture.verify("io.github.mekhontsev.magicdesk", """
+                enum Presentation { EDGE, VISIBLE }
+                static class Handler {
+                    Set<Runnable> pending = new HashSet<>();
+                    void postDelayed(Runnable r, long delay) { pending.add(r); }
+                    void removeCallbacks(Runnable r) { pending.remove(r); }
+                }
+                Handler mHandler = new Handler();
+                boolean mStarted=true, mReleased, mPolicyVisible,
+                        mAutoHide, mAutomaticHold, mInteractionHold, mTouchEdgeEnabled;
+                PointerEdgeRevealState mPointerState = new PointerEdgeRevealState();
+                TouchEdgeRevealState mTouchState = new TouchEdgeRevealState();
+                Runnable mRevealTimeout = () -> mPointerState.onRevealTimeout();
+                Runnable mHideTimeout = () -> mPointerState.onHideTimeout();
+                static final long REVEAL_DWELL_MILLIS=450, HIDE_DELAY_MILLIS=300;
+                void applyPresentation() {}
+                void fire(Runnable callback) {
+                    check(mHandler.pending.remove(callback), "gesture callback was cancelled");
+                    callback.run();
+                }
+                public static void verify() {
+                    Fixture f = new Fixture(); f.updateArmedState();
+                    f.applyTimerAction(f.mPointerState.onPointerEntered());
+                    f.setAutoHide(true);
+                    f.fire(f.mRevealTimeout);
+                    check(f.mPointerState.isRevealed(), "dwell did not reveal");
+                    f.applyTimerAction(f.mPointerState.onPointerExited());
+                    f.setAutoHide(false);
+                    f.fire(f.mHideTimeout);
+                    check(!f.mPointerState.isRevealed(), "panel retained cancelled hide");
+                    f.applyTimerAction(f.mPointerState.onPointerEntered());
+                    f.setPolicyVisible(true);
+                    check(f.mHandler.pending.isEmpty(), "disarm retained gesture callback");
+                    check(!f.mPointerState.onRevealTimeout(), "obsolete callback revealed panel");
+                }
+                """ + RuntimeSourceFixture.methods("DesktopTaskbarRevealController",
+                        "setAutoHide", "setPolicyVisible", "updateArmedState", "cancelTimers",
+                        "applyTimerAction", "resolvePresentation"),
+                "PointerEdgeRevealState", "TouchEdgeRevealState");
+    }
+
+    @Test public void externalLayersFollowFullscreenRevealWithoutChangingHome() {
+        for (int flags = 0; flags < 16; flags++) {
+            boolean policy = (flags & 1) != 0, automaticHold = (flags & 2) != 0,
+                    pointer = (flags & 4) != 0, explicit = (flags & 8) != 0;
             var layers = DesktopTaskbarRevealController.resolveShellLayers(
-                    available, policy, automaticHold, pointer, explicit);
+                    policy, automaticHold, pointer, explicit);
             assertTrue(layers.contains(ShellSurface.Layer.BACKGROUND));
             assertTrue(layers.contains(ShellSurface.Layer.BOTTOM));
-            assertEquals(explicit || available, layers.contains(ShellSurface.Layer.OVERLAY));
-            assertEquals(explicit || available && (policy || automaticHold || pointer),
+            assertTrue(layers.contains(ShellSurface.Layer.OVERLAY));
+            assertEquals(explicit || policy || automaticHold || pointer,
                     layers.contains(ShellSurface.Layer.TOP));
         }
     }
@@ -28,8 +68,8 @@ public final class DesktopTaskbarRevealControllerTest {
     @Test
     public void navigationOnlyRevealsLiveHiddenPhoneChromeOnce() throws Exception {
         RuntimeSourceFixture.verify("""
-                enum Presentation { UNAVAILABLE, EDGE, VISIBLE }
-                boolean mStarted, mReleased, mTouchEdgeEnabled, mAvailable,
+                enum Presentation { EDGE, VISIBLE }
+                boolean mStarted, mReleased, mTouchEdgeEnabled,
                         mPolicyVisible, mAutoHide, mAutomaticHold, mInteractionHold;
                 static class RevealState {
                     boolean revealed; int requests;
@@ -43,23 +83,22 @@ public final class DesktopTaskbarRevealControllerTest {
                 int updates;
                 void applyTouchAction(int action, boolean afterDispatch) { if (action != 0) updates++; }
                 public static void verify() {
-                    for (int flags = 0; flags < 1024; flags++) {
+                    for (int flags = 0; flags < 512; flags++) {
                         Fixture f = new Fixture();
                         f.mStarted = (flags & 1) != 0;
                         f.mReleased = (flags & 2) != 0;
                         f.mTouchEdgeEnabled = (flags & 4) != 0;
-                        f.mAvailable = (flags & 8) != 0;
-                        f.mPolicyVisible = (flags & 16) != 0;
-                        f.mAutoHide = (flags & 32) != 0;
-                        f.mAutomaticHold = (flags & 64) != 0;
-                        f.mPointerState.revealed = (flags & 128) != 0;
-                        f.mTouchState.revealed = (flags & 256) != 0;
-                        f.mInteractionHold = (flags & 512) != 0;
+                        f.mPolicyVisible = (flags & 8) != 0;
+                        f.mAutoHide = (flags & 16) != 0;
+                        f.mAutomaticHold = (flags & 32) != 0;
+                        f.mPointerState.revealed = (flags & 64) != 0;
+                        f.mTouchState.revealed = (flags & 128) != 0;
+                        f.mInteractionHold = (flags & 256) != 0;
                         boolean expected = f.mStarted && !f.mReleased && f.mTouchEdgeEnabled
                                 && !f.mTouchState.revealed && !f.mInteractionHold
-                                && (!f.mAvailable || !f.mAutomaticHold
+                                && !f.mAutomaticHold
                                     && !(f.mPolicyVisible && !f.mAutoHide)
-                                    && !f.mPointerState.revealed);
+                                    && !f.mPointerState.revealed;
                         f.reveal();
                         f.reveal();
                         check(f.updates == (expected ? 1 : 0), "unexpected UI mutation " + flags);
@@ -71,43 +110,44 @@ public final class DesktopTaskbarRevealControllerTest {
     }
 
     @Test
-    public void managedFullscreenRetainsRevealWithEitherAutoHidePreference() {
+    public void fullscreenRetainsRevealWithEitherAutoHidePreference() {
         for (final boolean autoHide : new boolean[] { false, true }) {
             assertEquals(EDGE, resolvePresentation(
-                    true, false, autoHide, false, false, false));
+                    false, autoHide, false, false, false));
             assertEquals(VISIBLE, resolvePresentation(
-                    true, false, autoHide, false, false, true));
+                    false, autoHide, false, false, true));
+            assertEquals(VISIBLE, resolvePresentation(
+                    false, autoHide, false, true, false));
         }
     }
 
     @Test
-    public void independentForegroundSuppressesAutomaticPanelButAllowsExplicitReveal() {
-        for (int flags = 0; flags < 16; flags++) {
-            assertEquals(UNAVAILABLE, resolvePresentation(
-                    false, (flags & 1) != 0, (flags & 2) != 0,
-                    (flags & 4) != 0, (flags & 8) != 0, false));
-            assertEquals(VISIBLE, resolvePresentation(
-                    false, (flags & 1) != 0, (flags & 2) != 0,
-                    (flags & 4) != 0, (flags & 8) != 0, true));
+    public void liveSessionAlwaysHasEitherTaskbarOrRevealEdge() {
+        for (int flags = 0; flags < 32; flags++) {
+            boolean policy = (flags & 1) != 0, autoHide = (flags & 2) != 0,
+                    automaticHold = (flags & 4) != 0, pointer = (flags & 8) != 0,
+                    explicit = (flags & 16) != 0;
+            assertEquals(policy && !autoHide || automaticHold || pointer || explicit ? VISIBLE : EDGE,
+                    resolvePresentation(policy, autoHide, automaticHold, pointer, explicit));
         }
     }
 
     @Test
     public void desktopPreferenceChoosesPinnedPanelOrRevealEdge() {
         assertEquals(VISIBLE, resolvePresentation(
-                true, true, false, false, false, false));
+                true, false, false, false, false));
         assertEquals(EDGE, resolvePresentation(
-                true, true, true, false, false, false));
+                true, true, false, false, false));
         assertEquals(VISIBLE, resolvePresentation(
-                true, true, true, false, true, false));
+                true, true, false, true, false));
     }
 
     @Test
-    public void automaticHoldOverridesConcealmentOnlyWhenChromeIsAvailable() {
+    public void automaticHoldOverridesFullscreenConcealment() {
         assertEquals(VISIBLE, resolvePresentation(
-                true, false, false, true, false, false));
+                false, false, true, false, false));
         assertEquals(EDGE, resolvePresentation(
-                true, false, false, false, false, false));
+                false, false, false, false, false));
     }
 
     @Test
@@ -115,29 +155,29 @@ public final class DesktopTaskbarRevealControllerTest {
         final PointerEdgeRevealState pointer = new PointerEdgeRevealState();
         pointer.onPointerEntered();
         pointer.setArmed(resolvePresentation(
-                true, false, false, false, false, false) == EDGE);
+                false, false, false, false, false) == EDGE);
         assertEquals(VISIBLE, resolvePresentation(
-                true, false, false, false, pointer.isRevealed(), false));
+                false, false, false, pointer.isRevealed(), false));
 
         assertEquals(PointerEdgeRevealState.TimerAction.START_HIDE,
                 pointer.onPointerExited());
         assertTrue(pointer.onHideTimeout());
         assertEquals(EDGE, resolvePresentation(
-                true, false, false, false, pointer.isRevealed(), false));
+                false, false, false, pointer.isRevealed(), false));
 
         assertEquals(PointerEdgeRevealState.TimerAction.START_REVEAL,
                 pointer.onPointerEntered());
         assertTrue(pointer.onRevealTimeout());
         assertEquals(VISIBLE, resolvePresentation(
-                true, false, false, false, pointer.isRevealed(), false));
+                false, false, false, pointer.isRevealed(), false));
     }
 
     @Test
     public void explicitRevealSurvivesSnapshotChangesUntilUserDismissesIt() throws Exception {
         RuntimeSourceFixture.verify("""
-                enum Presentation { UNAVAILABLE, EDGE, VISIBLE }
+                enum Presentation { EDGE, VISIBLE }
                 boolean mStarted = true, mTouchEdgeEnabled = true, mReleased,
-                        mAvailable, mPolicyVisible, mAutoHide, mAutomaticHold, mInteractionHold;
+                        mPolicyVisible, mAutoHide, mAutomaticHold, mInteractionHold;
                 static class PointerEdgeRevealState {
                 """ + RuntimeSourceFixture.methods("PointerEdgeRevealState", "setArmed", "isRevealed") + """
                     boolean mArmed, mPointerInside, mRevealed, mRevealPending, mHidePending;
@@ -156,22 +196,21 @@ public final class DesktopTaskbarRevealControllerTest {
                 public static void verify() {
                     Fixture f = new Fixture();
                     f.updateArmedState();
-                    check(!f.mTouchState.mArmed, "independent app exposes an edge");
+                    check(f.mTouchState.mArmed, "fullscreen lost its reveal edge");
                     f.mTouchState.reveal();
-                    for (boolean available : new boolean[] {true, false, true, false}) {
-                        f.setAvailable(available);
+                    for (boolean visible : new boolean[] {true, false, true, false}) {
+                        f.setPolicyVisible(visible);
                         check(f.mTouchState.isRevealed(), "snapshot cancelled explicit reveal");
                     }
-                    check(!f.mTouchState.mArmed, "independent app arms edge gestures");
+                    check(f.mTouchState.mArmed, "fullscreen lost edge gestures");
                     check(f.mTouchState.dismiss() == TouchEdgeRevealState.Action.DISMISS,
                             "outside touch must dismiss");
-                    check(resolvePresentation(false, false, false, false, false,
-                            f.mTouchState.isRevealed()) == Presentation.UNAVAILABLE,
-                            "outside touch must restore independent-app policy");
+                    check(f.currentPresentation() == Presentation.EDGE,
+                            "outside touch must restore the reveal edge");
                     f.mTouchState.reveal();
                     f.mTouchState.onDown(10, 10);
                     check(f.mTouchState.onUp() == TouchEdgeRevealState.Action.DISMISS,
-                            "taskbar action must dismiss even without edge gestures");
+                            "taskbar action must dismiss navigation reveal");
                     f.mTouchState.reveal();
                     f.setVisibilityHolds(false, true);
                     check(!f.mTouchState.isRevealed(), "Start did not consume navigation reveal");
@@ -182,21 +221,19 @@ public final class DesktopTaskbarRevealControllerTest {
                     f.setVisibilityHolds(true, true);
                     check(f.currentPresentation() == Presentation.VISIBLE, "IME hid Start taskbar");
                     f.setVisibilityHolds(true, false);
-                    check(f.currentPresentation() == Presentation.UNAVAILABLE,
-                            "independent IME retained chrome after Start dismissal");
-                    f.setAvailable(true);
-                    check(f.currentPresentation() == Presentation.VISIBLE, "managed IME hold lost");
+                    check(f.currentPresentation() == Presentation.VISIBLE, "IME hold lost");
                     f.setVisibilityHolds(false, false);
-                    check(f.currentPresentation() == Presentation.EDGE, "managed fullscreen edge lost");
+                    check(f.currentPresentation() == Presentation.EDGE, "fullscreen edge lost");
                     f.setVisibilityHolds(false, true);
-                    check(f.currentPresentation() == Presentation.VISIBLE, "managed Start hold lost");
-                    f.setAvailable(false);
+                    check(f.currentPresentation() == Presentation.VISIBLE, "Start hold lost");
+                    f.setPolicyVisible(true);
+                    f.setPolicyVisible(false);
                     check(f.currentPresentation() == Presentation.VISIBLE, "snapshot cancelled Start hold");
                     f.setVisibilityHolds(false, false);
-                    check(f.currentPresentation() == Presentation.UNAVAILABLE, "Start dismissal left chrome visible");
+                    check(f.currentPresentation() == Presentation.EDGE, "Start dismissal lost reveal edge");
                 }
                 """ + RuntimeSourceFixture.methods("DesktopTaskbarRevealController",
-                        "setAvailable", "setVisibilityHolds", "updateArmedState",
+                        "setPolicyVisible", "setVisibilityHolds", "updateArmedState",
                         "currentPresentation", "isExplicitlyRevealed", "resolvePresentation"));
     }
 }

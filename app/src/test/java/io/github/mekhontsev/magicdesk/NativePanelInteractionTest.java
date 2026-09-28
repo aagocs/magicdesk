@@ -132,7 +132,7 @@ public final class NativePanelInteractionTest {
                 "TouchEdgeRevealState");
     }
 
-    @Test public void pointerRevealUsesActualMembershipForMovesOutsideAndCrossPanelExits() throws Exception {
+    @Test public void pointerExitUsesItsActionAndSiblingEntryCancelsHide() throws Exception {
         RuntimeSourceFixture.verify("io.github.mekhontsev.magicdesk", """
                 static class MotionEvent {
                     static final int ACTION_HOVER_ENTER=1,ACTION_HOVER_MOVE=2,ACTION_DOWN=3,ACTION_MOVE=4,
@@ -156,7 +156,14 @@ public final class NativePanelInteractionTest {
                     f.onEdgeInput(new MotionEvent(MotionEvent.ACTION_HOVER_ENTER,110,0));
                     check(f.mPointerState.onRevealTimeout(),"second panel did not reveal");
                     f.onEdgeInput(new MotionEvent(MotionEvent.ACTION_HOVER_EXIT,20,0));
-                    check(f.last==PointerEdgeRevealState.TimerAction.NONE,"cross-panel move hid chrome");
+                    check(f.last==PointerEdgeRevealState.TimerAction.START_HIDE,"exit with interior coordinates kept panel open");
+                    f.onEdgeInput(new MotionEvent(MotionEvent.ACTION_HOVER_ENTER,20,0));
+                    check(f.last==PointerEdgeRevealState.TimerAction.CANCEL_HIDE,"sibling entry failed to retain panel");
+                    check(!f.mPointerState.onHideTimeout(),"cross-panel move hid chrome");
+                    f.onEdgeInput(new MotionEvent(MotionEvent.ACTION_HOVER_EXIT,20,0));
+                    check(f.mPointerState.onHideTimeout(),"exit at last interior position did not hide");
+                    f.onEdgeInput(new MotionEvent(MotionEvent.ACTION_HOVER_ENTER,110,0));
+                    check(f.mPointerState.onRevealTimeout(),"panel did not reveal again");
                     f.onEdgeInput(new MotionEvent(MotionEvent.ACTION_OUTSIDE,75,0));
                     check(f.last==PointerEdgeRevealState.TimerAction.START_HIDE,"outside gap did not hide");
                     check(f.mPointerState.onHideTimeout(),"hide was not retained");

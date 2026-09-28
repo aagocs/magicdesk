@@ -1,6 +1,7 @@
 package io.github.mekhontsev.magicdesk;
 
 import android.app.Dialog;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -24,6 +25,10 @@ final class UiPanelWindow implements AutoCloseable {
         window.setContentView(content);
         window.getDecorView().setPadding(0, 0, 0, 0);
         window.getDecorView().setClipToOutline(true);
+        // ViewGroup does not forward outside notifications to child touch targets.
+        window.getDecorView().setOnTouchListener((view, event) ->
+                event.getActionMasked() == MotionEvent.ACTION_OUTSIDE
+                        && content.dispatchTouchEvent(event));
         UiBackdrop.bind(window, paint);
     }
 
@@ -37,6 +42,7 @@ final class UiPanelWindow implements AutoCloseable {
     }
 
     @Override public void close() {
+        window.getDecorView().setOnTouchListener(null);
         UiBackdrop.unbind(window);
         if (content.getParent() instanceof ViewGroup parent) parent.removeView(content);
         content.setBackground(paint);

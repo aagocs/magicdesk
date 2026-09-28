@@ -2,6 +2,8 @@ package io.github.mekhontsev.magicdesk;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static io.github.mekhontsev.magicdesk.DesktopWorkspaceScene.*;
 
 import android.graphics.Rect;
 
@@ -21,46 +23,49 @@ public final class DesktopTaskSnapshotControllerTest {
                 true, true, false, 0, 20001);
         assertTrue(DesktopInfrastructureTasks.isTask(delegate));
         assertFalse(DesktopTaskController.isDesktopHostTask(delegate));
-        assertTrue(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                Arrays.asList(delegate, home), Arrays.asList(home)));
+        assertEquals(HOME, resolve(Arrays.asList(delegate, home)));
         assertTrue(DesktopTaskSnapshotController.isDesktopHostForeground(
-                Arrays.asList(delegate, home)));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFullscreenTask(
                 Arrays.asList(delegate, home)));
     }
 
     @Test
     public void desktopHostWinsOverNominallyVisibleFullscreenTaskBelowIt() {
+        assertEquals(HOME, resolve(Arrays.asList(desktopHost(true), app(true))));
         assertTrue(DesktopTaskSnapshotController.isDesktopHostForeground(
                 Arrays.asList(desktopHost(true), app(true))));
     }
 
     @Test
     public void applicationAboveDesktopHostRemainsForeground() {
+        assertEquals(FULLSCREEN, resolve(Arrays.asList(app(true), desktopHost(true))));
         assertFalse(DesktopTaskSnapshotController.isDesktopHostForeground(
                 Arrays.asList(app(true), desktopHost(true))));
     }
 
     @Test
     public void taskAreaBackstopDoesNotHideForegroundDesktopHost() {
+        assertEquals(HOME, resolve(Arrays.asList(backstop(true), desktopHost(true))));
         assertTrue(DesktopTaskSnapshotController.isDesktopHostForeground(
                 Arrays.asList(backstop(true), desktopHost(true))));
     }
 
     @Test
     public void taskAreaBackstopDoesNotHideForegroundApplication() {
+        assertEquals(FULLSCREEN, resolve(Arrays.asList(backstop(true), app(true), desktopHost(true))));
         assertFalse(DesktopTaskSnapshotController.isDesktopHostForeground(
                 Arrays.asList(backstop(true), app(true), desktopHost(true))));
     }
 
     @Test
     public void taskbarPlaneDoesNotHideForegroundDesktopHost() {
+        assertEquals(HOME, resolve(Arrays.asList(taskbar(true), desktopHost(true))));
         assertTrue(DesktopTaskSnapshotController.isDesktopHostForeground(
                 Arrays.asList(taskbar(true), desktopHost(true))));
     }
 
     @Test
     public void taskbarPlaneDoesNotHideForegroundApplication() {
+        assertEquals(FULLSCREEN, resolve(Arrays.asList(taskbar(true), app(true), desktopHost(true))));
         assertFalse(DesktopTaskSnapshotController.isDesktopHostForeground(
                 Arrays.asList(taskbar(true), app(true), desktopHost(true))));
     }
@@ -84,7 +89,7 @@ public final class DesktopTaskSnapshotControllerTest {
 
     @Test
     public void fullscreenPlaneOccludesNominallyVisibleFreeformTask() {
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFreeformTask(
+        assertEquals(FULLSCREEN, resolve(
                 Arrays.asList(
                         app(true),
                         freeform(true),
@@ -93,7 +98,7 @@ public final class DesktopTaskSnapshotControllerTest {
 
     @Test
     public void freeformAboveFullscreenPlaneKeepsTaskbarVisible() {
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFreeformTask(
+        assertEquals(FREEFORM, resolve(
                 Arrays.asList(
                         freeform(true),
                         app(true),
@@ -102,7 +107,7 @@ public final class DesktopTaskSnapshotControllerTest {
 
     @Test
     public void structuralBackstopDoesNotOccludeFreeformTask() {
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFreeformTask(
+        assertEquals(FREEFORM, resolve(
                 Arrays.asList(
                         backstop(true),
                         freeform(true),
@@ -111,13 +116,13 @@ public final class DesktopTaskSnapshotControllerTest {
 
     @Test
     public void fullscreenTaskRemainsVisibleWithoutActiveFlag() {
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFullscreenTask(
+        assertEquals(FULLSCREEN, resolve(
                 Arrays.asList(app(false, true), desktopHost(true))));
     }
 
     @Test
     public void freeformAboveFullscreenOwnsTaskbarVisibility() {
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFullscreenTask(
+        assertEquals(FREEFORM, resolve(
                 Arrays.asList(
                         freeform(true),
                         app(false, true),
@@ -133,14 +138,8 @@ public final class DesktopTaskSnapshotControllerTest {
         final java.util.List<TaskRepository.TaskEntry> desktopTasks =
                 Arrays.asList(taskbar(true), host);
 
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFullscreenTask(
-                displayTasks));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFullscreenTask(
-                desktopTasks));
-        assertFalse(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, desktopTasks));
-        assertTrue(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, displayTasks));
+        assertEquals(FULLSCREEN, resolve(displayTasks));
+        assertEquals(UNKNOWN, resolve(desktopTasks));
     }
 
     @Test
@@ -151,62 +150,64 @@ public final class DesktopTaskSnapshotControllerTest {
                 Arrays.asList(taskbar(true), window, host);
 
         assertFalse(DesktopManagedTaskPolicy.isManagedApplicationTask(window));
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFreeformTask(displayTasks));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFullscreenTask(displayTasks));
-        assertTrue(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, Arrays.asList(taskbar(true), host)));
+        assertEquals(FREEFORM, resolve(displayTasks));
     }
 
     @Test
     public void unmanageableFullscreenOccludesFreeformWithoutAcquiringOwnership() {
         final TaskRepository.TaskEntry window = unmanageable("fullscreen", true);
-        final java.util.List<TaskRepository.TaskEntry> desktopTasks =
-                Arrays.asList(freeform(true), desktopHost(true));
         final java.util.List<TaskRepository.TaskEntry> displayTasks =
                 Arrays.asList(window, freeform(true), desktopHost(true));
 
         assertFalse(DesktopManagedTaskPolicy.isManagedApplicationTask(window));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFreeformTask(displayTasks));
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFullscreenTask(displayTasks));
-        assertFalse(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, desktopTasks));
+        assertEquals(FULLSCREEN, resolve(displayTasks));
     }
 
     @Test
     public void unmanageableFreeformAboveForeignFullscreenKeepsChromeAvailable() {
         final java.util.List<TaskRepository.TaskEntry> displayTasks = Arrays.asList(
                 unmanageable("freeform", true), app(true), desktopHost(false));
-        assertTrue(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, Arrays.asList(desktopHost(false))));
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFreeformTask(displayTasks));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFullscreenTask(displayTasks));
+        assertEquals(FREEFORM, resolve(displayTasks));
     }
 
     @Test
-    public void coveredUnmanageableFreeformCannotEnableChrome() {
+    public void coveredUnmanageableFreeformDoesNotDefineTheScene() {
         final java.util.List<TaskRepository.TaskEntry> displayTasks = Arrays.asList(
                 app(true), unmanageable("freeform", true), desktopHost(false));
-        assertFalse(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, Arrays.asList(desktopHost(false))));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFreeformTask(displayTasks));
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFullscreenTask(displayTasks));
+        assertEquals(FULLSCREEN, resolve(displayTasks));
     }
 
     @Test
     public void hiddenUnmanageableWindowDoesNotAffectChrome() {
         final java.util.List<TaskRepository.TaskEntry> displayTasks = Arrays.asList(
                 unmanageable("fullscreen", false), freeform(true), desktopHost(true));
-        assertTrue(DesktopTaskSnapshotController.hasVisibleFreeformTask(displayTasks));
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFullscreenTask(displayTasks));
-        assertTrue(DesktopTaskSnapshotController.isDesktopChromeAvailable(
-                displayTasks, Arrays.asList(freeform(true), desktopHost(true))));
+        assertEquals(FREEFORM, resolve(displayTasks));
     }
 
     @Test
     public void excludedUnmanageableFreeformDoesNotMaskFullscreen() {
         final TaskRepository.TaskEntry window = unmanageable("freeform", true);
-        assertFalse(DesktopTaskSnapshotController.hasVisibleFreeformTask(
+        assertEquals(FULLSCREEN, resolve(
                 Arrays.asList(window, app(true), desktopHost(true)), window.taskId));
+    }
+
+    @Test
+    public void pictureInPictureDoesNotOwnSceneOrGiveHomeKeyboardFocus() {
+        final TaskRepository.TaskEntry pip = unmanageable("2", true);
+        assertEquals(HOME, resolve(Arrays.asList(pip, desktopHost(true))));
+        assertEquals(FREEFORM, resolve(Arrays.asList(pip, freeform(true), desktopHost(true))));
+        assertEquals(FULLSCREEN, resolve(Arrays.asList(pip, app(false, true), freeform(true))));
+        assertFalse(DesktopTaskSnapshotController.isDesktopHostForeground(
+                Arrays.asList(pip, desktopHost(true))));
+    }
+
+    @Test
+    public void missingSceneDoesNotBecomeFullscreenFromActiveFlag() {
+        assertEquals(UNKNOWN, resolve(null));
+        assertEquals(UNKNOWN, resolve(java.util.Collections.emptyList()));
+        assertEquals(UNKNOWN, resolve(Arrays.asList(null, taskbar(true), backstop(true),
+                unmanageable("2", true), app(true, false))));
+        assertEquals(UNKNOWN, resolve(Arrays.asList(unmanageable("unknown", true))));
     }
 
     private static TaskRepository.TaskEntry unmanageable(

@@ -3082,12 +3082,12 @@ through that edge's system inset. A floating gap or external reservation moving 
 suppresses this extension; controls remain within content bounds. Attached
 windows do not subtract system-bar or IME insets a second time.
 
-When managed fullscreen policy or auto-hide conceals chrome, each bounded panel
+When fullscreen policy or auto-hide conceals chrome, each bounded panel
 collapses to a transparent reveal strip on its configured physical output edge.
 Input remains bounded to the individual strips, never a rectangle spanning gaps
 between panels. Expansion restores that panel's resolved background and content.
-An independent foreground fullscreen task suppresses automatic presentation;
-explicit phone Home reveal retains its separate policy. The transparent,
+Managed and independent fullscreen tasks share the edge-reveal policy;
+phone Home can also explicitly reveal chrome. The transparent,
 non-input chrome host stays structurally stable. IME visibility can hold an
 auto-hiding panel open but does not relocate it: the keyboard may cover an edge
 without moving desktop chrome. The same model serves phone and external displays.
@@ -3168,15 +3168,14 @@ reveal edge share this ordering policy rather than separate layer fixes in
 taskbar clicks, Alt+Tab, overview, or MCP.
 Start, context menus, notifications, and dialogs reuse this
 same application token rather than creating another infrastructure task.
-The taskbar hides for an unrelated true-fullscreen task and returns for the
-desktop. Chrome policy reads the complete physical display snapshot before
-workspace ownership filtering, while task lists and window operations remain
-limited to session-owned tasks. Visible freeform windows keep the taskbar and
-its reveal edge available independently of permission to control their tasks.
-An independent foreground fullscreen task disables automatic presentation and
-the reveal edge; managed fullscreen tasks retain edge reveal. Window visibility scans
-stop at the first opaque fullscreen plane or desktop HOME, so a covered
-freeform window cannot reopen chrome. Its
+`DesktopWorkspaceScene` reads the complete top-first physical display snapshot
+before workspace ownership filtering. The first visible HOME, freeform or
+fullscreen task determines normal or concealed taskbar presentation; PiP and
+infrastructure do not replace the scene underneath. A covered freeform window
+cannot reopen chrome. Managed and independent fullscreen tasks retain the same
+reveal edge, while task lists and window operations remain limited to
+session-owned tasks. Presentation does not transfer keyboard focus to HOME
+underneath PiP. The taskbar's
 shared controller measures the actual task viewport on every display and
 reserves one slot for an overflow menu when task or pin icons no longer fit.
 Overflow entries retain the same exact-task actions and context targets as
@@ -3186,12 +3185,11 @@ The phone desktop also exposes the hidden taskbar through a touch edge gesture.
 It uses Android's configured edge and touch slop, is scoped to display 0, and
 feeds an explicit reveal state into the shared controller. Phone Home navigation
 uses the same state to reveal a hidden taskbar, including over an independent
-fullscreen application. Explicit reveal overrides automatic chrome suppression
+fullscreen application. Explicit reveal overrides fullscreen concealment
 without changing application focus, bounds or ownership. The transient reveal is
 dismissed by the next taskbar action or outside touch rather than by a timeout.
 An open Start menu holds the taskbar visible independently of that reveal until
-the menu closes. IME visibility follows automatic chrome availability and cannot
-expose the taskbar over an independent fullscreen application on its own.
+the menu closes. IME visibility independently holds the taskbar visible.
 When automatic hiding is enabled, the same existing pointer-edge state machine
 reveals it without introducing a second overlay or polling loop, and window
 placement uses the full viewport. IME and other forced-visible policy still

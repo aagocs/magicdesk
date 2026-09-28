@@ -923,8 +923,8 @@ final class AppTaskController {
                                 AppWindowState.Mode.FULLSCREEN)
                         : null;
         mActivity.setTaskbarVisible(
-                DesktopTaskSnapshotController.hasVisibleFreeformTask(
-                        visibleTasks, excludedTaskId));
+                DesktopWorkspaceScene.resolve(visibleTasks, excludedTaskId)
+                        == DesktopWorkspaceScene.FREEFORM);
         mActivity.setStatus(mActivity.getString(
                 R.string.status_launching_fullscreen, label));
         TaskCommandQueue.execute(() -> {
@@ -1370,8 +1370,8 @@ final class AppTaskController {
             final AppItem app,
             final TaskRepository.TaskEntry task) {
         final boolean keepTaskbarVisible =
-                DesktopTaskSnapshotController.hasVisibleFreeformTask(
-                        takeInteractionVisibleTasks(), task.taskId);
+                DesktopWorkspaceScene.resolve(takeInteractionVisibleTasks(), task.taskId)
+                        == DesktopWorkspaceScene.FREEFORM;
         mActivity.setStatus(mActivity.getString(
                 R.string.status_launching_fullscreen, app.label));
         final TaskRepository.ActionCallback completion = result ->

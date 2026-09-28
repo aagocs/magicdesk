@@ -11,7 +11,6 @@ import java.util.Set;
 /** Resolves automatic chrome visibility and explicit edge/navigation reveals. */
 final class DesktopTaskbarRevealController {
     enum Presentation {
-        UNAVAILABLE,
         EDGE,
         VISIBLE
     }
@@ -31,7 +30,6 @@ final class DesktopTaskbarRevealController {
     private final int mTouchEdgeHeight;
 
     private boolean mPolicyVisible = true;
-    private boolean mAvailable = true;
     private boolean mAutoHide;
     private boolean mAutomaticHold;
     private boolean mInteractionHold;
@@ -82,19 +80,6 @@ final class DesktopTaskbarRevealController {
             return;
         }
         mPolicyVisible = visible;
-        cancelTimers();
-        updateArmedState();
-        if (mStarted) {
-            applyPresentation();
-        }
-    }
-
-    void setAvailable(final boolean available) {
-        if (mReleased || mAvailable == available) {
-            return;
-        }
-        mAvailable = available;
-        cancelTimers();
         updateArmedState();
         if (mStarted) {
             applyPresentation();
@@ -106,7 +91,6 @@ final class DesktopTaskbarRevealController {
             return;
         }
         mAutoHide = enabled;
-        cancelTimers();
         updateArmedState();
         if (mStarted) {
             applyPresentation();
@@ -123,7 +107,6 @@ final class DesktopTaskbarRevealController {
         if (interaction) {
             mTouchState.dismiss();
         }
-        cancelTimers();
         updateArmedState();
         if (mStarted) {
             applyPresentation();
@@ -169,12 +152,13 @@ final class DesktopTaskbarRevealController {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE:
             case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_HOVER_EXIT:
             case MotionEvent.ACTION_OUTSIDE:
                 applyTimerAction(contains(event.getRawX(), event.getRawY())
                         ? mPointerState.onPointerEntered() : mPointerState.onPointerExited());
                 break;
+            case MotionEvent.ACTION_HOVER_EXIT:
             case MotionEvent.ACTION_CANCEL:
+                // Exit may carry the last interior position, not a new hit-test location.
                 applyTimerAction(mPointerState.onPointerExited());
                 break;
             default:
@@ -205,7 +189,7 @@ final class DesktopTaskbarRevealController {
 
     private void applyPresentation() {
         mActivity.shellPresentation().update(resolveShellLayers(
-                mAvailable, mPolicyVisible, mAutomaticHold,
+                mPolicyVisible, mAutomaticHold,
                 mPointerState.isRevealed(), isExplicitlyRevealed()));
         final TaskbarController taskbar = mActivity.taskbar();
         final DesktopTaskbarHost taskbarHost = mActivity.taskbarHost();
@@ -213,11 +197,6 @@ final class DesktopTaskbarRevealController {
             return;
         }
         final Presentation presentation = currentPresentation();
-        if (presentation == Presentation.UNAVAILABLE) {
-            taskbarHost.setPresented(false);
-            taskbarHost.setEdgeHidden(false, 1);
-            return;
-        }
         taskbarHost.setPresented(true);
         if (presentation == Presentation.VISIBLE) {
             taskbarHost.setEdgeHidden(false, 1);
@@ -233,13 +212,13 @@ final class DesktopTaskbarRevealController {
     private boolean contains(final float x, final float y) {
         final DesktopTaskbarHost host = mActivity.taskbarHost();
         final Presentation presentation = currentPresentation();
-        return host != null && presentation != Presentation.UNAVAILABLE
+        return host != null
                 && host.contains(x, y, presentation == Presentation.EDGE, edgeThickness());
     }
 
     private ShellPanel.Edge edgeAt(final float x, final float y) {
         final DesktopTaskbarHost host = mActivity.taskbarHost();
-        if (host == null || currentPresentation() == Presentation.UNAVAILABLE) return null;
+        if (host == null) return null;
         for (DesktopTaskbarHost.Panel panel : host.panels()) {
             final var output = panel.output();
             final var paint = panel.paint();
@@ -277,44 +256,37 @@ final class DesktopTaskbarRevealController {
     }
 
     private Presentation currentPresentation() {
-        return resolvePresentation(mAvailable, mPolicyVisible, mAutoHide, mAutomaticHold,
+        return resolvePresentation(mPolicyVisible, mAutoHide, mAutomaticHold,
                 mPointerState.isRevealed(), isExplicitlyRevealed());
     }
 
-    static Set<ShellSurface.Layer> resolveShellLayers(boolean available, boolean policyVisible,
+    static Set<ShellSurface.Layer> resolveShellLayers(boolean policyVisible,
             boolean automaticHold, boolean pointerRevealed, boolean explicitlyRevealed) {
         // HOME layers remain naturally occluded by Android tasks. Taskbar auto-hide is a
         // preference for the native taskbar, not a request to hide every external panel.
-        if (explicitlyRevealed) return Set.of(ShellSurface.Layer.values());
-        if (!available) return Set.of(ShellSurface.Layer.BACKGROUND, ShellSurface.Layer.BOTTOM);
-        if (policyVisible || automaticHold || pointerRevealed) return Set.of(ShellSurface.Layer.values());
+        if (policyVisible || automaticHold || pointerRevealed || explicitlyRevealed) {
+            return Set.of(ShellSurface.Layer.values());
+        }
         return Set.of(ShellSurface.Layer.BACKGROUND, ShellSurface.Layer.BOTTOM, ShellSurface.Layer.OVERLAY);
     }
 
     static Presentation resolvePresentation(
-            final boolean available,
             final boolean policyVisible,
             final boolean autoHide,
             final boolean automaticHold,
             final boolean pointerRevealed,
             final boolean explicitlyRevealed) {
-        // Foreground task ownership suppresses automatic chrome, not a user
-        // request to reveal it. The non-focusable host leaves that task alone.
-        if (explicitlyRevealed) {
-            return Presentation.VISIBLE;
-        }
-        if (!available) {
-            return Presentation.UNAVAILABLE;
-        }
-        return automaticHold || (policyVisible && !autoHide) || pointerRevealed
+        return automaticHold || (policyVisible && !autoHide) || pointerRevealed || explicitlyRevealed
                 ? Presentation.VISIBLE : Presentation.EDGE;
     }
 
     private void updateArmedState() {
         final boolean armed = resolvePresentation(
-                mAvailable, mPolicyVisible, mAutoHide, mAutomaticHold,
+                mPolicyVisible, mAutoHide, mAutomaticHold,
                 false, mInteractionHold) == Presentation.EDGE;
-        mPointerState.setArmed(armed);
+        if (mPointerState.setArmed(armed)) {
+            cancelTimers();
+        }
         // A navigation reveal lasts until user input, across HOME visibility changes.
         mTouchState.setArmed(mTouchEdgeEnabled && armed);
     }
