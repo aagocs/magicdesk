@@ -4,6 +4,21 @@ MagicDesk uses Gradle as its project definition. Open the repository root in
 Android Studio, IntelliJ IDEA, or another Gradle-aware editor; do not open the
 `app` directory as a standalone project.
 
+
+## Product Direction
+
+This fork treats [Fork product direction](docs/product-direction.md) as a
+normative contributor document. The short version is: preserve the user's OEM
+phone experience during external/portable sessions, and make the workstation
+surface follow conventional Windows/Linux desktop interaction patterns.
+
+Before changing HOME ownership, display/session lifecycle, phone screen power,
+pointer/keyboard routing, Start/taskbar behavior, task focus, or window policy,
+read that document together with `AGENTS.md` and the relevant architecture
+guide. A technically convenient behavior is not automatically the desired UX;
+in particular, the existing package-wide HOME lease for external Desktop is a
+known fork target for redesign rather than a requirement to preserve forever.
+
 ## Compatibility Direction
 
 The APK minimum is Android 14 / API 34; managed Desktop requires Android 15 /

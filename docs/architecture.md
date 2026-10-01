@@ -5,6 +5,13 @@ and optional managed Desktop. The core uses Android services; focused firmware
 and SoC adapters extend individual capabilities. It is intended for contributors,
 reviewers and users diagnosing compatibility problems.
 
+
+For this fork's user-facing target state, also read
+[product direction](product-direction.md). Architecture describes the current
+ownership model; it must not be mistaken for a requirement to preserve every
+current UX coupling, especially package-wide HOME ownership for external-only
+Desktop sessions.
+
 ## Runtime Layers
 
 `MagicDeskApplication` initializes shared runtime state only in the primary app
