@@ -4,6 +4,42 @@ Re-read this file after context compaction or session recovery before continuing
 repository work. Preserve unrelated uncommitted changes; Git history changes
 require the user's authorization.
 
+
+## Fork Product Direction — Read First
+
+This fork has a deliberate UX direction that overrides upstream assumptions when
+the two conflict: **the phone should keep behaving like the user's normal OEM
+phone, while an external/portable MagicDesk session should behave like a
+conventional desktop workstation.** Read `docs/product-direction.md` before
+changing session ownership, HOME/launcher behavior, display power, input routing,
+taskbar/Start behavior, window interactions, or large-screen defaults.
+
+Treat these as product invariants:
+
+- An external, simulated, or portable Desktop must not unnecessarily replace the
+  user's preferred phone HOME/launcher or turn display 0 into a MagicDesk-specific
+  phone experience. Starting a Desktop on the phone itself is an explicit,
+  separate choice.
+- Phone Home/Recents, notifications, keyguard/lock screen, app switching and
+  ordinary fullscreen phone applications should remain OEM/system behavior during
+  an external-only session wherever Android permits it.
+- Phone screen power and virtual/external display liveness are separate concerns.
+  A portable workstation should not go black merely because the physical phone
+  panel turns off; Android secure-content and keyguard policy must still be
+  respected.
+- Mouse and keyboard interaction on a workstation target should follow familiar
+  Windows/Linux conventions. The phone touchpad is optional, not the primary
+  model for controlling a Desktop from a PC.
+- Desktop UI should optimize for direct manipulation, keyboard navigation,
+  predictable window semantics and low setup friction rather than reproducing
+  phone-first interaction patterns on a large display.
+
+The current package-wide HOME lease for every managed Desktop is **implementation
+debt for this fork, not the desired external-session product contract**. Do not
+paper over it by force-launching an OEM launcher while MagicDesk still owns HOME;
+change the lifecycle/ownership model deliberately and preserve the existing
+runtime-layer guardrails.
+
 ## Device Support Work
 
 The MagicDesk APK targets Android 14 / API 34 and newer. Managed Desktop

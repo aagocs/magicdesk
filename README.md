@@ -2,6 +2,29 @@
 
 **An open-source Android workstation.**
 
+
+## Fork direction: keep the phone OEM, make the Desktop feel desktop-native
+
+This fork is intentionally pushing MagicDesk in two complementary directions:
+
+- **The phone should stay a phone.** An external or portable workstation session
+  should preserve the normal OEM launcher, Home/Recents, notifications, lock
+  screen and ordinary fullscreen app behavior on display 0 wherever Android
+  allows it. Starting a Desktop on the phone itself remains an explicit choice.
+- **The workstation should feel like a workstation.** Mouse, keyboard, task
+  switching, Start/taskbar behavior, window management, scaling and large-screen
+  defaults should follow familiar Windows/Linux desktop conventions instead of
+  feeling like a remotely controlled phone UI.
+
+The current external-session architecture still acquires MagicDesk's package-wide
+HOME role and substitutes a MagicDesk phone HOME surface. That is a known
+architectural mismatch for this fork, not the target end state.
+
+See **[Fork product direction](docs/product-direction.md)** for the normative UX
+goals, architectural guardrails and prioritized implementation backlog. Coding
+agents should also read **[AGENTS.md](AGENTS.md)** before changing session,
+display, input or window behavior.
+
 MagicDesk combines **native Android app windows, Linux graphical applications,
 full-featured terminals and independent desktops on multiple displays**. Add a
 real file-based desktop, per-app interface scaling and programmable automation,
