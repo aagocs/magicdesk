@@ -80,40 +80,9 @@ jobs:
         run: python3 scripts/package-source.py dist/MagicDesk-source.tar.gz
 
       - name: Verify development version
-        shell: bash
         run: |
-          latest_tag=$(git tag --list 'v[0-9]*' --sort=-v:refname \
-            | sed -n '1p')
-          test -n "$latest_tag"
-          released_version=$(printf '%s' "$latest_tag" | cut -c2-)
-          current_version=$(awk -F= \
-            '$1 == "magicDeskVersionName" {print $2; exit}' \
-            gradle.properties)
-          current_code=$(awk -F= \
-            '$1 == "magicDeskVersionCode" {print $2; exit}' \
-            gradle.properties)
-          released_properties=$(git show \
-            "$latest_tag:gradle.properties" 2>/dev/null || true)
-          released_code=$(printf '%s\n' "$released_properties" | awk -F= \
-            '$1 == "magicDeskVersionCode" {print $2; exit}')
-          if [[ -z "$released_code" ]]; then
-            released_code=$(git show "$latest_tag:app/build.gradle" \
-              | awk '$1 == "versionCode" {print $3; exit}')
-          fi
-          highest_version=$(printf '%s\n%s\n' \
-            "$released_version" "$current_version" | sort -V | tail -n 1)
-          if [[ "$current_version" == "$released_version" \
-                || "$highest_version" != "$current_version" ]]; then
-            echo "::error::Development version $current_version must be newer than $released_version"
-            exit 1
-          fi
-          if (( current_code <= released_code )); then
-            echo "::error::Development versionCode $current_code must be greater than $released_code"
-            exit 1
-          fi
-          printf 'Development %s (%s) follows %s (%s).\n' \
-            "$current_version" "$current_code" \
-            "$released_version" "$released_code"
+          python3 -m unittest discover -s scripts/tests -p test_development_version.py
+          python3 scripts/verify-development-version.py
 
       - name: Restore release keystore
         if: github.event_name == 'push'
