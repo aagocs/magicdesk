@@ -2,6 +2,7 @@ package io.github.mekhontsev.magicdesk;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.graphics.Rect;
 import android.graphics.drawable.StateListDrawable;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -73,7 +74,10 @@ final class StartMenuContent {
     private boolean mFocusable = true;
     private int mMode = MENU_RECENT;
     private int mPage;
-    private int mSearchSelection;
+    private final StartSearchSelection mSearchSelection = new StartSearchSelection();
+    private List<StartMenuEntry> mSearchResults = List.of();
+    private LinearLayout mSearchResultsList;
+    private SearchResultScrollView mSearchResultsScroll;
     private String mSearchQuery = "";
     private int mColumns = 3;
     private int mRows = 3;
@@ -172,7 +176,7 @@ final class StartMenuContent {
                     final int before,
                     final int count) {
                 mSearchQuery = text == null ? "" : text.toString();
-                mSearchSelection = 0;
+                resetSearchSelection();
                 mSearchController.update(
                         mSearchQuery,
                         entries(mMode, true));
@@ -288,7 +292,7 @@ final class StartMenuContent {
     void showSection(final int mode) {
         mMode = mode;
         mPage = 0;
-        mSearchSelection = 0;
+        resetSearchSelection();
         mSearchQuery = "";
         if (mSearch != null && mSearch.length() > 0) {
             mSearch.setText("");
@@ -350,7 +354,7 @@ final class StartMenuContent {
 
     private void destinationChanged() {
         mPage = 0;
-        mSearchSelection = 0;
+        resetSearchSelection();
         mSearchController.update(mSearchQuery, entries(mMode, true));
         renderBody();
     }
@@ -421,10 +425,10 @@ final class StartMenuContent {
         if (mBody == null) {
             return;
         }
-        mBody.removeAllViews();
-
         final var android = mCatalog.snapshot().android();
         if ((mMode == MENU_APPS || !mSearchQuery.trim().isEmpty()) && !android.ready()) {
+            clearSearchResults();
+            mBody.removeAllViews();
             final TextView status = new TextView(mActivity);
             status.setText(android.error().isEmpty()
                     ? mActivity.getString(R.string.apps_loading) : android.error());
@@ -440,6 +444,8 @@ final class StartMenuContent {
             renderSearchResults();
             return;
         }
+        clearSearchResults();
+        mBody.removeAllViews();
 
         final List<StartMenuEntry> menuApps = entries(mMode, false);
         final String recentError = mMode == MENU_RECENT ? RecentApplications.error(mLaunchControls.recentScope())
@@ -687,7 +693,14 @@ final class StartMenuContent {
     private void renderSearchResults() {
         final List<StartMenuEntry> matches =
                 mSearchController.results(getSearchResultLimit());
+        final int scrollY = mSearchResultsScroll == null ? 0 : mSearchResultsScroll.getScrollY();
+        final boolean keepSelectionVisible = mSearchResultsScroll != null
+                && mSearchResultsScroll.shouldKeepSelectionVisible();
+        mSearchSelection.update(matches.stream().map(StartMenuEntry::stableKey).toList());
+        mSearchResults = matches;
         if (matches.isEmpty()) {
+            clearSearchResults();
+            mBody.removeAllViews();
             final TextView empty = new TextView(mActivity);
             empty.setText(R.string.search_no_results);
             UiAppearance.text(empty, UiColor.MUTED);
@@ -697,28 +710,110 @@ final class StartMenuContent {
                     LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
             return;
         }
-        final int visibleCount = matches.size();
-        if (mSearchSelection >= visibleCount) {
-            mSearchSelection = visibleCount - 1;
+        if (mSearchResultsScroll == null || mSearchResultsScroll.getParent() != mBody) {
+            mBody.removeAllViews();
+            mSearchResultsList = new LinearLayout(mActivity);
+            mSearchResultsList.setOrientation(LinearLayout.VERTICAL);
+            mSearchResultsList.setPadding(0, dp(8), 0, 0);
+            mSearchResultsScroll = new SearchResultScrollView(mActivity);
+            mSearchResultsScroll.addView(mSearchResultsList, new ScrollView.LayoutParams(
+                    ScrollView.LayoutParams.MATCH_PARENT,
+                    ScrollView.LayoutParams.WRAP_CONTENT));
+            mBody.addView(mSearchResultsScroll, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
+        } else {
+            mSearchResultsList.removeAllViews();
         }
-        final LinearLayout list = new LinearLayout(mActivity);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(0, dp(8), 0, 0);
-        for (int index = 0; index < visibleCount; index++) {
-            list.addView(
+        for (int index = 0; index < matches.size(); index++) {
+            mSearchResultsList.addView(
                     createSearchRow(
                             matches.get(index),
-                            index == mSearchSelection),
+                            index == mSearchSelection.index()),
                     new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
                             dp(StartMenuLayout.rowHeight(mAppearance.iconSizeDp()))));
         }
-        final ScrollView scroll = new ScrollView(mActivity);
-        scroll.addView(list, new ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.WRAP_CONTENT));
-        mBody.addView(scroll, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
+        mSearchResultsScroll.setSelectedResult(
+                mSearchResultsList.getChildAt(mSearchSelection.index()), false);
+        mSearchResultsScroll.restoreViewport(scrollY, keepSelectionVisible);
+    }
+
+    private void clearSearchResults() {
+        mSearchResults = List.of();
+        mSearchResultsList = null;
+        mSearchResultsScroll = null;
+    }
+
+    private void resetSearchSelection() {
+        mSearchSelection.reset();
+        if (mSearchResultsScroll != null) {
+            mSearchResultsScroll.scrollTo(0, 0);
+        }
+    }
+
+    private void updateSearchSelection() {
+        if (mSearchResultsList == null || mSearchResultsScroll == null) {
+            return;
+        }
+        for (int index = 0; index < mSearchResultsList.getChildCount(); index++) {
+            mSearchResultsList.getChildAt(index).setSelected(index == mSearchSelection.index());
+        }
+        mSearchResultsScroll.setSelectedResult(
+                mSearchResultsList.getChildAt(mSearchSelection.index()), true);
+    }
+
+    /** Restores/reveals only after Android has positioned the result rows. */
+    private static final class SearchResultScrollView extends ScrollView {
+        private View mSelectedResult;
+        private Integer mRestoreScrollY;
+        private boolean mRevealSelection;
+
+        SearchResultScrollView(final Activity activity) { super(activity); }
+
+        void restoreViewport(final int scrollY, final boolean revealSelection) {
+            mRestoreScrollY = scrollY;
+            mRevealSelection = revealSelection;
+            requestLayout();
+        }
+
+        void setSelectedResult(final View result, final boolean reveal) {
+            mSelectedResult = result;
+            if (reveal) {
+                if (isLayoutRequested() || result != null && result.isLayoutRequested()) {
+                    mRevealSelection = true;
+                    requestLayout();
+                } else {
+                    revealSelection();
+                }
+            }
+        }
+
+        boolean shouldKeepSelectionVisible() {
+            final Rect visible = new Rect();
+            return mRevealSelection || mSelectedResult != null && mSelectedResult.getHeight() > 0
+                    && mSelectedResult.getLocalVisibleRect(visible)
+                    && visible.height() >= mSelectedResult.getHeight();
+        }
+
+        @Override protected void onLayout(final boolean changed,
+                final int left, final int top, final int right, final int bottom) {
+            super.onLayout(changed, left, top, right, bottom);
+            if (mRestoreScrollY != null) {
+                scrollTo(0, mRestoreScrollY);
+                mRestoreScrollY = null;
+            }
+            if (mRevealSelection) {
+                mRevealSelection = false;
+                revealSelection();
+            }
+        }
+
+        private void revealSelection() {
+            if (mSelectedResult != null) {
+                mSelectedResult.requestRectangleOnScreen(new Rect(
+                        0, 0, mSelectedResult.getWidth(), mSelectedResult.getHeight()), true);
+            }
+        }
     }
 
     private boolean handleSearchKey(
@@ -727,26 +822,22 @@ final class StartMenuContent {
         if (event.getAction() != KeyEvent.ACTION_DOWN) {
             return false;
         }
-        final List<StartMenuEntry> matches =
-                mSearchController.results(getSearchResultLimit());
-        final int visibleCount = matches.size();
-        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !matches.isEmpty()) {
-            mSearchSelection = Math.min(
-                    visibleCount - 1, mSearchSelection + 1);
-            renderBody();
+        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !mSearchResults.isEmpty()) {
+            mSearchSelection.move(1);
+            updateSearchSelection();
             return true;
         }
-        if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !matches.isEmpty()) {
-            mSearchSelection = Math.max(0, mSearchSelection - 1);
-            renderBody();
+        if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !mSearchResults.isEmpty()) {
+            mSearchSelection.move(-1);
+            updateSearchSelection();
             return true;
         }
         if ((keyCode == KeyEvent.KEYCODE_ENTER
                 || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                && !matches.isEmpty()) {
-            final StartMenuEntry result = matches.get(
-                    Math.min(mSearchSelection, matches.size() - 1));
-            openSearchResult(result);
+                && !mSearchResults.isEmpty()) {
+            if (event.getRepeatCount() == 0) {
+                openSearchResult(mSearchResults.get(mSearchSelection.index()));
+            }
             return true;
         }
         if (keyCode == KeyEvent.KEYCODE_ESCAPE) {

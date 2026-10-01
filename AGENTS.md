@@ -14,6 +14,11 @@ conventional desktop workstation.** Read `docs/product-direction.md` before
 changing session ownership, HOME/launcher behavior, display power, input routing,
 taskbar/Start behavior, window interactions, or large-screen defaults.
 
+Then read `docs/ux-work-plan.md` for the source audit, work-item IDs, next steps
+and acceptance matrix. Wired mouse/keyboard and portable PC/scrcpy sessions are
+equal-priority targets for this fork. Keep that plan current when work starts or
+finishes; distinguish source findings, proposals and device-verified behavior.
+
 Treat these as product invariants:
 
 - An external, simulated, or portable Desktop must not unnecessarily replace the
@@ -154,6 +159,13 @@ and assertions. Do not weaken a test to make a device pass. Close an active
 desktop through its production cleanup path before installing another APK.
 
 ## Local Device Automation
+
+Verify the current environment before following device-specific instructions.
+The configured MCP endpoint and maintainer phone setup described below are not
+guaranteed to exist in another agent's checkout. Discover available tools and
+authorized devices first; do not invent device coverage or replace another
+user's MCP configuration. Use the environment preflight and evidence contract in
+`docs/ux-work-plan.md` for fork UX work.
 
 Never reboot the phone without asking the user and receiving explicit
 confirmation immediately before the reboot command. An earlier discussion or

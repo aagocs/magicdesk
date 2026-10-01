@@ -21,9 +21,11 @@ HOME role and substitutes a MagicDesk phone HOME surface. That is a known
 architectural mismatch for this fork, not the target end state.
 
 See **[Fork product direction](docs/product-direction.md)** for the normative UX
-goals, architectural guardrails and prioritized implementation backlog. Coding
-agents should also read **[AGENTS.md](AGENTS.md)** before changing session,
-display, input or window behavior.
+goals, architectural guardrails and priorities. **[UX implementation plan](docs/ux-work-plan.md)**
+maps those goals to source owners, concrete work items and acceptance checks.
+Wired mouse/keyboard and portable PC/scrcpy sessions have equal priority.
+Coding agents should also read **[AGENTS.md](AGENTS.md)** before changing
+session, display, input or window behavior.
 
 MagicDesk combines **native Android app windows, Linux graphical applications,
 full-featured terminals and independent desktops on multiple displays**. Add a

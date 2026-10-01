@@ -19,6 +19,11 @@ guide. A technically convenient behavior is not automatically the desired UX;
 in particular, the existing package-wide HOME lease for external Desktop is a
 known fork target for redesign rather than a requirement to preserve forever.
 
+Use the [UX implementation plan](docs/ux-work-plan.md) to select a bounded work
+item, find its source owners and record validation. Wired mouse/keyboard and
+portable PC/scrcpy workflows have equal priority. Update work-item status in the
+same change as implementation, and attach evidence before calling it verified.
+
 ## Compatibility Direction
 
 The APK minimum is Android 14 / API 34; managed Desktop requires Android 15 /
