@@ -5,6 +5,11 @@ This document is the normative user-experience direction for the
 `docs/architecture.md`: the architecture document explains how MagicDesk works
 today; this document explains what this fork is trying to become.
 
+The [UX implementation plan](ux-work-plan.md) is the execution companion: it
+records the source audit, work-item status, next steps and validation matrix.
+Wired monitor/mouse/keyboard and portable PC/scrcpy sessions have equal priority;
+success on one does not establish success on the other.
+
 ## Vision: two coherent surfaces, one device
 
 MagicDesk should let one Android device serve two roles at the same time without
@@ -120,8 +125,9 @@ solely because it is already encoded in the current lifecycle.
 
 ## Prioritized implementation backlog
 
-GitHub Issues are currently disabled on this fork, so this section is the
-canonical backlog until issue tracking is enabled.
+Until issue tracking is enabled on this fork, the [UX implementation
+plan](ux-work-plan.md) is the canonical implementation backlog and status record.
+The sections below define its product priorities and outcomes.
 
 ### P0 — Decouple external Desktop from the phone HOME role
 
@@ -165,9 +171,10 @@ Acceptance criteria:
 **Outcome:** controlling a portable/external Desktop from a PC feels like direct
 desktop input rather than a phone touchpad workaround.
 
-Audit `DesktopInputSession`, `RuntimeDesktopInputCoordinator`, pointer routing,
-the uinput bridge, shortcut filtering and scrcpy capture behavior. Define one
-repeatable matrix for USB/Bluetooth and remote-view input.
+Audit `DisplayInputSession`, `RuntimeDisplayInputCoordinator`,
+`RuntimeInputCoordinator`, pointer routing, the uinput bridge, shortcut filtering
+and scrcpy capture behavior. Define one repeatable matrix for USB/Bluetooth and
+remote-view input.
 
 Acceptance criteria include pointer routing/capture, keyboard focus, Alt+Tab,
 window drag/resize, context click, wheel scrolling, multi-button input and clean
