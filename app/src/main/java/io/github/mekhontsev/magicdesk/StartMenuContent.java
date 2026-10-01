@@ -426,13 +426,9 @@ final class StartMenuContent {
             return;
         }
         final var android = mCatalog.snapshot().android();
-        if (android.ready() && !mSearchQuery.trim().isEmpty()) {
-            renderSearchResults();
-            return;
-        }
-        clearSearchResults();
-        mBody.removeAllViews();
         if ((mMode == MENU_APPS || !mSearchQuery.trim().isEmpty()) && !android.ready()) {
+            clearSearchResults();
+            mBody.removeAllViews();
             final TextView status = new TextView(mActivity);
             status.setText(android.error().isEmpty()
                     ? mActivity.getString(R.string.apps_loading) : android.error());
@@ -443,6 +439,13 @@ final class StartMenuContent {
             mHost.automation().register(status, "start.catalog", "status", status.getText().toString());
             return;
         }
+
+        if (!mSearchQuery.trim().isEmpty()) {
+            renderSearchResults();
+            return;
+        }
+        clearSearchResults();
+        mBody.removeAllViews();
 
         final List<StartMenuEntry> menuApps = entries(mMode, false);
         final String recentError = mMode == MENU_RECENT ? RecentApplications.error(mLaunchControls.recentScope())
