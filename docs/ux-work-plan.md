@@ -12,8 +12,8 @@ attempt the entire UX redesign in one change.
 
 ## Current status
 
-- Source audit completed against `ec4bd633` on 2026-10-02. No runtime UX changes
-  have been implemented by this plan.
+- Source audit completed against `ec4bd633` on 2026-10-02. UX-020 now has an
+  implementation in review; changed-build device validation is pending.
 - The owner selected **both equally**: wired external monitor with mouse and
   keyboard, and portable/virtual Desktop viewed and controlled from a PC through
   scrcpy. Neither is a secondary target. Wireless remains a supported regression
@@ -21,10 +21,16 @@ attempt the entire UX redesign in one change.
 - GitHub Issues were disabled when this plan was created. Track stable IDs here
   until issue tracking is enabled, then link issues rather than duplicating their
   changing status. Do not enable repository settings as part of UX work.
-- Device baseline, reproduction, build and runtime validation are pending.
-  The kickoff environment had no discovered MagicDesk MCP tools, no Java/ADB on
-  PATH and no Android SDK at the usual local Windows location. These observations
-  are local limitations, not project build failures or device incompatibilities.
+- A Samsung SM-G998B/API 35 is connected through wireless ADB. The unchanged
+  runtime baseline is `1.13.1-dev.163.6d945e2`, source `6d945e22` (the fork's
+  initial changes above it are documentation only), Standard Android adapter and
+  Shizuku UID 2000. A complete refreshed compatibility report and reproduction
+  captures are retained privately outside tracked source. OEM HOME remains
+  Samsung's launcher; WMShell desktop support is currently unverified.
+- Local JDK 17 and Android connection tools are available for host fixtures and
+  device checks. Full Android assembly/Lint runs through repository CI; a local
+  Android SDK/native build toolchain is not configured. Wired and portable
+  workstation validation remain pending.
 
 Statuses mean: **investigated** = source boundary traced; **planned** = acceptance
 defined; **in progress** = implementation underway; **verified** = required checks
@@ -35,11 +41,11 @@ user-visible bug. Update status and evidence with each implementation change.
 
 | ID | Priority | Outcome | Status | Prerequisite |
 | --- | --- | --- | --- | --- |
-| UX-001 | P0 | Reproducible wired and portable baseline | Planned | Authorized device and build/tool access |
+| UX-001 | P0 | Reproducible wired and portable baseline | In progress; phone Start baseline captured | Wired and portable coverage |
 | UX-010 | P0 | External-only Desktop preserves OEM HOME | Investigated; design unproven | UX-001 and framework hosting probe |
 | UX-011 | P0 | Portable output remains live with phone panel off | Planned | UX-001; repeat after UX-010 |
 | UX-012 | P0 | Direct PC and physical mouse/keyboard control | Investigated; device audit pending | UX-001; repeat after UX-010 |
-| UX-020 | P1 | Start keyboard selection stays visible and stable | Investigated; reproduction pending | UX-001's relevant Start baseline |
+| UX-020 | P1 | Start keyboard selection stays visible and stable | In progress; host fixtures pass, device reproduction confirmed | Changed-build and workstation verification |
 | UX-021 | P1 | Consistent taskbar/window interactions | Planned | UX-001 and focused interaction audit |
 | UX-022 | P1 | Useful, compact workstation defaults | Planned | UX-020/021 findings and fresh-settings baseline |
 
@@ -171,8 +177,12 @@ Source finding: in
 removes every body child. `renderSearchResults` then creates a new result list
 and `ScrollView` without explicitly revealing the selected row. Asynchronous
 search updates also rebuild the body. Selection is an index rather than a stable
-entry identity. These are code-level observations; on-device behavior remains
-unverified.
+entry identity. These observations have now been reproduced on the unchanged
+phone build: independent Apps/Start on display 0, query `a`, focus search, then
+14 Down key presses. The selected row is reported `selected=true`,
+`visible=false`, outside the ScrollView's visible bounds, while the search
+EditText remains focused. This establishes the shared Start defect; wired/portable
+desktop UI and physical keyboard behavior have not yet been verified.
 
 Reproduce with enough matching apps/files to exceed the visible search viewport:
 open Start, type a query, repeatedly press Down beyond the first visible page,
@@ -199,6 +209,24 @@ placement semantics. Existing `StartSearchControllerTest`, `StartDestinationTest
 and `StartEntryAppearanceTest` provide nearby coverage. Verify meaningful
 selection/update cases and actual row visibility on a device; source assertions
 alone cannot prove Android layout or keyboard behavior.
+
+### Implementation in review
+
+[StartSearchSelection](../app/src/main/java/io/github/mekhontsev/magicdesk/StartSearchSelection.java)
+retains selection by stable entry key, clamps to the previous position when an
+entry disappears, and resets on query/destination changes. Start updates the
+existing row highlights for arrow navigation and launches the rendered selected
+entry; held Enter repeats do not launch again. Its result ScrollView restores
+viewport/reveals the selected row in `onLayout`, after Android positions children.
+Result updates retain the viewport and a visible/pending keyboard selection,
+without pulling a mouse-scrolled offscreen selection back into view.
+
+Host validation: `StartSearchSelectionTest`, `StartSearchNavigationTest` and
+`StartDestinationTest` pass together (18 tests), including actual production
+key-handler/layout-adapter bodies through the existing runtime fixture. The
+pre-change host reproduction fails on viewport rebuilding and selection drift.
+Full CI assembly/Lint and changed-build phone, wired and portable results must be
+recorded before this work item is marked verified.
 
 ## UX-021/022: interaction audit and defaults
 
