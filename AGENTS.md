@@ -18,6 +18,13 @@ Then read `docs/ux-work-plan.md` for the source audit, work-item IDs, next steps
 and acceptance matrix. Wired mouse/keyboard and portable PC/scrcpy sessions are
 equal-priority targets for this fork. Keep that plan current when work starts or
 finishes; distinguish source findings, proposals and device-verified behavior.
+The long-term target is a daily Windows/Linux replacement, including local PC
+gaming. Read `docs/workstation-gaming.md` before compatibility/graphics/game work;
+describe generic engineering capabilities, not personal application choices. Do not
+claim Windows-game support from working Android or Linux desktop presentation.
+Use `docs/testing-workflow.md` for focused checks between edits, then retain the
+full verification and boundary-specific device gates below. Reuse authorized
+connections and matching test signatures rather than repeating destructive setup.
 
 Treat these as product invariants:
 
@@ -44,6 +51,17 @@ debt for this fork, not the desired external-session product contract**. Do not
 paper over it by force-launching an OEM launcher while MagicDesk still owns HOME;
 change the lifecycle/ownership model deliberately and preserve the existing
 runtime-layer guardrails.
+
+## Public repository privacy
+
+Never publish personal information in source, documentation, commits, PR bodies,
+comments, screenshots or CI uploads. Public plans describe generic engineering
+capabilities, not an individual's game choices, hardware inventory or setup.
+Keep credentials, connection/network identifiers, serials, local paths, accounts,
+application inventories and complete device/UI reports in private ignored
+storage. Before any push, review the tracked diff and public text for personal
+content; publish only anonymized aggregate verification results. Do not copy
+private evidence into artifacts or logs merely because a test passed.
 
 ## Device Support Work
 

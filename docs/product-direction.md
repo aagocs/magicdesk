@@ -18,6 +18,14 @@ forcing either role to imitate the other.
 1. **The phone remains an ordinary OEM Android phone.**
 2. **The workstation target behaves like a conventional desktop computer.**
 
+The long-term outcome is a full daily workstation that can replace a
+Windows/Linux computer for supported work and local PC gaming. Conventional shell
+interaction is the first layer; application compatibility, file workflows,
+graphics, audio, input, persistence and recovery are part of the goal. The
+[workstation and gaming roadmap](workstation-gaming.md) stages that work, including
+generic PC application support. It distinguishes
+implemented foundations from compatibility that remains unverified.
+
 The goal is not to clone Windows pixels or replace Android's task/window system.
 The goal is to preserve native Android capabilities underneath a UI and lifecycle
 that are unsurprising for both phone use and desktop use.
@@ -195,6 +203,10 @@ available. Large-display defaults should prioritize information density,
 keyboard navigation and predictable placement.
 
 ## Agent workflow
+
+Use [faster development checks](testing-workflow.md) between edits, and preserve
+the full final verification gate. Keep progress tied to measurable workflows,
+including the workstation/gaming stages, rather than visual resemblance alone.
 
 For any user-facing session or shell change:
 

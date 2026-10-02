@@ -24,6 +24,11 @@ See **[Fork product direction](docs/product-direction.md)** for the normative UX
 goals, architectural guardrails and priorities. **[UX implementation plan](docs/ux-work-plan.md)**
 maps those goals to source owners, concrete work items and acceptance checks.
 Wired mouse/keyboard and portable PC/scrcpy sessions have equal priority.
+The long-term goal includes replacing a daily Windows/Linux workstation and
+running PC games locally. The **[workstation and gaming roadmap](docs/workstation-gaming.md)**
+tracks the generic compatibility work and currently unverified capabilities. **[Faster development
+checks](docs/testing-workflow.md)** explains the short feedback loop and final
+verification gate.
 Coding agents should also read **[AGENTS.md](AGENTS.md)** before changing
 session, display, input or window behavior.
 
