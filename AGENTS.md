@@ -30,6 +30,9 @@ claim Windows-game support from working Android or Linux desktop presentation.
 Use [Faster Development Checks](https://github.com/aagocs/magicdesk/wiki/Faster-Development-Checks) for focused checks between edits, then retain the
 full verification and boundary-specific device gates below. Reuse authorized
 connections and matching test signatures rather than repeating destructive setup.
+When the Android SDK is unavailable, use the [SDK-less Compile and Unit-Test Check](https://github.com/aagocs/magicdesk/wiki/SDK-less-Compile-and-Unit-Test-Check)
+for supplemental type-check and JVM feedback; it does not replace CI or device
+verification.
 
 Treat these as product invariants:
 
