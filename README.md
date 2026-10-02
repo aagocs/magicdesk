@@ -29,6 +29,9 @@ running PC games locally. The **[workstation and gaming roadmap](https://github.
 tracks the generic compatibility work and currently unverified capabilities. **[Faster development
 checks](https://github.com/aagocs/magicdesk/wiki/Faster-Development-Checks)** explains the short feedback loop and final
 verification gate.
+For environments without the Android SDK, the **[SDK-less compile and unit-test
+check](https://github.com/aagocs/magicdesk/wiki/SDK-less-Compile-and-Unit-Test-Check)**
+offers supplemental compile and JVM feedback.
 The [HOME Ownership Design](https://github.com/aagocs/magicdesk/wiki/HOME-Ownership-Design)
 records the external-workspace proposal and the device probe required before
 changing HOME/session ownership.
