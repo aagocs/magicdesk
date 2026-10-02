@@ -121,6 +121,9 @@ final class DesktopStateStore {
         }
         final State state = new State();
         readAppReferences(root.optJSONArray("taskbar"), state.taskbarApps);
+        // Stored state without the marker predates pin seeding; its pins, including
+        // none, are the user's choice.
+        state.taskbarInitialized = root.optBoolean("taskbarInitialized", true);
         readDesktopPlacements(
                 root.optJSONObject("desktopPlacements"),
                 state.desktopPlacements);
@@ -172,6 +175,7 @@ final class DesktopStateStore {
     private static State snapshotLocked() {
         final State snapshot = new State();
         snapshot.taskbarApps.addAll(sState.taskbarApps);
+        snapshot.taskbarInitialized = sState.taskbarInitialized;
         snapshot.desktopPlacements.putAll(sState.desktopPlacements);
         snapshot.appWindows.putAll(sState.appWindows);
         snapshot.appPresentations.putAll(sState.appPresentations);
@@ -196,6 +200,7 @@ final class DesktopStateStore {
         final JSONObject root = new JSONObject();
         root.put("format", FORMAT);
         root.put("taskbar", appReferencesToJson(state.taskbarApps));
+        root.put("taskbarInitialized", state.taskbarInitialized);
         root.put(
                 "desktopPlacements",
                 desktopPlacementsToJson(state.desktopPlacements));
@@ -487,6 +492,8 @@ final class DesktopStateStore {
 
     static final class State {
         final List<AppReference> taskbarApps = new ArrayList<>();
+        /** False only until a fresh install's taskbar is seeded or pins are saved. */
+        boolean taskbarInitialized;
         final Map<String, GlobalDesktopPlacement> desktopPlacements =
                 new LinkedHashMap<>();
         final Map<AppReference, AppWindowState> appWindows =
