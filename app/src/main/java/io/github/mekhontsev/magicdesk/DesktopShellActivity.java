@@ -1827,6 +1827,12 @@ public abstract class DesktopShellActivity extends Activity
         mStartMenuController.toggle();
     }
 
+    /** The Windows-key tap seen by the shortcut filter, matching the shell's own Meta-up toggle. */
+    void toggleStartFromRuntime() {
+        captureInteractionStackForPanel();
+        toggleStartMenu();
+    }
+
     void showStartFromRuntime() {
         captureInteractionStackForPanel();
         setStartMenuVisible(true);

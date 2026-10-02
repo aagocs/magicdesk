@@ -274,6 +274,12 @@ public final class DesktopOperations {
         }
     }
 
+    static void toggleStart() {
+        if (!MagicDeskRuntime.toggleStart(MagicDeskRuntime.inputDisplayId())) {
+            Log.w(TAG, "MagicDesk desktop is unavailable for Start");
+        }
+    }
+
     static void showStart() {
         if (!MagicDeskRuntime.showStart(MagicDeskRuntime.inputDisplayId())) {
             Log.w(TAG, "MagicDesk desktop is unavailable for Start");

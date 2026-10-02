@@ -322,4 +322,74 @@ public final class KeyboardShortcutStateMachineTest {
         assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_E, true, 0, false, false, false, true, false).action);
     }
+    private static KeyboardShortcutStateMachine.Result key(KeyboardShortcutStateMachine s, int key,
+            boolean down, boolean shift, boolean meta) {
+        return s.accept(key, down, 0, false, false, shift, meta);
+    }
+
+    @Test public void lonelyWindowsKeyTapTogglesStartAndStaysSuppressed() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final var down = key(s, KeyEvent.KEYCODE_META_LEFT, true, false, true);
+        assertTrue(down.consumed);
+        assertEquals(NONE, down.action);
+        final var up = key(s, KeyEvent.KEYCODE_META_LEFT, false, false, false);
+        assertTrue(up.consumed);
+        assertEquals(TOGGLE_START, up.action);
+        // Every tap toggles: a second tap closes Start again.
+        key(s, KeyEvent.KEYCODE_META_RIGHT, true, false, true);
+        assertEquals(TOGGLE_START, key(s, KeyEvent.KEYCODE_META_RIGHT, false, false, false).action);
+    }
+
+    @Test public void windowsKeyChordsDoNotAlsoToggleStart() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        key(s, KeyEvent.KEYCODE_META_LEFT, true, false, true);
+        assertEquals(SHOW_DESKTOP, key(s, KeyEvent.KEYCODE_D, true, false, true).action);
+        key(s, KeyEvent.KEYCODE_D, false, false, true);
+        assertEquals(NONE, key(s, KeyEvent.KEYCODE_META_LEFT, false, false, false).action);
+        // An unbound key pressed with Win still makes it a chord, not a tap.
+        key(s, KeyEvent.KEYCODE_META_LEFT, true, false, true);
+        key(s, KeyEvent.KEYCODE_Z, true, false, true);
+        key(s, KeyEvent.KEYCODE_Z, false, false, true);
+        assertEquals(NONE, key(s, KeyEvent.KEYCODE_META_LEFT, false, false, false).action);
+    }
+
+    @Test public void heldRepeatsAndModifiersDoNotMakeATap() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        key(s, KeyEvent.KEYCODE_META_LEFT, true, false, true);
+        for (int repeat = 1; repeat < 4; repeat++) {
+            assertEquals(NONE, s.accept(KeyEvent.KEYCODE_META_LEFT, true, repeat,
+                    false, false, false, true).action);
+        }
+        assertEquals(TOGGLE_START, key(s, KeyEvent.KEYCODE_META_LEFT, false, false, false).action);
+        // Shift+Win is not a Start tap.
+        key(s, KeyEvent.KEYCODE_META_LEFT, true, true, true);
+        assertEquals(NONE, key(s, KeyEvent.KEYCODE_META_LEFT, false, true, false).action);
+    }
+
+    @Test public void bothWindowsKeysToggleOnceOnFinalRelease() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        key(s, KeyEvent.KEYCODE_META_LEFT, true, false, true);
+        key(s, KeyEvent.KEYCODE_META_RIGHT, true, false, true);
+        final var first = key(s, KeyEvent.KEYCODE_META_LEFT, false, false, true);
+        assertTrue(first.consumed);
+        assertEquals(NONE, first.action);
+        final var last = key(s, KeyEvent.KEYCODE_META_RIGHT, false, false, false);
+        assertTrue(last.consumed);
+        assertEquals(TOGGLE_START, last.action);
+    }
+
+    @Test public void windowsKeyTapOutsideADesktopIsNotOurs() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        assertFalse(s.accept(KeyEvent.KEYCODE_META_LEFT, true, 0, false, false, false, true, false).consumed);
+        final var up = s.accept(KeyEvent.KEYCODE_META_LEFT, false, 0, false, false, false, false, false);
+        assertFalse(up.consumed);
+        assertEquals(NONE, up.action);
+    }
+
+    @Test public void resetDiscardsAPendingTap() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        key(s, KeyEvent.KEYCODE_META_LEFT, true, false, true);
+        s.reset();
+        assertEquals(NONE, key(s, KeyEvent.KEYCODE_META_LEFT, false, false, false).action);
+    }
 }

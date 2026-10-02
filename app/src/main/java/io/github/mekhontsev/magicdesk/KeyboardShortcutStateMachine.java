@@ -41,7 +41,8 @@ final class KeyboardShortcutStateMachine {
         MOVE_DISPLAY_NEXT,
         OPEN_FILES,
         OPEN_TASK_MANAGER,
-        OPEN_START
+        OPEN_START,
+        TOGGLE_START
     }
 
 
@@ -65,6 +66,8 @@ final class KeyboardShortcutStateMachine {
     private boolean mDisplayActive;
     private Action mSnapSide = Action.NONE;
     private int mSnapRow;
+    /** A Windows key went down alone and nothing else has been pressed since. */
+    private boolean mStartTap;
 
     Result accept(final int key, final boolean down, final int repeats,
             final boolean ctrl, final boolean alt, final boolean shift, final boolean meta,
@@ -83,6 +86,12 @@ final class KeyboardShortcutStateMachine {
         if (!meta || !desktop || ctrl || alt || shift) clearSnapSequence();
         if (!down) {
             final boolean consumed = mConsumed.remove(key);
+            if (consumed && isMeta(key) && !metaHeld()) {
+                // The last Windows key released: a lone tap toggles Start, as on Windows.
+                final boolean tap = mStartTap && desktop && !ctrl && !alt && !shift;
+                mStartTap = false;
+                if (tap) return new Result(true, Action.TOGGLE_START);
+            }
             if ((key == KeyEvent.KEYCODE_ALT_LEFT || key == KeyEvent.KEYCODE_ALT_RIGHT)
                     && !alt && mDisplayActive) {
                 mDisplayActive = false;
@@ -95,6 +104,7 @@ final class KeyboardShortcutStateMachine {
             }
             return new Result(consumed, Action.NONE);
         }
+        if (!isMeta(key)) mStartTap = false;
         if (mConsumed.contains(key)) {
             return new Result(true, Action.NONE);
         }
@@ -111,7 +121,8 @@ final class KeyboardShortcutStateMachine {
         }
         if (!desktop || mDisplayActive) return new Result(false, Action.NONE);
         // Suppress the system's standalone Meta action along with our Meta chords.
-        if (key == KeyEvent.KEYCODE_META_LEFT || key == KeyEvent.KEYCODE_META_RIGHT) {
+        if (isMeta(key)) {
+            if (!metaHeld()) mStartTap = !ctrl && !alt && !shift;
             mConsumed.add(key);
             return new Result(true, Action.NONE);
         }
@@ -161,10 +172,20 @@ final class KeyboardShortcutStateMachine {
         mSnapRow = 0;
     }
 
+    private static boolean isMeta(final int key) {
+        return key == KeyEvent.KEYCODE_META_LEFT || key == KeyEvent.KEYCODE_META_RIGHT;
+    }
+
+    private boolean metaHeld() {
+        return mConsumed.contains(KeyEvent.KEYCODE_META_LEFT)
+                || mConsumed.contains(KeyEvent.KEYCODE_META_RIGHT);
+    }
+
     boolean reset() {
         final boolean cancel = mAltTabActive || mDisplayActive;
         mAltTabActive = false;
         mDisplayActive = false;
+        mStartTap = false;
         mConsumed.clear();
         clearSnapSequence();
         return cancel;

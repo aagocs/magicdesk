@@ -769,7 +769,7 @@
     <string name="shortcut_files_action">打开文件</string>
     <string name="shortcut_task_manager">Ctrl + Shift + Esc</string>
     <string name="shortcut_task_manager_action">打开任务管理器</string>
-    <string name="shortcut_start">Win + S / Ctrl + Esc</string>
+    <string name="shortcut_start">Win / Win + S / Ctrl + Esc</string>
     <string name="shortcut_start_action">打开开始</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">显示此列表</string>

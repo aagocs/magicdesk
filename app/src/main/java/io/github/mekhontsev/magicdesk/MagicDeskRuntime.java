@@ -406,6 +406,11 @@ public final class MagicDeskRuntime {
     }
 
 
+    static boolean toggleStart(final int displayId) {
+        final MagicDeskRuntimeBackend backend = backend();
+        return backend != null && backend.toggleStart(displayId);
+    }
+
     static boolean showStart(final int displayId) {
         final MagicDeskRuntimeBackend backend = backend();
         return backend != null && backend.showStart(displayId);

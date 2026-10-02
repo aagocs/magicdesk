@@ -309,6 +309,15 @@ final class DesktopUiGateway {
         return true;
     }
 
+    boolean toggleStart(final int displayId) {
+        final DesktopShellActivity activity = usableDesktop(displayId, true);
+        if (activity == null) {
+            return false;
+        }
+        postToHost(activity, activity::toggleStartFromRuntime);
+        return true;
+    }
+
     boolean showStart(final int displayId) {
         final DesktopShellActivity activity = usableDesktop(displayId, true);
         if (activity == null) {

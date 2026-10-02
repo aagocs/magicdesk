@@ -789,7 +789,7 @@
     <string name="shortcut_files_action">Ouvrir Fichiers</string>
     <string name="shortcut_task_manager">Ctrl + Shift + Esc</string>
     <string name="shortcut_task_manager_action">Ouvrir le Gestionnaire des tâches</string>
-    <string name="shortcut_start">Win + S / Ctrl + Esc</string>
+    <string name="shortcut_start">Win / Win + S / Ctrl + Esc</string>
     <string name="shortcut_start_action">Ouvrir Démarrer</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Afficher cette liste</string>
