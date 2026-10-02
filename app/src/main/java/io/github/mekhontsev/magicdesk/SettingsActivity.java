@@ -384,6 +384,48 @@ public final class SettingsActivity extends Activity
                 : R.string.settings_mcp_copy_failed, Toast.LENGTH_SHORT).show();
     }
 
+    @Override public void manageMcpClients() {
+        final var registry = McpClients.get(this);
+        final var clients = registry.clients();
+        if (clients.isEmpty()) {
+            UiDialogs.builder(this).setTitle(R.string.settings_mcp_clients)
+                    .setMessage(R.string.settings_mcp_clients_empty)
+                    .setPositiveButton(android.R.string.ok, null).show();
+            return;
+        }
+        final CharSequence[] labels = new CharSequence[clients.size()];
+        for (int i = 0; i < labels.length; i++) {
+            final var client = clients.get(i);
+            final var permissions = client.access().toJson();
+            final StringBuilder grants = new StringBuilder();
+            for (int p = 1; p < permissions.length(); p++) {
+                if (grants.length() > 0) grants.append(", ");
+                grants.append(permissions.optString(p));
+            }
+            labels[i] = client.packageName + "\n" + (grants.length() == 0
+                    ? getString(R.string.mcp_client_observe_only) : grants);
+        }
+        UiDialogs.builder(this).setTitle(R.string.settings_mcp_clients)
+                .setItems(labels, (dialog, which) -> confirmMcpClientRevoke(clients.get(which)))
+                .setNegativeButton(android.R.string.cancel, null).show();
+    }
+
+    private void confirmMcpClientRevoke(final McpClientRegistry.Client client) {
+        UiDialogs.builder(this)
+                .setTitle(getString(R.string.settings_mcp_client_revoke_title, client.packageName))
+                .setMessage(R.string.settings_mcp_client_revoke_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.settings_mcp_client_revoke, (dialog, which) -> {
+                    final boolean revoked = McpClients.get(this).revoke(client.id);
+                    if (revoked) {
+                        DesktopAutomationEventJournal.record(
+                                "mcp", "revoke_client", true, client.packageName);
+                    }
+                    Toast.makeText(this, revoked ? R.string.settings_mcp_client_revoked
+                            : R.string.settings_save_failed, Toast.LENGTH_SHORT).show();
+                }).show();
+    }
+
     @Override public void regenerateMcpNetworkToken() {
         regenerateMcpToken(true);
     }

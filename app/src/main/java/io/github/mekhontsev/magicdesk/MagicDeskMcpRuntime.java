@@ -46,10 +46,18 @@ final class MagicDeskMcpRuntime implements Closeable {
             mNetworkHandler = new McpJsonRpcHandler(mBackend.scoped(true));
         }
         if (mLocal == null) {
+            final MagicDeskMcpBackend backend = mBackend;
             final MagicDeskMcpHttpServer server = new MagicDeskMcpHttpServer(mHandler,
                     () -> {
                         final var values = MagicDeskMcpPreferences.load(mContext);
                         return values.enabled ? values.token : "";
+                    },
+                    token -> {
+                        // Only the loopback listener accepts individually authorized on-device apps.
+                        if (!MagicDeskMcpPreferences.isEnabled(mContext)) return null;
+                        final McpClientRegistry.Client client = McpClients.get(mContext).resolve(token);
+                        return client == null ? null : new McpJsonRpcHandler(
+                                backend.scopedClient(client.id, client.packageName));
                     });
             try {
                 server.start(MagicDeskMcpPreferences.HOST, MagicDeskMcpPreferences.PORT);
@@ -183,7 +191,13 @@ final class MagicDeskMcpRuntime implements Closeable {
                 .put("networkPermissions", snapshot.networkAccess.toJson())
                 .put("endpoint", snapshot.endpoint).put("connections", snapshot.connections)
                 .put("requests", snapshot.requests).put("rejected", snapshot.rejected)
-                .put("lastError", snapshot.lastError).put("network", snapshot.networkJson());
+                .put("lastError", snapshot.lastError).put("network", snapshot.networkJson())
+                .put("authorizedClients", authorizedClients());
+    }
+
+    private static int authorizedClients() {
+        final MagicDeskMcpRuntime runtime = sActive;
+        return runtime == null ? 0 : McpClients.get(runtime.mContext).clients().size();
     }
 
     static final class Snapshot {

@@ -37,6 +37,16 @@ final class MagicDeskMcpBackend implements McpBackend {
         });
     }
 
+    /** Local access for one authorized on-device client, re-evaluated on every call. */
+    McpBackend scopedClient(final String clientId, final String packageName) {
+        return new McpAuthorizedBackend(this, "local", packageName, () -> {
+            final var settings = MagicDeskMcpPreferences.load(mContext);
+            final McpClientRegistry.Client client = McpClients.get(mContext).find(clientId);
+            return client == null || !settings.enabled ? new McpAccessPolicy(java.util.Set.of())
+                    : settings.localAccess.intersect(client.access());
+        });
+    }
+
     @Override public JSONObject callTool(String name, JSONObject arguments) throws JSONException {
         return actionResult(mCommands.execute(name, arguments));
     }

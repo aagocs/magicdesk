@@ -39,6 +39,13 @@ final class McpAccessPolicy {
 
     boolean has(final Permission permission) { return mPermissions.contains(permission); }
 
+    /** Grants held by both policies; an on-device client never exceeds its listener. */
+    McpAccessPolicy intersect(final McpAccessPolicy other) {
+        final Set<String> names = new java.util.HashSet<>(names());
+        names.retainAll(other.names());
+        return new McpAccessPolicy(names);
+    }
+
     boolean allows(final String name) {
         if ("appearance.import".equals(name)) return has(Permission.CONTROL) && has(Permission.FILES_READ);
         if (OBSERVATIONS.contains(name)) return true;

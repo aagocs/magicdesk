@@ -25,6 +25,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** Bounded authenticated HTTP listener. The runtime, not the listener, owns the backend. */
@@ -36,6 +37,7 @@ final class MagicDeskMcpHttpServer implements Closeable {
 
     private final McpJsonRpcHandler mHandler;
     private final Supplier<String> mTokenSupplier;
+    private final Function<String, McpJsonRpcHandler> mClientHandlers;
     private final AtomicLong mConnections = new AtomicLong();
     private final AtomicLong mRequests = new AtomicLong();
     private final AtomicLong mRejected = new AtomicLong();
@@ -59,12 +61,24 @@ final class MagicDeskMcpHttpServer implements Closeable {
     MagicDeskMcpHttpServer(
             final McpJsonRpcHandler handler,
             final Supplier<String> tokenSupplier) {
-        if (handler == null || tokenSupplier == null) {
+        this(handler, tokenSupplier, token -> null);
+    }
+
+    /**
+     * @param clientHandlers resolves a bearer token other than the listener token to the handler
+     *     of an individually authorized client, or null to reject it
+     */
+    MagicDeskMcpHttpServer(
+            final McpJsonRpcHandler handler,
+            final Supplier<String> tokenSupplier,
+            final Function<String, McpJsonRpcHandler> clientHandlers) {
+        if (handler == null || tokenSupplier == null || clientHandlers == null) {
             throw new IllegalArgumentException(
                     "MCP HTTP dependencies are required");
         }
         mHandler = handler;
         mTokenSupplier = tokenSupplier;
+        mClientHandlers = clientHandlers;
     }
 
     synchronized void start(final String host, final int port)
@@ -237,9 +251,10 @@ final class MagicDeskMcpHttpServer implements Closeable {
             mRejected.incrementAndGet();
             return new Response(403, "Forbidden", "", null);
         }
-        if (!isAuthorized(
-                request.headers.get("authorization"),
-                mTokenSupplier.get())) {
+        final String authorization = request.headers.get("authorization");
+        final McpJsonRpcHandler handler = isAuthorized(authorization, mTokenSupplier.get())
+                ? mHandler : clientHandler(authorization);
+        if (handler == null) {
             mRejected.incrementAndGet();
             final Map<String, String> headers = new HashMap<>();
             headers.put("WWW-Authenticate", "Bearer");
@@ -259,7 +274,7 @@ final class MagicDeskMcpHttpServer implements Closeable {
                         .startsWith("application/json")) {
             return new Response(415, "Unsupported Media Type", "", null);
         }
-        final McpJsonRpcResponse response = mHandler.handle(request.body);
+        final McpJsonRpcResponse response = handler.handle(request.body);
         return new Response(
                 response.httpStatus,
                 reason(response.httpStatus),
@@ -383,6 +398,12 @@ final class MagicDeskMcpHttpServer implements Closeable {
         } catch (URISyntaxException error) {
             return false;
         }
+    }
+
+    private McpJsonRpcHandler clientHandler(final String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) return null;
+        final String token = authorization.substring("Bearer ".length());
+        return token.isEmpty() ? null : mClientHandlers.apply(token);
     }
 
     static boolean isAuthorized(

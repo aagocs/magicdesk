@@ -10,10 +10,17 @@ final class McpAuthorizedBackend implements McpBackend {
     private final McpBackend mBackend;
     private final String mScope;
     private final Supplier<McpAccessPolicy> mAccess;
+    private final String mClient;
 
     McpAuthorizedBackend(McpBackend backend, String scope, Supplier<McpAccessPolicy> access) {
+        this(backend, scope, null, access);
+    }
+
+    McpAuthorizedBackend(McpBackend backend, String scope, String client,
+            Supplier<McpAccessPolicy> access) {
         mBackend = backend;
         mScope = scope;
+        mClient = client;
         mAccess = access;
     }
 
@@ -39,9 +46,11 @@ final class McpAuthorizedBackend implements McpBackend {
                     DesktopAutomationErrorCode.TOOL_DISABLED, "Content permission was revoked", false));
         }
         if ("get_state".equals(name)) {
+            final JSONObject connection = new JSONObject().put("scope", mScope)
+                    .put("permissions", access.toJson());
+            if (mClient != null) connection.put("client", mClient);
             result.getJSONObject("structuredContent").getJSONObject("data")
-                    .put("connection", new JSONObject().put("scope", mScope)
-                            .put("permissions", access.toJson()));
+                    .put("connection", connection);
             result.getJSONArray("content").getJSONObject(0).put("text",
                     result.getJSONObject("structuredContent").toString(2));
         }
