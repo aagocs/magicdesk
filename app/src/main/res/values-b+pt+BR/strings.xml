@@ -781,6 +781,12 @@
     <string name="action_bitrate_increase">Aumentar taxa de bits da gravação</string>
     <string name="shortcut_desktop">Win + D</string>
     <string name="shortcut_desktop_action">Mostrar ou restaurar área de trabalho</string>
+    <string name="shortcut_files">Win + E</string>
+    <string name="shortcut_files_action">Abrir Arquivos</string>
+    <string name="shortcut_task_manager">Ctrl + Shift + Esc</string>
+    <string name="shortcut_task_manager_action">Abrir Gerenciador de tarefas</string>
+    <string name="shortcut_start">Win + S / Ctrl + Esc</string>
+    <string name="shortcut_start_action">Abrir Iniciar</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Mostrar esta lista</string>
     <string name="shortcut_layout">Win + Space</string>

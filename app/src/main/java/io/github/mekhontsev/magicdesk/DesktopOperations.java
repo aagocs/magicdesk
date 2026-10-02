@@ -262,6 +262,18 @@ public final class DesktopOperations {
         }
     }
 
+    static void openBuiltin(final String builtin) {
+        if (!DesktopRuntimeBridge.openBuiltin(MagicDeskRuntime.inputDisplayId(), builtin)) {
+            Log.w(TAG, "MagicDesk desktop is unavailable for " + builtin);
+        }
+    }
+
+    static void showStart() {
+        if (!MagicDeskRuntime.showStart(MagicDeskRuntime.inputDisplayId())) {
+            Log.w(TAG, "MagicDesk desktop is unavailable for Start");
+        }
+    }
+
     static void openSettings() {
         if (!MagicDeskRuntime.openSettings(MagicDeskRuntime.inputDisplayId())) {
             Log.w(TAG, "MagicDesk desktop is unavailable for settings");

@@ -35,7 +35,10 @@ final class KeyboardShortcutStateMachine {
         DISPLAY_CANCEL,
         SCREENSHOT,
         SCREEN_RECORDING,
-        SHORTCUT_HELP
+        SHORTCUT_HELP,
+        OPEN_FILES,
+        OPEN_TASK_MANAGER,
+        OPEN_START
     }
 
 
@@ -165,6 +168,9 @@ final class KeyboardShortcutStateMachine {
         if (!ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
             return Action.DISMISS;
         }
+        if (ctrl && !alt && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
+            return shift ? Action.OPEN_TASK_MANAGER : Action.OPEN_START;
+        }
         if (!meta || ctrl || alt) {
             return Action.NONE;
         }
@@ -187,6 +193,8 @@ final class KeyboardShortcutStateMachine {
             case KeyEvent.KEYCODE_D -> Action.SHOW_DESKTOP;
             case KeyEvent.KEYCODE_SLASH -> Action.SHORTCUT_HELP;
             case KeyEvent.KEYCODE_SPACE -> Action.TOGGLE_LAYOUT;
+            case KeyEvent.KEYCODE_E -> Action.OPEN_FILES;
+            case KeyEvent.KEYCODE_S -> Action.OPEN_START;
             default -> Action.NONE;
         };
     }

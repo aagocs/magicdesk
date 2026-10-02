@@ -764,6 +764,9 @@ indicator offers hardware layouts separately from on-screen keyboards.
 | `Win+Print Screen` | Capture desktop |
 | `Win+Shift+Print Screen` | Start/stop recording |
 | `Win+Space` | Next configured physical-keyboard layout |
+| `Win+E` | Open Files |
+| `Ctrl+Shift+Esc` | Open Task Manager |
+| `Win+S` / `Ctrl+Esc` | Open Start (with search) |
 | `Win+/` | All shortcuts |
 
 ## Security

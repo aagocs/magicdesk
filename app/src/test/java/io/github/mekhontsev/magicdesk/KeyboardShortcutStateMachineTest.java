@@ -226,4 +226,39 @@ public final class KeyboardShortcutStateMachineTest {
         assertTrue(s.accept(KeyEvent.KEYCODE_SPACE, false, 0, false, false, false, true).consumed);
         assertEquals(NONE, s.accept(KeyEvent.KEYCODE_SPACE, true, 0, false, false, true, true).action);
     }
+
+    @Test public void launcherChordsOpenToolsOnceAndAreBalanced() {
+        final int[][] chords = {
+                {KeyEvent.KEYCODE_E, 0, 0, 0, 1},
+                {KeyEvent.KEYCODE_S, 0, 0, 0, 1},
+                {KeyEvent.KEYCODE_ESCAPE, 1, 0, 0, 0},
+                {KeyEvent.KEYCODE_ESCAPE, 1, 0, 1, 0}};
+        final KeyboardShortcutStateMachine.Action[] expected = {
+                OPEN_FILES, OPEN_START, OPEN_START, OPEN_TASK_MANAGER};
+        for (int i = 0; i < chords.length; i++) {
+            final int[] c = chords[i];
+            final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+            final KeyboardShortcutStateMachine.Result down = s.accept(
+                    c[0], true, 0, c[1] != 0, c[2] != 0, c[3] != 0, c[4] != 0);
+            assertEquals(expected[i], down.action);
+            assertTrue(down.consumed);
+            assertEquals(NONE, s.accept(c[0], true, 1, c[1] != 0, c[2] != 0, c[3] != 0, c[4] != 0).action);
+            assertTrue(s.accept(c[0], false, 0, false, false, false, false).consumed);
+        }
+    }
+
+    @Test public void launcherChordsLeaveOtherCombinationsAndNonDesktopInputAlone() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        assertEquals(DISMISS, s.accept(KeyEvent.KEYCODE_ESCAPE, true, 0, false, false, false, false).action);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_ESCAPE, true, 0, true, true, false, false).action);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_E, true, 0, false, false, true, true).action);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_E, true, 0, true, false, false, true).action);
+        assertFalse(new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_ESCAPE, true, 0, true, false, true, false, false).consumed);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_E, true, 0, false, false, false, true, false).action);
+    }
 }
