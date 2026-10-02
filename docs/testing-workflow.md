@@ -35,6 +35,9 @@ need their own owning fixtures; passing the Start suite says nothing about
 unrelated task, graphics or framework behavior. With an Android toolchain, use
 filtered Gradle unit tests for boundaries not covered by this runner.
 
+Without an Android SDK, the [SDK-less compile check](sdk-less-checks.md) type-checks
+the whole app and runs its JVM unit tests against Maven Central inputs.
+
 ## 2. Reproduce on an identified device and build
 
 Establish a complete current-main compatibility baseline and exact reproduction
