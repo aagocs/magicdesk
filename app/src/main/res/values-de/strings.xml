@@ -734,6 +734,10 @@
     <string name="shortcut_snap_right_action">Fenster rechts anordnen</string>
     <string name="shortcut_snap_corner">Win + Left/Right, dann Up/Down</string>
     <string name="shortcut_snap_corner_action">Win halten: obere Ecke / Hälfte / untere Ecke</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">Taskleisten-Eintrag 1–9 öffnen oder wechseln</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">Fenster auf vorherigen / nächsten Bildschirm verschieben</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">Aktives Fenster schließen</string>
     <string name="shortcut_back">Win + Backspace</string>

@@ -78,6 +78,8 @@ interface MagicDeskRuntimeBackend {
 
     boolean cancelAltTab(final int displayId);
 
+    boolean activateTaskbarEntry(final int displayId, final int index);
+
     boolean toggleShortcutHelp(final int displayId);
 
     boolean toggleNotificationCenter(final int displayId);
@@ -85,6 +87,8 @@ interface MagicDeskRuntimeBackend {
     boolean toggleSystemPanel(final int displayId);
 
     boolean openSettings(final int displayId);
+
+    boolean openBuiltin(final int displayId, final String builtin);
 
     DesktopTaskRuntime desktopTasks(int displayId);
 

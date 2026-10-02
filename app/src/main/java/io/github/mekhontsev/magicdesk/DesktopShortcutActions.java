@@ -3,8 +3,8 @@ package io.github.mekhontsev.magicdesk;
 final class DesktopShortcutActions {
     private DesktopShortcutActions() {}
 
-    static void dispatch(
-            final KeyboardShortcutStateMachine.Action action) {
+    static void dispatch(final KeyboardShortcutStateMachine.Result result) {
+        final KeyboardShortcutStateMachine.Action action = result.action;
         switch (action) {
             case ALT_TAB_FORWARD:
                 DesktopOperations.advanceAltTab(false);
@@ -93,6 +93,17 @@ final class DesktopShortcutActions {
                 break;
             case SHORTCUT_HELP:
                 DesktopOperations.showShortcutHelp();
+                break;
+            case ACTIVATE_TASKBAR_ENTRY:
+                DesktopOperations.activateTaskbarEntry(result.index);
+                break;
+            case MOVE_DISPLAY_PREVIOUS:
+                DesktopOperations.manageActiveWindow(
+                        DesktopTaskController.SHORTCUT_MOVE_DISPLAY_PREVIOUS);
+                break;
+            case MOVE_DISPLAY_NEXT:
+                DesktopOperations.manageActiveWindow(
+                        DesktopTaskController.SHORTCUT_MOVE_DISPLAY_NEXT);
                 break;
             case OPEN_FILES:
                 DesktopOperations.openBuiltin("files");

@@ -733,6 +733,10 @@
     <string name="shortcut_snap_right_action">Snap window right</string>
     <string name="shortcut_snap_corner">Win + Left/Right, then Up/Down</string>
     <string name="shortcut_snap_corner_action">Hold Win: top corner / half / bottom corner</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">Open or switch to taskbar item 1–9</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">Move window to previous / next display</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">Close active window</string>
     <string name="shortcut_back">Win + Backspace</string>

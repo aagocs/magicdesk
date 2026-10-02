@@ -724,6 +724,10 @@
     <string name="shortcut_snap_right_action">将窗口贴靠右侧</string>
     <string name="shortcut_snap_corner">Win + Left/Right，然后 Up/Down</string>
     <string name="shortcut_snap_corner_action">按住 Win：上角 / 半屏 / 下角</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">打开或切换到任务栏第 1–9 项</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">将窗口移到上一个/下一个显示器</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">关闭活动窗口</string>
     <string name="shortcut_back">Win + Backspace</string>

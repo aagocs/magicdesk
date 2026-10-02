@@ -934,6 +934,15 @@ final class TaskbarController {
                 mTasksVertical ? desktopDp(48, 36) : -1));
     }
 
+    /** Activates the entry at the rendered position, exactly as clicking its button would. */
+    void activateEntry(final int index) {
+        final List<TaskbarOverflowController.Entry> items =
+                collectTaskbarItems(mActivity.getLauncherApps());
+        if (index >= 0 && index < items.size()) {
+            activate(items.get(index));
+        }
+    }
+
     private void activate(final TaskbarOverflowController.Entry taskbarItem) {
         if (taskbarItem.task != null) {
             mActivity.captureInteractionStackForPanel();

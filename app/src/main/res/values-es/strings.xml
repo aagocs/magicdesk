@@ -744,6 +744,10 @@
     <string name="shortcut_snap_right_action">Ajustar ventana a la derecha</string>
     <string name="shortcut_snap_corner">Win + Left/Right y luego Up/Down</string>
     <string name="shortcut_snap_corner_action">Mantén Win: esquina superior / mitad / esquina inferior</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">Abrir o cambiar al elemento 1–9 de la barra de tareas</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">Mover ventana a la pantalla anterior / siguiente</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">Cerrar ventana activa</string>
     <string name="shortcut_back">Win + Backspace</string>

@@ -744,6 +744,10 @@
     <string name="shortcut_snap_right_action">Ajustar janela à direita</string>
     <string name="shortcut_snap_corner">Win + Left/Right, depois Up/Down</string>
     <string name="shortcut_snap_corner_action">Segure Win: canto superior / metade / canto inferior</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">Abrir ou alternar para o item 1–9 da barra de tarefas</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">Mover janela para a tela anterior / seguinte</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">Fechar janela ativa</string>
     <string name="shortcut_back">Win + Backspace</string>

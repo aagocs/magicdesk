@@ -378,6 +378,11 @@ public final class MagicDeskRuntimeTest {
         }
 
         @Override
+        public boolean activateTaskbarEntry(final int displayId, final int index) {
+            return false;
+        }
+
+        @Override
         public boolean toggleShortcutHelp(final int displayId) {
             assertEquals(7, displayId);
             uiCommands |= 16;
@@ -396,6 +401,11 @@ public final class MagicDeskRuntimeTest {
             assertEquals(7, displayId);
             uiCommands |= 64;
             return true;
+        }
+
+        @Override
+        public boolean openBuiltin(final int displayId, final String builtin) {
+            return false;
         }
 
         @Override

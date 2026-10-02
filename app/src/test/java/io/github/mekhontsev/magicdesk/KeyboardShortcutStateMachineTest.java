@@ -202,6 +202,67 @@ public final class KeyboardShortcutStateMachineTest {
         assertEquals(SCREEN_RECORDING, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_SYSRQ, true, 0, false, false, true, true).action);
     }
+    @Test public void metaDigitsAddressTaskbarEntriesWithBalancedRelease() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        for (int key = KeyEvent.KEYCODE_1; key <= KeyEvent.KEYCODE_9; key++) {
+            final var down = s.accept(key, true, 0, false, false, false, true);
+            assertTrue(down.consumed);
+            assertEquals(ACTIVATE_TASKBAR_ENTRY, down.action);
+            assertEquals(key - KeyEvent.KEYCODE_1, down.index);
+            final var up = s.accept(key, false, 0, false, false, false, true);
+            assertTrue(up.consumed);
+            assertEquals(NONE, up.action);
+        }
+        final var zero = s.accept(KeyEvent.KEYCODE_0, true, 0, false, false, false, true);
+        assertFalse(zero.consumed);
+        assertEquals(-1, zero.index);
+    }
+
+    @Test public void taskbarDigitsRequireMetaAloneOnADesktop() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        assertEquals(NONE, s.accept(KeyEvent.KEYCODE_1, true, 0, false, false, false, false).action);
+        assertEquals(NONE, s.accept(KeyEvent.KEYCODE_1, true, 0, true, false, false, true).action);
+        assertEquals(NONE, s.accept(KeyEvent.KEYCODE_1, true, 0, false, true, false, true).action);
+        assertEquals(NONE, s.accept(KeyEvent.KEYCODE_1, true, 0, false, false, true, true).action);
+        assertFalse(s.accept(KeyEvent.KEYCODE_2, true, 0, false, false, false, true, false).consumed);
+        // A held digit does not activate again.
+        assertEquals(ACTIVATE_TASKBAR_ENTRY,
+                s.accept(KeyEvent.KEYCODE_3, true, 0, false, false, false, true).action);
+        final var repeat = s.accept(KeyEvent.KEYCODE_3, true, 1, false, false, false, true);
+        assertTrue(repeat.consumed);
+        assertEquals(NONE, repeat.action);
+    }
+
+    @Test public void metaShiftHorizontalArrowsMoveDisplaysAndOtherShiftChordsPass() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final var previous = s.accept(KeyEvent.KEYCODE_DPAD_LEFT, true, 0, false, false, true, true);
+        assertTrue(previous.consumed);
+        assertEquals(MOVE_DISPLAY_PREVIOUS, previous.action);
+        assertTrue(s.accept(KeyEvent.KEYCODE_DPAD_LEFT, false, 0, false, false, true, true).consumed);
+        assertEquals(MOVE_DISPLAY_NEXT,
+                s.accept(KeyEvent.KEYCODE_DPAD_RIGHT, true, 0, false, false, true, true).action);
+        for (final int key : new int[] {KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_L, KeyEvent.KEYCODE_S}) {
+            final var passed = s.accept(key, true, 0, false, false, true, true);
+            assertFalse(passed.consumed);
+            assertEquals(NONE, passed.action);
+        }
+        assertEquals(SCREENSHOT, s.accept(KeyEvent.KEYCODE_SYSRQ, true, 0, false, false, false, true).action);
+        assertTrue(s.accept(KeyEvent.KEYCODE_SYSRQ, false, 0, false, false, false, true).consumed);
+        assertEquals(SCREEN_RECORDING, s.accept(KeyEvent.KEYCODE_SYSRQ, true, 0, false, false, true, true).action);
+    }
+
+    @Test public void displayMovesAndTaskbarDigitsDoNotContinueASnapSequence() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        metaArrow(s, KeyEvent.KEYCODE_DPAD_LEFT);
+        s.accept(KeyEvent.KEYCODE_DPAD_RIGHT, true, 0, false, false, true, true);
+        s.accept(KeyEvent.KEYCODE_DPAD_RIGHT, false, 0, false, false, true, true);
+        assertEquals("FULLSCREEN", metaArrow(s, KeyEvent.KEYCODE_DPAD_UP));
+        metaArrow(s, KeyEvent.KEYCODE_DPAD_LEFT);
+        s.accept(KeyEvent.KEYCODE_4, true, 0, false, false, false, true);
+        s.accept(KeyEvent.KEYCODE_4, false, 0, false, false, false, true);
+        assertEquals("FULLSCREEN", metaArrow(s, KeyEvent.KEYCODE_DPAD_UP));
+    }
 
     @Test public void ctrlSpaceReachesTheFocusedApplication() {
         final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();

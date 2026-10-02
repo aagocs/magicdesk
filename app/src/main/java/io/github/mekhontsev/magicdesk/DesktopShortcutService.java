@@ -92,7 +92,7 @@ public final class DesktopShortcutService extends AccessibilityService
                 event.isShiftPressed(), event.isMetaPressed(), sDesktop);
         if (result.action != KeyboardShortcutStateMachine.Action.NONE) {
             mShortcutCount++;
-            DesktopShortcutActions.dispatch(result.action);
+            DesktopShortcutActions.dispatch(result);
         }
         return result.consumed;
     }
