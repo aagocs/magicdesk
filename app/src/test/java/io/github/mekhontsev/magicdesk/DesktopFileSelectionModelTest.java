@@ -120,11 +120,11 @@ public final class DesktopFileSelectionModelTest {
     public void shiftMarqueeAddsHitsAndPreservesExistingAnchor() {
         final DesktopFileSelectionModel selection = new DesktopFileSelectionModel();
         selection.selectOnly("a");
-        selection.selectModified("c", List.of("a", "b", "c"), true, false);
+        selection.selectModified("c", List.of("a", "b", "c"), false, true);
         final DesktopFileSelectionModel.Snapshot start = selection.snapshot();
 
         selection.selectMarquee(List.of("b", "d"), start, false, true);
-        assertEquals(List.of("a", "c", "b", "d"), selection.selectedItemIds());
+        assertEquals(List.of("a", "b", "c", "d"), selection.selectedItemIds());
         assertEquals("a", selection.snapshot().anchor);
         assertEquals("d", selection.focusedItemId());
     }
