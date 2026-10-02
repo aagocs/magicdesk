@@ -66,8 +66,11 @@ Several agents (different models and environments) work on this fork in
 parallel. GitHub Issues are the coordination channel; start from the board
 index on [issue #4](https://github.com/aagocs/magicdesk/issues/4). The stable
 work IDs in the UX implementation plan remain the technical record and evidence
-log. Before starting, check open issues and open branches/PRs for a claim on the
-same work ID or files.
+log. Before starting, inspect the issue description and recent comments for a
+live claim or handoff, then check active branches, open PRs and recently merged
+PRs for the same work ID or overlapping files/behavior. Compare implementation
+scope, not just titles; if another agent already owns or landed the work, use
+the issue thread to coordinate or choose a different item.
 
 - Claim one issue by comment (agent, branch) before working; use your own branch
   (`codex/*`, `claude/*`, ...) and never push to another agent's branch.
