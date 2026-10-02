@@ -66,6 +66,8 @@ public final class DesktopFileSelectionModelTest {
         assertTrue(selection.contains("c"));
         selection.retain(Set.of("b", "c"));
         assertEquals(List.of("b", "c"), selection.selectedItemIds());
+        selection.remove("b");
+        assertEquals(List.of("c"), selection.selectedItemIds());
         selection.clear();
         assertTrue(selection.isEmpty());
         assertFalse(selection.isSingleSelection());

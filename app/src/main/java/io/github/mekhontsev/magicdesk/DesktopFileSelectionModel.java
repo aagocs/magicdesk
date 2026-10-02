@@ -88,6 +88,16 @@ final class DesktopFileSelectionModel {
         }
     }
 
+    void remove(final String itemId) {
+        mSelected.remove(itemId);
+        if (itemId != null && itemId.equals(mAnchor)) {
+            mAnchor = mSelected.isEmpty() ? null : mSelected.iterator().next();
+        }
+        if (itemId != null && itemId.equals(mFocused)) {
+            mFocused = mSelected.isEmpty() ? null : mSelected.iterator().next();
+        }
+    }
+
     void clear() {
         mSelected.clear();
         mAnchor = null;
