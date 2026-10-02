@@ -21,9 +21,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  wayland-runtime:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.3.13750724
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Validate Android SDK components
+        shell: bash
+        run: |
+          test -f "$ANDROID_SDK_ROOT/platforms/android-37.0/android.jar"
+          test -x "$ANDROID_SDK_ROOT/build-tools/37.0.0/aapt2"
+          test -x "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+
+      - name: Graphics native host tools
+        uses: ./.github/actions/setup-graphics-build
+
+      - name: Export Android Wayland runtime
+        run: ./gradlew --no-daemon :wayland-runtime:exportRuntime
+
+      - name: Share verified Wayland runtime
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: wayland-android-runtime
+          if-no-files-found: error
+          retention-days: 7
+          path: wayland-runtime/build/runtime/
+
+  build:
+    needs: wayland-runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -85,6 +131,16 @@ jobs:
       - name: Graphics native host tools
         uses: ./.github/actions/setup-graphics-build
 
+      - name: Download Android Wayland runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/wayland-runtime"
+          gh run download "$GITHUB_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name wayland-android-runtime \
+            --dir "$RUNNER_TEMP/wayland-runtime"
+
       - name: Package corresponding source
         run: python3 scripts/package-source.py dist/MagicDesk-source.tar.gz
 
@@ -118,6 +174,7 @@ jobs:
           short_sha=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
           version_suffix="dev.$GITHUB_RUN_NUMBER.$short_sha"
           ./gradlew --no-daemon \
+            -PmagicDeskWaylandRuntime="$RUNNER_TEMP/wayland-runtime" \
             -PMAGICDESK_VERSION_SUFFIX="$version_suffix" \
             :app:testDebugUnitTest \
             :terminal-emulator:testDebugUnitTest \
@@ -137,6 +194,7 @@ jobs:
         if: github.event_name != 'push'
         run: |
           ./gradlew --no-daemon \
+            -PmagicDeskWaylandRuntime="$RUNNER_TEMP/wayland-runtime" \
             :app:testDebugUnitTest \
             :terminal-emulator:testDebugUnitTest \
             :terminal-emulator:lintRelease \
@@ -153,17 +211,6 @@ jobs:
 
       - name: Verify independent X11 host
         run: ./gradlew --no-daemon -p x11-runtime/example :app:assembleDebug :app:lintDebug
-
-      - name: Export Android Wayland runtime
-        run: ./gradlew --no-daemon :wayland-runtime:exportRuntime
-
-      - name: Share verified Wayland runtime with Windows build
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: wayland-android-runtime
-          if-no-files-found: error
-          retention-days: 7
-          path: wayland-runtime/build/runtime/
 
       - name: Verify signed APK and package boundaries
         if: github.event_name == 'push'
@@ -236,7 +283,7 @@ jobs:
             **/build/reports/tests/**
 
   windows-smoke:
-    needs: build
+    needs: wayland-runtime
     runs-on: windows-2025
     timeout-minutes: 30
     permissions:
