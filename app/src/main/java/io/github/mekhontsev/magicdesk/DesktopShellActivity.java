@@ -1469,6 +1469,23 @@ public abstract class DesktopShellActivity extends Activity
                 .create());
     }
 
+    void confirmDeleteDesktopFiles(final List<DesktopFile> files) {
+        if (files == null || files.isEmpty()) {
+            return;
+        }
+        showDesktopDialog(host -> UiDialogs.builder(host)
+                .setTitle(R.string.delete_desktop_entry_title)
+                .setMessage(getString(
+                        R.string.file_manager_delete_message,
+                        files.size()))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(
+                        R.string.action_delete,
+                        (confirmedDialog, which) ->
+                                mDesktopWorkspaceController.deleteFiles(files))
+                .create());
+    }
+
     void showStartSection(final int mode) {
         mStartMenuController.showSection(mode);
     }

@@ -342,6 +342,18 @@ final class DesktopFolderController {
                 null);
     }
 
+    void deletePaths(final List<String> paths) {
+        if (mReleased || paths == null || paths.isEmpty()) {
+            return;
+        }
+        if (!operations().startRemote(
+                ShellFileSystem.OPERATION_DELETE, paths, "", -1L)) {
+            mActivity.setStatus(R.string.file_manager_operation_busy);
+            return;
+        }
+        mActivity.setStatus(R.string.file_manager_operation_running);
+    }
+
     void transferPaths(
             final List<String> paths,
             final boolean copy,

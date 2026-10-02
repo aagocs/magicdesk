@@ -33,6 +33,10 @@ SUITES = {
         "tests": ["SystemUiDesktopRepositoryParserTest", "WmShellTransitionStateParserTest",
                   "TaskLocalInsetsSourceParserTest", "TaskStackParserTest"],
     },
+    "selection": {
+        "production": ["DesktopFileSelectionModel"],
+        "tests": ["DesktopFileSelectionModelTest"],
+    },
 }
 SUITES["taskbar"] = {
     "production": ["TaskbarPins"],
