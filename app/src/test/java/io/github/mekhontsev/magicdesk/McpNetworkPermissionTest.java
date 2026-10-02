@@ -56,16 +56,27 @@ public final class McpNetworkPermissionTest {
                     static final String HOST = "127.0.0.1"; static final int PORT = 8765;
                     static final Values values = new Values();
                     static Values load(Context c) { return values; }
+                    static boolean isEnabled(Context c) { return values.enabled; }
                     static class Values { boolean enabled = true, networkEnabled;
                         String token = "local", networkToken = "network", networkInterface = "wifi";
                         int networkPort = 8766; }
                 }
                 static class MagicDeskMcpBackend { MagicDeskMcpBackend(Context c) { }
-                    Object scoped(boolean network) { return this; } }
+                    Object scoped(boolean network) { return this; }
+                    Object scopedClient(String id, String packageName) { return this; } }
+                static class McpClientRegistry {
+                    static class Client { String id = "c1", packageName = "app.client"; }
+                    Client resolve(String token) { return "client".equals(token) ? new Client() : null; }
+                }
+                static class McpClients { static McpClientRegistry get(Context c) { return new McpClientRegistry(); } }
                 static class McpJsonRpcHandler { McpJsonRpcHandler(Object backend) { } }
                 static class MagicDeskMcpHttpServer {
                     boolean closed; final java.util.function.Supplier<String> token;
-                    MagicDeskMcpHttpServer(McpJsonRpcHandler h, java.util.function.Supplier<String> t) { token = t; }
+                    final java.util.function.Function<String, McpJsonRpcHandler> clients;
+                    MagicDeskMcpHttpServer(McpJsonRpcHandler h, java.util.function.Supplier<String> t) {
+                        this(h, t, null); }
+                    MagicDeskMcpHttpServer(McpJsonRpcHandler h, java.util.function.Supplier<String> t,
+                            java.util.function.Function<String, McpJsonRpcHandler> c) { token = t; clients = c; }
                     void start(String host, int port) throws IOException { }
                     void startNetwork(String address, int port) throws IOException { }
                     void close() { closed = true; }
@@ -97,6 +108,9 @@ public final class McpNetworkPermissionTest {
                     RuntimeCapabilities.allowed = true; f.reconcile();
                     var network = f.mNetwork;
                     check(network != null && f.mNetworkError.isEmpty(), "grant starts network");
+                    check(network.clients == null, "network listener never accepts on-device clients");
+                    check(local.clients.apply("client") != null && local.clients.apply("other") == null,
+                            "local listener resolves authorized clients");
                     f.reconcile(); check(f.mNetwork == network, "same binding retained");
                     RuntimeCapabilities.allowed = false;
                     check(network.token.get().isEmpty() && local.token.get().equals("local"), "revoked authentication");

@@ -47,6 +47,8 @@ final class SettingsView {
 
         void regenerateMcpToken();
 
+        void manageMcpClients();
+
         void setMcpNetworkEnabled(boolean enabled);
 
         void configureMcpNetwork();
@@ -277,6 +279,8 @@ final class SettingsView {
                 R.drawable.ic_file_refresh,
                 R.string.settings_mcp_regenerate_token,
                 mActions::regenerateMcpToken);
+        addAction(content, R.drawable.ic_lock,
+                R.string.settings_mcp_clients, mActions::manageMcpClients);
 
         mMcpNetworkEnabled = addSwitch(content, R.string.settings_mcp_network_enabled);
         mMcpNetworkEnabled.setOnCheckedChangeListener((button, checked) -> {

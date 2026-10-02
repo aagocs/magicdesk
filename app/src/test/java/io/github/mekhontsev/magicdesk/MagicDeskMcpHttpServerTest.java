@@ -230,6 +230,30 @@ public final class MagicDeskMcpHttpServerTest {
         assertEquals(1, backend.closes);
     }
 
+    @Test public void individuallyAuthorizedClientsUseTheirOwnHandler() throws Exception {
+        final var listener = new McpJsonRpcHandler(new EmptyBackend());
+        final var clientBackend = new EmptyBackend();
+        final var client = new McpJsonRpcHandler(clientBackend);
+        final var resolved = new java.util.ArrayList<String>();
+        final var server = new MagicDeskMcpHttpServer(listener, () -> "listener-token", token -> {
+            resolved.add(token);
+            return "client-token".equals(token) ? client : null;
+        });
+        try {
+            server.start("127.0.0.1", 0);
+            assertTrue(ping(server, "listener-token").contains("200 OK"));
+            assertTrue(resolved.isEmpty());
+            assertTrue(ping(server, "client-token").contains("200 OK"));
+            assertTrue(ping(server, "unknown-token").contains("401 Unauthorized"));
+            assertEquals(java.util.List.of("client-token", "unknown-token"), resolved);
+            assertEquals(1, server.snapshot().rejected);
+        } finally {
+            server.close();
+            listener.close();
+        }
+        assertEquals(0, clientBackend.closes);
+    }
+
     private static String ping(final MagicDeskMcpHttpServer server, final String token) throws Exception {
         final String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}";
         return request(server.snapshot().boundPort,

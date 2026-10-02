@@ -195,6 +195,59 @@ disables its network access. Command sessions belong to the shared runtime,
 not a listener; explicit session close or runtime exit releases them.
 Tokens remain private and stable.
 
+### On-Device Client Authorization
+
+An app on the same device can ask the user for its own loopback MCP token
+instead of having the user copy the shared connection. The app starts
+MagicDesk's authorization Activity **for a result**:
+
+```java
+startActivityForResult(new Intent("io.github.mekhontsev.magicdesk.action.AUTHORIZE_AUTOMATION_CLIENT")
+        .setPackage("io.github.mekhontsev.magicdesk")
+        .putExtra("io.github.mekhontsev.magicdesk.extra.PERMISSIONS",
+                new String[] {"control"}), REQUEST_AUTHORIZE);
+```
+
+An app targeting Android 11 or newer declares the MagicDesk package in its
+manifest `<queries>`. MagicDesk identifies the caller from Android
+(`getCallingPackage()`), never from request data. A plain `startActivity()` or a
+new-task launch is rejected. The consent dialog shows:
+
+- the app's package;
+- the SHA-256 digest of its signing certificate;
+- the requested permissions, with any not enabled for local MCP marked as such.
+
+The user can deselect permissions or deny. The dialog ignores touches while
+another window covers it.
+
+On approval, `RESULT_OK` carries these extras (prefix
+`io.github.mekhontsev.magicdesk.extra.`):
+
+- `TOKEN`: the new bearer token;
+- `ENDPOINT`;
+- `CLIENT_ID`;
+- `PERMISSIONS`: the granted permissions.
+
+Otherwise, `RESULT_CANCELED` carries `ERROR`, which is one of
+`caller_unknown`, `caller_invalid`, `automation_disabled`, `permission_unknown`,
+`denied` or `registry_full`.
+
+The client token:
+
+- is accepted only by the loopback listener while MCP is enabled, and only while
+  the package remains installed with the same signing certificate;
+- has an effective permission set that is the client's grants intersected with
+  the current **Local MCP permissions**, so it never exceeds the listener;
+- is replaced when the same app authorizes again, which invalidates its earlier
+  token;
+- is stored by MagicDesk only as a SHA-256 hash.
+
+`get_state.connection.client` names the authenticated client. **Settings >
+Automation > Authorized automation apps** lists clients and revokes one at a
+time. Revocation applies to that client's next request and leaves the listener
+token and other clients unaffected. At most 16 apps can be authorized; the
+network listener never accepts client tokens.
+
 ## Built-In CLI
 
 New MagicDesk Console and Termux Console shells provide `magicdesk` in `PATH`.

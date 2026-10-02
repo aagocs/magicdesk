@@ -143,6 +143,18 @@
             android:taskAffinity="${applicationId}.files" />
 
         <activity
+            android:name=".McpClientAuthorizationActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:taskAffinity=""
+            android:theme="@style/TransparentActivityTheme">
+            <intent-filter>
+                <action android:name="io.github.mekhontsev.magicdesk.action.AUTHORIZE_AUTOMATION_CLIENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".AddWebShortcutActivity"
             android:excludeFromRecents="true"
             android:exported="true"
