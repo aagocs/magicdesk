@@ -50,7 +50,7 @@ user-visible bug. Update status and evidence with each implementation change.
 | UX-012 | P0 | Direct PC and physical mouse/keyboard control | Investigated; device audit pending | UX-001; repeat after UX-010 |
 | UX-020 | P1 | Start keyboard selection stays visible and stable | Merged; CI, phone and independent virtual Start pass | Managed workstation and physical input coverage |
 | UX-021 | P1 | Consistent taskbar/window interactions | Source audit complete; #18 fix implemented on `claude/pensive-hopper-3v5che` (host-verified, device pending); #19 awaits reproduction | Managed Desktop and physical-input baseline |
-| UX-022 | P1 | Useful, compact workstation defaults | Planned | UX-020/021 findings and fresh-settings baseline |
+| UX-022 | P1 | Useful, compact workstation defaults | Source audit in [workstation-defaults-audit.md](workstation-defaults-audit.md) (#13); follow-ups proposed, none implemented | UX-020/021 findings and fresh-settings baseline |
 | TEST-001 | P1 | Faster, repeatable development feedback | Implemented; focused/full CI and semantic device checks pass, including failure cleanup | Extend focused suites as owning boundaries change |
 | UX-023 | P1 | Start Page Up/Down moves by the visible page | In review; host, Linux/Windows CI and phone/independent virtual Start pass | Managed workstation and physical input coverage |
 | WS-030 | P1 | Daily workstation workflows | Planned; see [workstation roadmap](workstation-gaming.md) | OEM ownership, input and shell foundations |
