@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  start:
+  focused:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
@@ -35,5 +35,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify Start production-body fixtures
-        run: python3 scripts/verify-host.py --suite start --download-deps
+      - name: Verify focused production-body fixtures
+        run: |
+          python3 scripts/verify-host.py --suite start --download-deps
+          python3 scripts/verify-host.py --suite input
+          python3 scripts/verify-host.py --suite parsers

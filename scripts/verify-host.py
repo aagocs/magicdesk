@@ -21,6 +21,18 @@ SUITES = {
         "tests": ["StartSearchSelectionTest", "StartSearchNavigationTest",
                   "StartDestinationTest", "ApplicationCatalogTest"],
     },
+    "input": {
+        "production": ["InputFocusCommitAwaiter", "InputRoutingLease",
+                       "FrameworkInputRoutingSnapshot"],
+        "tests": ["InputFocusCommitAwaiterTest", "InputRoutingLeaseTest"],
+    },
+    "parsers": {
+        "production": ["SystemUiDesktopRepositoryParser", "WmShellTransitionStateParser",
+                       "TaskLocalInsetsSourceParser", "TaskStackParser",
+                       "PackageNameValidator"],
+        "tests": ["SystemUiDesktopRepositoryParserTest", "WmShellTransitionStateParserTest",
+                  "TaskLocalInsetsSourceParserTest", "TaskStackParserTest"],
+    },
 }
 DEPENDENCIES = {
     "junit": ("junit/junit/4.13.2", "junit-4.13.2.jar",
