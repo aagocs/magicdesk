@@ -407,8 +407,8 @@ public final class ControlActivity extends Activity
         DesktopDisplayTarget target = selected == null ? null
                 : DesktopRuntimeBridge.getDesktopTarget(selected.id);
         if (target == null && selected != null) {
-            final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
-            target = lease == null ? null : lease.targetForDisplay(selected.id);
+            final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.current();
+            target = membership == null ? null : membership.targetForDisplay(selected.id);
         }
         if (target == null) {
             mStatus = getString(R.string.status_external_display_unavailable);

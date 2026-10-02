@@ -542,7 +542,7 @@ public final class MagicDeskRuntimeService extends Service
             return START_NOT_STICKY;
         }
         if (!ShellAccess.isReady()
-                && DesktopHomeRoleLease.snapshot() != null) {
+                && DesktopWorkspaceMembership.exists()) {
             return START_NOT_STICKY;
         }
         initialize();
@@ -701,7 +701,7 @@ public final class MagicDeskRuntimeService extends Service
         if (!mInitialized) {
             if (ShellAccess.isReady()
                     && RuntimeCapabilities.allowsDesktop(android.os.Build.VERSION.SDK_INT)
-                    && DesktopHomeRoleLease.snapshot() != null) {
+                    && DesktopWorkspaceMembership.exists()) {
                 initialize();
             }
             return;

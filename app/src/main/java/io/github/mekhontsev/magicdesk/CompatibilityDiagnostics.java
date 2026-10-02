@@ -400,13 +400,13 @@ public final class CompatibilityDiagnostics {
         final MagicDeskSettings.Values settings = MagicDeskSettings.load();
         final DesktopCompatibilityPolicy requestedCompatibility = settings.compatibilityPolicy(
                 audit.platform.features());
-        final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.current();
         report.append("Compatibility defaults: ")
                 .append(audit.platform.features().compatibilityDefaults).append('\n')
                 .append("Compatibility overrides: ").append(settings.compatibility).append('\n')
                 .append("Compatibility next session: ").append(requestedCompatibility).append('\n')
                 .append("Compatibility active session: ")
-                .append(lease == null ? "inactive" : lease.compatibility).append('\n');
+                .append(membership == null ? "inactive" : membership.compatibility).append('\n');
         final boolean globalInput = inputSnapshot.runtime.displayId >= 0;
         appendCheck(report, "SHORTCUTS-001",
                 !globalInput

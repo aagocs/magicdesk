@@ -393,18 +393,6 @@ final class DesktopHomeRoleLease {
         }
     }
 
-    static boolean isActiveForDisplay(final int displayId) {
-        final State state = snapshot();
-        return state != null && state.phase == Phase.ACTIVE && state.closingDisplayId != displayId
-                && state.targetForDisplay(displayId) != null;
-    }
-
-    static boolean isReleasingForDisplay(final int displayId) {
-        final State state = snapshot();
-        return state != null && state.targetForDisplay(displayId) != null
-                && (state.phase == Phase.RELEASING || state.closingDisplayId == displayId);
-    }
-
     static boolean isPhoneOverviewRoutingActive() {
         return sPhoneOverviewRoutingActive;
     }
