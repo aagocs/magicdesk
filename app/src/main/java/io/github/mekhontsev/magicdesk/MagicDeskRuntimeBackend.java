@@ -86,6 +86,8 @@ interface MagicDeskRuntimeBackend {
 
     boolean openSettings(final int displayId);
 
+    boolean openBuiltin(final int displayId, final String builtin);
+
     DesktopTaskRuntime desktopTasks(int displayId);
 
     DesktopTaskParkingRuntime desktopTaskParking();

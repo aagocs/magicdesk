@@ -458,6 +458,11 @@ public final class MagicDeskRuntime {
         return backend != null && backend.toggleSystemPanel(displayId);
     }
 
+    static boolean openBuiltin(final int displayId, final String builtin) {
+        final MagicDeskRuntimeBackend backend = backend();
+        return backend != null && backend.openBuiltin(displayId, builtin);
+    }
+
     static boolean openSettings(final int displayId) {
         final MagicDeskRuntimeBackend backend = backend();
         return backend != null && backend.openSettings(displayId);
