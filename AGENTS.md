@@ -10,19 +10,19 @@ require the user's authorization.
 This fork has a deliberate UX direction that overrides upstream assumptions when
 the two conflict: **the phone should keep behaving like the user's normal OEM
 phone, while an external/portable MagicDesk session should behave like a
-conventional desktop workstation.** Read `docs/product-direction.md` before
+conventional desktop workstation.** Read [Fork Product Direction](https://github.com/aagocs/magicdesk/wiki/Fork-Product-Direction) before
 changing session ownership, HOME/launcher behavior, display power, input routing,
 taskbar/Start behavior, window interactions, or large-screen defaults.
 
-Then read `docs/ux-work-plan.md` for the source audit, work-item IDs, next steps
+Then read [UX Implementation Plan](https://github.com/aagocs/magicdesk/wiki/UX-Implementation-Plan) for the source audit, work-item IDs, next steps
 and acceptance matrix. Wired mouse/keyboard and portable PC/scrcpy sessions are
 equal-priority targets for this fork. Keep that plan current when work starts or
 finishes; distinguish source findings, proposals and device-verified behavior.
 The long-term target is a daily Windows/Linux replacement, including local PC
-gaming. Read `docs/workstation-gaming.md` before compatibility/graphics/game work;
+gaming. Read [Workstation and Application Compatibility](https://github.com/aagocs/magicdesk/wiki/Workstation-and-Application-Compatibility) before compatibility/graphics/game work;
 describe generic engineering capabilities, not personal application choices. Do not
 claim Windows-game support from working Android or Linux desktop presentation.
-Use `docs/testing-workflow.md` for focused checks between edits, then retain the
+Use [Faster Development Checks](https://github.com/aagocs/magicdesk/wiki/Faster-Development-Checks) for focused checks between edits, then retain the
 full verification and boundary-specific device gates below. Reuse authorized
 connections and matching test signatures rather than repeating destructive setup.
 
@@ -51,6 +51,28 @@ debt for this fork, not the desired external-session product contract**. Do not
 paper over it by force-launching an OEM launcher while MagicDesk still owns HOME;
 change the lifecycle/ownership model deliberately and preserve the existing
 runtime-layer guardrails.
+
+## Multi-agent coordination
+
+Several agents (different models and environments) work on this fork in
+parallel. GitHub Issues are the coordination channel; start from the board
+index on [issue #4](https://github.com/aagocs/magicdesk/issues/4). The stable
+work IDs in the UX implementation plan remain the technical record and evidence
+log. Before starting, check open issues and open branches/PRs for a claim on the
+same work ID or files.
+
+- Claim one issue by comment (agent, branch) before working; use your own branch
+  (`codex/*`, `claude/*`, ...) and never push to another agent's branch.
+- Choose work by tier: `tier:deep` (ownership/lifecycle/framework redesign,
+  root-causing device failures), `tier:standard` (bounded change in one owning
+  boundary, audits, new host fixtures), `tier:light` (docs, bookkeeping, adding
+  existing tests to a host suite).
+- Choose work by environment: `env:device` only with a verified authorized
+  device; `env:host` needs only JDK/Python; `env:ci` needs the Android build
+  (use repository CI without a local SDK). Device-less agents should produce
+  probes, reproductions and fixtures that keep device sessions short.
+- Finish with a handoff comment: what changed, verified where (host/CI/device),
+  what is pending and the next step. Post only anonymized aggregate results.
 
 ## Public repository privacy
 
@@ -183,7 +205,7 @@ The configured MCP endpoint and maintainer phone setup described below are not
 guaranteed to exist in another agent's checkout. Discover available tools and
 authorized devices first; do not invent device coverage or replace another
 user's MCP configuration. Use the environment preflight and evidence contract in
-`docs/ux-work-plan.md` for fork UX work.
+[UX Implementation Plan](https://github.com/aagocs/magicdesk/wiki/UX-Implementation-Plan) for fork UX work.
 
 Never reboot the phone without asking the user and receiving explicit
 confirmation immediately before the reboot command. An earlier discussion or

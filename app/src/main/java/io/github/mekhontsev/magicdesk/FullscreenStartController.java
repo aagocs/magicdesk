@@ -62,14 +62,14 @@ final class FullscreenStartController implements StartMenuContent.Host {
     }
 
     static boolean canHost(final Activity activity) {
-        final DesktopHomeRoleLease.State lease = activeLease();
-        return lease != null && activity.getDisplay() != null
-                && lease.targetForDisplay(activity.getDisplay().getDisplayId()) == null;
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.active();
+        return membership != null && activity.getDisplay() != null
+                && membership.targetForDisplay(activity.getDisplay().getDisplayId()) == null;
     }
 
     static boolean isReleasing() {
-        final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
-        return lease != null && lease.phase == DesktopHomeRoleLease.Phase.RELEASING;
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.current();
+        return membership != null && membership.phase == DesktopWorkspaceMembership.Phase.RELEASING;
     }
 
     void newIntent(final Intent intent) {
@@ -162,7 +162,7 @@ final class FullscreenStartController implements StartMenuContent.Host {
         if (!ShellAccess.isReady()) return List.of();
         final List<StartMenuEntry> entries = new java.util.ArrayList<>();
         if (mHome) {
-            final DesktopHomeRoleLease.State lease = activeLease();
+            final DesktopHomeRoleLease.State lease = activeHomeLease();
             if (lease != null) for (final AppReference reference : HomeRecentApps.select(
                     mRunningTasks, apps(), lease.previousHome.packageName, mDisplayId)) {
                 final AppItem app = LauncherAppRepository.find(apps(), reference);
@@ -253,7 +253,7 @@ final class FullscreenStartController implements StartMenuContent.Host {
 
     private boolean canLaunch() {
         return !mActivity.isFinishing() && !mActivity.isDestroyed() && !mClosing
-                && (!mHome || hasActiveHomeLease());
+                && (!mHome || hasActiveWorkspace());
     }
 
     private void applyHomeIntent(final boolean initialLaunch) {
@@ -263,8 +263,8 @@ final class FullscreenStartController implements StartMenuContent.Host {
         // Initial session HOME permits automatic touchpad startup. Explicit
         // HOME/Recents navigation, including a cold Recents launch, retires it.
         if (!initialLaunch || showRecent) {
-            final DesktopHomeRoleLease.State lease = activeLease();
-            if (lease != null) {
+            final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.active();
+            if (membership != null) {
                 if (mDisplayId == android.view.Display.DEFAULT_DISPLAY) {
                     PhoneTouchpadController.release(MagicDeskRuntime.inputDisplayId());
                 }
@@ -284,8 +284,8 @@ final class FullscreenStartController implements StartMenuContent.Host {
             mRunningError = mActivity.getString(R.string.capability_access_required);
             return;
         }
-        final DesktopHomeRoleLease.State lease = activeLease();
-        if (!mStarted || mRunningLoading || (mHome && (lease == null || !hasActiveHomeLease()))) {
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.active();
+        if (!mStarted || mRunningLoading || (mHome && (membership == null || !hasActiveWorkspace()))) {
             return;
         }
         final int generation = ++mRunningGeneration;
@@ -301,7 +301,7 @@ final class FullscreenStartController implements StartMenuContent.Host {
                         return;
                     }
                     mRunningLoading = false;
-                    if (mHome && !hasActiveHomeLease()) {
+                    if (mHome && !hasActiveWorkspace()) {
                         return;
                     }
                     mRunningTasks = snapshot.available ? snapshot.tasks : Collections.emptyList();
@@ -320,8 +320,8 @@ final class FullscreenStartController implements StartMenuContent.Host {
         if (mClosing) {
             return;
         }
-        final DesktopHomeRoleLease.State lease = activeLease();
-        if (lease == null) {
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.active();
+        if (membership == null) {
             refreshCloseAction();
             return;
         }
@@ -335,7 +335,7 @@ final class FullscreenStartController implements StartMenuContent.Host {
                     if (mActivity.isFinishing() || mActivity.isDestroyed()) {
                         return;
                     }
-                    if (mHome && !hasActiveHomeLease()) {
+                    if (mHome && !hasActiveWorkspace()) {
                         mActivity.finishAndRemoveTask();
                         return;
                     }
@@ -353,18 +353,17 @@ final class FullscreenStartController implements StartMenuContent.Host {
         if (mCloseDesktop == null || mClosing) {
             return;
         }
-        mCloseDesktop.setEnabled(activeLease() != null);
+        mCloseDesktop.setEnabled(DesktopWorkspaceMembership.active() != null);
     }
 
-    private boolean hasActiveHomeLease() {
+    /** HOME-specific state: the launcher selection that HOME release will restore. */
+    private static DesktopHomeRoleLease.State activeHomeLease() {
+        final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
+        return lease != null && lease.phase == DesktopHomeRoleLease.Phase.ACTIVE ? lease : null;
+    }
+
+    private boolean hasActiveWorkspace() {
         return canHost(mActivity);
-    }
-
-    private static DesktopHomeRoleLease.State activeLease() {
-        final DesktopHomeRoleLease.State lease =
-                DesktopHomeRoleLease.snapshot();
-        return lease != null && lease.phase == DesktopHomeRoleLease.Phase.ACTIVE
-                ? lease : null;
     }
 
     private int dp(final int value) {
