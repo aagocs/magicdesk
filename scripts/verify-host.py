@@ -36,7 +36,7 @@ SUITES = {
     "selection": {
         "production": ["DesktopFileSelectionModel", "DesktopMarqueeSelection"],
         "tests": ["DesktopFileSelectionModelTest", "DesktopMarqueeSelectionTest",
-                  "DesktopMarqueeWiringTest"],
+                  "DesktopMarqueeWiringTest", "DesktopKeyboardCommandWiringTest"],
     },
 }
 SUITES["taskbar"] = {

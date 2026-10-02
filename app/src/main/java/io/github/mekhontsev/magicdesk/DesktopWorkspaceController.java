@@ -757,6 +757,9 @@ final class DesktopWorkspaceController {
                     return true;
                 }
                 break;
+            case NEW_FOLDER:
+                mActivity.createDesktopFile(true);
+                return true;
             case REFRESH:
                 mFolder.refresh(true, Math.max(1, mLastCapacity));
                 return true;
