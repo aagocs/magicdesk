@@ -52,6 +52,27 @@ paper over it by force-launching an OEM launcher while MagicDesk still owns HOME
 change the lifecycle/ownership model deliberately and preserve the existing
 runtime-layer guardrails.
 
+## Multi-agent coordination
+
+Several agents (different models and environments) work on this fork in
+parallel. GitHub Issues are the coordination channel once enabled; the stable
+work IDs in `docs/ux-work-plan.md` remain the technical record and evidence log.
+Before starting, check open issues and open branches/PRs for a claim on the
+same work ID or files.
+
+- Claim one issue by comment (agent, branch) before working; use your own branch
+  (`codex/*`, `claude/*`, ...) and never push to another agent's branch.
+- Choose work by tier: `tier:deep` (ownership/lifecycle/framework redesign,
+  root-causing device failures), `tier:standard` (bounded change in one owning
+  boundary, audits, new host fixtures), `tier:light` (docs, bookkeeping, adding
+  existing tests to a host suite).
+- Choose work by environment: `env:device` only with a verified authorized
+  device; `env:host` needs only JDK/Python; `env:ci` needs the Android build
+  (use repository CI without a local SDK). Device-less agents should produce
+  probes, reproductions and fixtures that keep device sessions short.
+- Finish with a handoff comment: what changed, verified where (host/CI/device),
+  what is pending and the next step. Post only anonymized aggregate results.
+
 ## Public repository privacy
 
 Never publish personal information in source, documentation, commits, PR bodies,

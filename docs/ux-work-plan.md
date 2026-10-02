@@ -45,7 +45,7 @@ user-visible bug. Update status and evidence with each implementation change.
 | ID | Priority | Outcome | Status | Prerequisite |
 | --- | --- | --- | --- | --- |
 | UX-001 | P0 | Reproducible wired and portable baseline | In progress; phone and independent virtual Start baseline captured | Managed Desktop, wired and PC input coverage |
-| UX-010 | P0 | External-only Desktop preserves OEM HOME | Investigated; design unproven | UX-001 and framework hosting probe |
+| UX-010 | P0 | External-only Desktop preserves OEM HOME | Investigated; [ownership design](home-ownership.md) proposed, device probe pending | UX-001 and framework hosting probe |
 | UX-011 | P0 | Portable output remains live with phone panel off | Planned | UX-001; repeat after UX-010 |
 | UX-012 | P0 | Direct PC and physical mouse/keyboard control | Investigated; device audit pending | UX-001; repeat after UX-010 |
 | UX-020 | P1 | Start keyboard selection stays visible and stable | Merged; CI, phone and independent virtual Start pass | Managed workstation and physical input coverage |
@@ -113,6 +113,9 @@ workspace exists and no phone workspace exists.
 explicitly requests and verifies `ACTIVITY_TYPE_HOME` on the target display.
 These source facts explain why simply omitting primary HOME activation is not
 yet an implementation: host admission and framework behavior need evidence.
+
+[HOME ownership design](home-ownership.md) records the traced lease structure,
+framework hypotheses, proposed split and the device probe protocol (P0-P5).
 
 Investigate whether the existing typed launch boundary can host an external
 workspace as secondary HOME while the user's primary HOME remains unchanged.
