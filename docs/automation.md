@@ -1492,6 +1492,17 @@ file contents. Compatibility reports include a 24 KiB bounded tail of at most
 64 events so reports from remote devices retain task, focus, display, and input
 ordering. It is observability, not persistent telemetry.
 
+Without `afterId`, `get_events` returns the newest `limit` events. With
+`afterId`, it pages from that cursor: the oldest retained events newer than the
+cursor, `nextAfterId` for the following request, and `hasMore` when more are
+retained. `truncated=true` means events after the cursor were already evicted;
+resynchronize from `get_state` and continue from `latestId`. `waitMillis`
+(at most 30 000, requires `afterId`) waits on the journal until a newer event is
+published. Expiry returns `success=true`, an empty page at the same cursor and
+`waitExpired=true`; it does not mean that nothing changed afterwards. At most
+two cursor waits run concurrently; another returns a retryable `ACTION_FAILED`
+instead of occupying an MCP worker.
+
 `magicdesk.wait_for_state` observes the condition and waits on the shared event
 journal. Scoped task waits reuse the active session's task publication;
 unknown observation never proves task absence. Unscoped absence requires a
