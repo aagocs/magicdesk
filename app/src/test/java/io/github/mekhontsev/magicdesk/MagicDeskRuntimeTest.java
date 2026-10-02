@@ -404,6 +404,11 @@ public final class MagicDeskRuntimeTest {
         }
 
         @Override
+        public boolean openBuiltin(final int displayId, final String builtin) {
+            return false;
+        }
+
+        @Override
         public boolean openSettings(final int displayId) {
             assertEquals(7, displayId);
             uiCommands |= 128;

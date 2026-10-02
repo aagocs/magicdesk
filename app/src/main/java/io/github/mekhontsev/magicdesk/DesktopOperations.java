@@ -269,7 +269,7 @@ public final class DesktopOperations {
     }
 
     static void openBuiltin(final String builtin) {
-        if (!DesktopRuntimeBridge.openBuiltin(MagicDeskRuntime.inputDisplayId(), builtin)) {
+        if (!MagicDeskRuntime.openBuiltin(MagicDeskRuntime.inputDisplayId(), builtin)) {
             Log.w(TAG, "MagicDesk desktop is unavailable for " + builtin);
         }
     }
