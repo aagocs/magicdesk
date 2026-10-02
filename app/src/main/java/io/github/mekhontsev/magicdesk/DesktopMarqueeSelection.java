@@ -15,6 +15,20 @@ import java.util.Set;
  * that merely touch the rectangle's edge are not selected.
  */
 final class DesktopMarqueeSelection {
+    /** How the rectangle combines with the selection that existed when the drag began. */
+    enum Mode {
+        /** The rectangle alone is the selection. */
+        REPLACE,
+        /** Shift: covered items are added to the base. */
+        ADD,
+        /** Ctrl: covered items are inverted against the base, as in Windows Explorer. */
+        TOGGLE;
+
+        static Mode forModifiers(final boolean ctrl, final boolean shift) {
+            return ctrl ? TOGGLE : shift ? ADD : REPLACE;
+        }
+    }
+
     record Bounds(int left, int top, int right, int bottom) {
         boolean isEmpty() {
             return right <= left || bottom <= top;
@@ -36,7 +50,7 @@ final class DesktopMarqueeSelection {
 
     private boolean mArmed;
     private boolean mActive;
-    private boolean mAdditive;
+    private Mode mMode = Mode.REPLACE;
     private int mSlop;
     private float mStartX;
     private float mStartY;
@@ -49,7 +63,7 @@ final class DesktopMarqueeSelection {
     void begin(
             final float x,
             final float y,
-            final boolean additive,
+            final Mode mode,
             final Collection<String> baseSelection,
             final int slop) {
         reset();
@@ -58,7 +72,7 @@ final class DesktopMarqueeSelection {
         mStartY = y;
         mX = x;
         mY = y;
-        mAdditive = additive;
+        mMode = Objects.requireNonNull(mode);
         mSlop = Math.max(0, slop);
         if (baseSelection != null) {
             mBase.addAll(baseSelection);
@@ -67,7 +81,7 @@ final class DesktopMarqueeSelection {
 
     /**
      * Returns the full selection for the current pointer position, ordered as {@code items}
-     * (an additive base that is not rendered follows), or {@code null} while the gesture is
+     * (a kept base item that is not rendered follows), or {@code null} while the gesture is
      * not armed or the pointer has not yet left the slop.
      */
     List<String> update(
@@ -92,13 +106,14 @@ final class DesktopMarqueeSelection {
         final Set<String> rendered = new LinkedHashSet<>();
         for (final Item item : items) {
             rendered.add(item.id());
-            if (mAdditive && mBase.contains(item.id())
-                    || rect != null && rect.overlaps(item.bounds())) {
+            final boolean hit = rect != null && rect.overlaps(item.bounds());
+            final boolean inBase = mBase.contains(item.id());
+            if (mMode == Mode.TOGGLE ? hit != inBase : hit || mMode == Mode.ADD && inBase) {
                 selected.add(item.id());
             }
         }
         final List<String> result = new ArrayList<>(selected);
-        if (mAdditive) {
+        if (mMode != Mode.REPLACE) {
             for (final String id : mBase) {
                 if (!rendered.contains(id)) {
                     result.add(id);
@@ -142,7 +157,7 @@ final class DesktopMarqueeSelection {
     private void reset() {
         mArmed = false;
         mActive = false;
-        mAdditive = false;
+        mMode = Mode.REPLACE;
         mViewport = null;
         mBase.clear();
     }

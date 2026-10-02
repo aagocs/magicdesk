@@ -89,11 +89,11 @@ final class DesktopMarqueeController {
             return;
         }
         final int modifiers = KeyEvent.normalizeMetaState(event.getMetaState());
-        final boolean additive =
-                (modifiers & (KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON)) != 0;
+        final DesktopMarqueeSelection.Mode mode = DesktopMarqueeSelection.Mode.forModifiers(
+                (modifiers & KeyEvent.META_CTRL_ON) != 0, (modifiers & KeyEvent.META_SHIFT_ON) != 0);
         mOriginalSelection = new ArrayList<>(mHost.selectedItemIds());
         mLastApplied = null;
-        mMarquee.begin(x, y, additive, mOriginalSelection, mHost.touchSlop());
+        mMarquee.begin(x, y, mode, mOriginalSelection, mHost.touchSlop());
         mTracking = true;
     }
 

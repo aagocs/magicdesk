@@ -27,8 +27,14 @@ public final class DesktopMarqueeSelectionTest {
 
     private static DesktopMarqueeSelection begin(
             final float x, final float y, final boolean additive, final Set<String> base) {
+        return begin(x, y, additive ? DesktopMarqueeSelection.Mode.ADD
+                : DesktopMarqueeSelection.Mode.REPLACE, base);
+    }
+
+    private static DesktopMarqueeSelection begin(final float x, final float y,
+            final DesktopMarqueeSelection.Mode mode, final Set<String> base) {
         final DesktopMarqueeSelection marquee = new DesktopMarqueeSelection();
-        marquee.begin(x, y, additive, base, SLOP);
+        marquee.begin(x, y, mode, base, SLOP);
         return marquee;
     }
 
@@ -148,5 +154,41 @@ public final class DesktopMarqueeSelectionTest {
         marquee.update(-20, 100, VIEWPORT, ITEMS);
         final DesktopMarqueeSelection.Bounds rect = marquee.currentRect();
         assertEquals(new DesktopMarqueeSelection.Bounds(0, 100, 300, 250), rect);
+    }
+    @Test
+    public void toggleModeInvertsCoveredItemsAndKeepsTheRestOfTheBase() {
+        final DesktopMarqueeSelection marquee = begin(15, 15,
+                DesktopMarqueeSelection.Mode.TOGGLE, Set.of("a", "c", "hidden"));
+        // Covering a and b: a was selected and is deselected, b is added, c is untouched.
+        assertEquals(List.of("b", "c", "hidden"), marquee.update(215, 105, VIEWPORT, ITEMS));
+    }
+
+    @Test
+    public void shrinkingAToggleRectangleRestoresUncoveredItems() {
+        final DesktopMarqueeSelection marquee = begin(15, 15,
+                DesktopMarqueeSelection.Mode.TOGGLE, Set.of("a"));
+        assertEquals(List.of("b", "c"), marquee.update(325, 105, VIEWPORT, ITEMS));
+        assertEquals(List.of("b"), marquee.update(215, 105, VIEWPORT, ITEMS));
+        assertEquals(List.of(), marquee.update(100, 105, VIEWPORT, ITEMS));
+    }
+
+    @Test
+    public void cancellingAToggleRestoresTheBase() {
+        final DesktopMarqueeSelection marquee = begin(15, 15,
+                DesktopMarqueeSelection.Mode.TOGGLE, Set.of("a"));
+        marquee.update(215, 105, VIEWPORT, ITEMS);
+        assertEquals(List.of("a"), marquee.cancel());
+    }
+
+    @Test
+    public void ctrlTogglesShiftAddsAndCtrlWinsWhenBothAreHeld() {
+        assertEquals(DesktopMarqueeSelection.Mode.REPLACE,
+                DesktopMarqueeSelection.Mode.forModifiers(false, false));
+        assertEquals(DesktopMarqueeSelection.Mode.ADD,
+                DesktopMarqueeSelection.Mode.forModifiers(false, true));
+        assertEquals(DesktopMarqueeSelection.Mode.TOGGLE,
+                DesktopMarqueeSelection.Mode.forModifiers(true, false));
+        assertEquals(DesktopMarqueeSelection.Mode.TOGGLE,
+                DesktopMarqueeSelection.Mode.forModifiers(true, true));
     }
 }
