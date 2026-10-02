@@ -185,21 +185,80 @@ public final class KeyboardShortcutStateMachineTest {
 
     @Test public void allWindowAndSystemActionsRemainAvailable() {
         final int[] keys = {KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_L, KeyEvent.KEYCODE_N,
-                KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_I, KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_I, KeyEvent.KEYCODE_DPAD_UP,
                 KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
                 KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_SYSRQ, KeyEvent.KEYCODE_SLASH};
         final KeyboardShortcutStateMachine.Action[] actions = {BACK, LOCK, NOTIFICATIONS,
-                SYSTEM, SETTINGS, FULLSCREEN, RESTORE, SNAP_LEFT, SNAP_RIGHT, SHOW_DESKTOP,
+                SYSTEM, SYSTEM, SETTINGS, FULLSCREEN, RESTORE, SNAP_LEFT, SNAP_RIGHT, SHOW_DESKTOP,
                 SCREENSHOT, SHORTCUT_HELP};
         for (int i = 0; i < keys.length; i++) {
             final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
             assertEquals(actions[i], s.accept(keys[i], true, 0, false, false, false, true).action);
         }
         assertEquals(TOGGLE_LAYOUT, new KeyboardShortcutStateMachine().accept(
-                KeyEvent.KEYCODE_SPACE, true, 0, true, false, false, false).action);
+                KeyEvent.KEYCODE_SPACE, true, 0, false, false, false, true).action);
         assertEquals(CLOSE, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_F4, true, 0, false, true, false, false).action);
         assertEquals(SCREEN_RECORDING, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_SYSRQ, true, 0, false, false, true, true).action);
+    }
+
+    @Test public void ctrlSpaceReachesTheFocusedApplication() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final KeyboardShortcutStateMachine.Result down = s.accept(
+                KeyEvent.KEYCODE_SPACE, true, 0, true, false, false, false);
+        assertEquals(NONE, down.action);
+        assertFalse(down.consumed);
+        final KeyboardShortcutStateMachine.Result up = s.accept(
+                KeyEvent.KEYCODE_SPACE, false, 0, true, false, false, false);
+        assertFalse(up.consumed);
+    }
+
+    @Test public void winSpaceTogglesLayoutOnceAndIsBalanced() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final KeyboardShortcutStateMachine.Result down = s.accept(
+                KeyEvent.KEYCODE_SPACE, true, 0, false, false, false, true);
+        assertEquals(TOGGLE_LAYOUT, down.action);
+        assertTrue(down.consumed);
+        final KeyboardShortcutStateMachine.Result repeat = s.accept(
+                KeyEvent.KEYCODE_SPACE, true, 1, false, false, false, true);
+        assertEquals(NONE, repeat.action);
+        assertTrue(s.accept(KeyEvent.KEYCODE_SPACE, false, 0, false, false, false, true).consumed);
+        assertEquals(NONE, s.accept(KeyEvent.KEYCODE_SPACE, true, 0, false, false, true, true).action);
+    }
+
+    @Test public void launcherChordsOpenToolsOnceAndAreBalanced() {
+        final int[][] chords = {
+                {KeyEvent.KEYCODE_E, 0, 0, 0, 1},
+                {KeyEvent.KEYCODE_S, 0, 0, 0, 1},
+                {KeyEvent.KEYCODE_ESCAPE, 1, 0, 0, 0},
+                {KeyEvent.KEYCODE_ESCAPE, 1, 0, 1, 0}};
+        final KeyboardShortcutStateMachine.Action[] expected = {
+                OPEN_FILES, OPEN_START, OPEN_START, OPEN_TASK_MANAGER};
+        for (int i = 0; i < chords.length; i++) {
+            final int[] c = chords[i];
+            final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+            final KeyboardShortcutStateMachine.Result down = s.accept(
+                    c[0], true, 0, c[1] != 0, c[2] != 0, c[3] != 0, c[4] != 0);
+            assertEquals(expected[i], down.action);
+            assertTrue(down.consumed);
+            assertEquals(NONE, s.accept(c[0], true, 1, c[1] != 0, c[2] != 0, c[3] != 0, c[4] != 0).action);
+            assertTrue(s.accept(c[0], false, 0, false, false, false, false).consumed);
+        }
+    }
+
+    @Test public void launcherChordsLeaveOtherCombinationsAndNonDesktopInputAlone() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        assertEquals(DISMISS, s.accept(KeyEvent.KEYCODE_ESCAPE, true, 0, false, false, false, false).action);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_ESCAPE, true, 0, true, true, false, false).action);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_E, true, 0, false, false, true, true).action);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_E, true, 0, true, false, false, true).action);
+        assertFalse(new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_ESCAPE, true, 0, true, false, true, false, false).consumed);
+        assertEquals(NONE, new KeyboardShortcutStateMachine().accept(
+                KeyEvent.KEYCODE_E, true, 0, false, false, false, true, false).action);
     }
 }
