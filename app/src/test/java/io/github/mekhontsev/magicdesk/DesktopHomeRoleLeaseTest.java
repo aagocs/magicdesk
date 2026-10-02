@@ -139,8 +139,8 @@ public final class DesktopHomeRoleLeaseTest {
         assertEquals(
                 DesktopHomeSurfaceRouter.Surface.DESKTOP,
                 mBackend.homeSurface);
-        assertTrue(DesktopHomeRoleLease.isActiveForDisplay(0));
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(7));
+        assertTrue(DesktopWorkspaceMembership.isActiveForDisplay(0));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(7));
         assertEquals(
                 DesktopHomeSurfaceRouter.Surface.DESKTOP,
                 mBackend.presentedSurface);
@@ -189,8 +189,8 @@ public final class DesktopHomeRoleLeaseTest {
                 DesktopDisplayTarget.simulated(7),
                 DesktopSessionPolicy.ISOLATED_SELF_TEST);
 
-        assertTrue(DesktopHomeRoleLease.isActiveForDisplay(7));
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(8));
+        assertTrue(DesktopWorkspaceMembership.isActiveForDisplay(7));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(8));
         assertEquals(
                 DesktopSessionPolicy.ISOLATED_SELF_TEST,
                 mStorage.state.policy);
@@ -234,8 +234,8 @@ public final class DesktopHomeRoleLeaseTest {
         assertEquals(List.of(first, second), mStorage.state.targets);
         DesktopHomeRoleLease.releaseForSessionClose(first);
         assertEquals(MAGICDESK, mBackend.homePackage);
-        assertTrue(DesktopHomeRoleLease.isActiveForDisplay(0));
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(7));
+        assertTrue(DesktopWorkspaceMembership.isActiveForDisplay(0));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(7));
         assertNull(DesktopHomeRoleLease.finishSessionClose(first));
         assertEquals(List.of(second), mStorage.state.targets);
         DesktopHomeRoleLease.releaseForSessionClose(second);
@@ -290,8 +290,8 @@ public final class DesktopHomeRoleLeaseTest {
         assertEquals(DesktopHomeRoleLease.Phase.RELEASING, mStorage.state.phase);
         assertEquals(DesktopHomeSurfaceRouter.Surface.DESKTOP, mBackend.homeSurface);
         assertFalse(DesktopHomeRoleLease.isPhoneOverviewRoutingActive());
-        assertTrue(DesktopHomeRoleLease.isReleasingForDisplay(0));
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(0));
+        assertTrue(DesktopWorkspaceMembership.isReleasingForDisplay(0));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(0));
 
         final DesktopHomeRoleLease.RestoredHomePresentation presentation =
                 DesktopHomeRoleLease.finishSessionClose(DesktopDisplayTarget.phone());
@@ -344,16 +344,16 @@ public final class DesktopHomeRoleLeaseTest {
         DesktopHomeRoleLease.releaseForSessionClose(target);
 
         assertNull(mBackend.presentedHomePackage);
-        assertTrue(DesktopHomeRoleLease.isReleasingForDisplay(7));
-        assertFalse(DesktopHomeRoleLease.isReleasingForDisplay(0));
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(7));
+        assertTrue(DesktopWorkspaceMembership.isReleasingForDisplay(7));
+        assertFalse(DesktopWorkspaceMembership.isReleasingForDisplay(0));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(7));
         assertEquals(DesktopHomeRoleLease.Phase.RELEASING, mStorage.state.phase);
         assertEquals(List.of("home:" + LAUNCHER), mBackend.releaseCalls);
         final DesktopHomeRoleLease.RestoredHomePresentation presentation =
                 DesktopHomeRoleLease.finishSessionClose(target);
         DesktopHomeRoleLease.presentRestoredHome(presentation);
         assertEquals(LAUNCHER, mBackend.presentedHomePackage);
-        assertFalse(DesktopHomeRoleLease.isReleasingForDisplay(7));
+        assertFalse(DesktopWorkspaceMembership.isReleasingForDisplay(7));
         assertEquals(List.of("home:" + LAUNCHER, "surface:disabled",
                 "present:" + LAUNCHER), mBackend.releaseCalls);
     }
@@ -501,7 +501,7 @@ public final class DesktopHomeRoleLeaseTest {
     public void newSessionCanAcquireHomeAfterStartupRecovery() throws Exception {
         acquire(DesktopDisplayTarget.phone());
         DesktopHomeRoleLease.markStartupRelinquished();
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(0));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(0));
         // Disabling our components returns HOME to the system outside the
         // shell-backed lease. A later explicit start owns a new lease.
         mBackend.homePackage = LAUNCHER;
@@ -509,9 +509,9 @@ public final class DesktopHomeRoleLeaseTest {
         final DesktopHomeRoleLease.AcquireResult prepared = DesktopHomeRoleLease.prepare(
                 DesktopDisplayTarget.phone(), DesktopSessionPolicy.USER,
                 DesktopCompatibilityPolicy.NONE);
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(0));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(0));
         DesktopHomeRoleLease.activate(prepared);
-        assertTrue(DesktopHomeRoleLease.isActiveForDisplay(0));
+        assertTrue(DesktopWorkspaceMembership.isActiveForDisplay(0));
         assertEquals(LAUNCHER, DesktopHomeRoleLease.snapshot().previousHome.packageName);
     }
 
@@ -634,8 +634,8 @@ public final class DesktopHomeRoleLeaseTest {
         mBackend.failHomeSelection = true;
         assertThrows(IOException.class, () -> DesktopHomeRoleLease.finishSessionClose(phone));
         assertEquals(0, mStorage.state.closingDisplayId);
-        assertTrue(DesktopHomeRoleLease.isActiveForDisplay(7));
-        assertFalse(DesktopHomeRoleLease.isActiveForDisplay(0));
+        assertTrue(DesktopWorkspaceMembership.isActiveForDisplay(7));
+        assertFalse(DesktopWorkspaceMembership.isActiveForDisplay(0));
         assertEquals(MAGICDESK, mBackend.homePackage);
         mBackend.failHomeSelection = false;
         assertNull(DesktopHomeRoleLease.finishSessionClose(phone));

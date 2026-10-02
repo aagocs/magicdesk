@@ -20,14 +20,14 @@ The current external-session architecture still acquires MagicDesk's package-wid
 HOME role and substitutes a MagicDesk phone HOME surface. That is a known
 architectural mismatch for this fork, not the target end state.
 
-See **[Fork product direction](docs/product-direction.md)** for the normative UX
-goals, architectural guardrails and priorities. **[UX implementation plan](docs/ux-work-plan.md)**
+See **[Fork product direction](https://github.com/aagocs/magicdesk/wiki/Fork-Product-Direction)** for the normative UX
+goals, architectural guardrails and priorities. **[UX implementation plan](https://github.com/aagocs/magicdesk/wiki/UX-Implementation-Plan)**
 maps those goals to source owners, concrete work items and acceptance checks.
 Wired mouse/keyboard and portable PC/scrcpy sessions have equal priority.
 The long-term goal includes replacing a daily Windows/Linux workstation and
-running PC games locally. The **[workstation and gaming roadmap](docs/workstation-gaming.md)**
+running PC games locally. The **[workstation and gaming roadmap](https://github.com/aagocs/magicdesk/wiki/Workstation-and-Application-Compatibility)**
 tracks the generic compatibility work and currently unverified capabilities. **[Faster development
-checks](docs/testing-workflow.md)** explains the short feedback loop and final
+checks](https://github.com/aagocs/magicdesk/wiki/Faster-Development-Checks)** explains the short feedback loop and final
 verification gate.
 Coding agents should also read **[AGENTS.md](AGENTS.md)** before changing
 session, display, input or window behavior.

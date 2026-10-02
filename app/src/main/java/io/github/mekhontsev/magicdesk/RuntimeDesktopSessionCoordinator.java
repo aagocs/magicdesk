@@ -126,7 +126,7 @@ final class RuntimeDesktopSessionCoordinator {
         final boolean changed = !mOwnedTargets.equals(targets);
         mOwnedTargets = java.util.Map.copyOf(targets);
         mListener.onOwnershipRefreshed(changed);
-        if (changed && DesktopHomeRoleLease.snapshot() != null) {
+        if (changed && DesktopWorkspaceMembership.exists()) {
             scheduleHomeLeaseReconciliation();
         }
     }

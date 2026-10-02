@@ -129,11 +129,9 @@ public final class DesktopOperations {
         OPERATIONS.execute(() -> {
             boolean success = false;
             try {
-                final DesktopHomeRoleLease.State lease =
-                        DesktopHomeRoleLease.snapshot();
-                if (lease != null
-                        && lease.phase == DesktopHomeRoleLease.Phase.ACTIVE
-                        && lease.matches(target)) {
+                final DesktopWorkspaceMembership.Snapshot membership =
+                        DesktopWorkspaceMembership.active();
+                if (membership != null && membership.matches(target)) {
                     success = DesktopSessionController.show(
                             target, policy).ready;
                 }

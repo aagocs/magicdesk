@@ -32,7 +32,7 @@ public final class DesktopHomeSurfacePolicyTest {
                     class Start { void newIntent(Intent intent) { changes++; } }
                     Start mHomeStart;
                     boolean acceptsHomeIntent(Intent intent) { return accepted; }
-                    boolean hasRequiredHomeLease() { return true; }
+                    boolean hasActiveWorkspace() { return true; }
                     void setIntent(Intent intent) { changes++; }
                     void recreate() { changes++; }
                     void finishAndRemoveTask() { throw new AssertionError("valid HOME destroyed"); }

@@ -16,8 +16,8 @@ final class DesktopCompatibilitySettings {
     }
 
     static DesktopCompatibilityPolicy current() {
-        final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
-        return lease == null ? nextSession() : lease.compatibility;
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.current();
+        return membership == null ? nextSession() : membership.compatibility;
     }
 
     static boolean resetDefaults(final Context context) throws IOException {
