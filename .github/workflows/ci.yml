@@ -24,6 +24,8 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      signed: ${{ steps.signing.outputs.signed }}
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -90,8 +92,26 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p test_development_version.py
           python3 scripts/verify-development-version.py
 
+      - name: Select signing mode
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.MAGICDESK_RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          # A repository without release-signing secrets (such as a fork) still
+          # gets the full lint, test and build gate on main, but nothing is published.
+          signed=false
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            if [ -n "$KEYSTORE_BASE64" ]; then
+              signed=true
+            else
+              echo "::warning title=Unsigned main build::Release-signing secrets are not configured; building and verifying unsigned APKs without publishing."
+            fi
+          fi
+          echo "signed=$signed" >> "$GITHUB_OUTPUT"
+
       - name: Restore release keystore
-        if: github.event_name == 'push'
+        if: steps.signing.outputs.signed == 'true'
         shell: bash
         env:
           KEYSTORE_BASE64: ${{ secrets.MAGICDESK_RELEASE_KEYSTORE_BASE64 }}
@@ -104,7 +124,7 @@ jobs:
           chmod 600 "$RUNNER_TEMP/magicdesk-signing/release.jks"
 
       - name: Lint and build signed APKs
-        if: github.event_name == 'push'
+        if: steps.signing.outputs.signed == 'true'
         env:
           ORG_GRADLE_PROJECT_MAGICDESK_RELEASE_STORE_FILE: ${{ runner.temp }}/magicdesk-signing/release.jks
           ORG_GRADLE_PROJECT_MAGICDESK_RELEASE_STORE_PASSWORD: ${{ secrets.MAGICDESK_RELEASE_STORE_PASSWORD }}
@@ -131,7 +151,7 @@ jobs:
             :kernel-fixes:assembleRelease
 
       - name: Lint and build unsigned release APKs
-        if: github.event_name != 'push'
+        if: steps.signing.outputs.signed != 'true'
         run: |
           ./gradlew --no-daemon \
             :app:testDebugUnitTest \
@@ -163,7 +183,7 @@ jobs:
           path: wayland-runtime/build/runtime/
 
       - name: Verify signed APK and package boundaries
-        if: github.event_name == 'push'
+        if: steps.signing.outputs.signed == 'true'
         shell: bash
         run: |
           build_tools="$ANDROID_SDK_ROOT/build-tools/37.0.0"
@@ -174,14 +194,14 @@ jobs:
             kernel-fixes/build/outputs/apk/release/kernel-fixes-release.apk
 
       - name: Verify unsigned APK boundaries
-        if: github.event_name != 'push'
+        if: steps.signing.outputs.signed != 'true'
         run: |
           ./scripts/verify-apks.sh \
             app/build/outputs/apk/release/app-release-unsigned.apk \
             kernel-fixes/build/outputs/apk/release/kernel-fixes-release-unsigned.apk
 
       - name: Prepare signed main artifact
-        if: github.event_name == 'push'
+        if: steps.signing.outputs.signed == 'true'
         shell: bash
         run: |
           build_tools="$ANDROID_SDK_ROOT/build-tools/37.0.0"
@@ -199,7 +219,7 @@ jobs:
           )
 
       - name: Upload signed development APKs
-        if: github.event_name == 'push'
+        if: steps.signing.outputs.signed == 'true'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: magicdesk-main-${{ github.run_number }}
@@ -208,7 +228,7 @@ jobs:
           path: dist/
 
       - name: Upload unsigned CI APKs and lint reports
-        if: github.event_name != 'push'
+        if: steps.signing.outputs.signed != 'true'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: magicdesk-ci-unsigned
@@ -310,7 +330,9 @@ jobs:
             **/build/reports/tests/**
 
   publish-development:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.build.outputs.signed == 'true'
     needs:
       - build
       - windows-smoke
