@@ -175,12 +175,14 @@ final class AutomationCommandCatalog {
                 .put(readTool(
                         "get_events",
                         "Get automation events",
-                        "Read the bounded structured automation event history.",
+                        "Read the bounded structured automation event history. Without afterId, returns the newest events. With afterId, returns the oldest retained events after that cursor and can wait for the next one.",
                         objectSchema(new JSONObject()
                                 .put("afterId", integerProperty(
-                                        "Return events newer than this id."))
+                                        "Cursor: return the oldest retained events newer than this id; pass nextAfterId to continue."))
                                 .put("limit", integerProperty(
-                                        "Maximum number of events, up to 256.")))))
+                                        "Maximum number of events, up to 256."))
+                                .put("waitMillis", integerProperty(
+                                        "With afterId: wait up to this many milliseconds (at most 30000) for a newer event.")))))
                 .put(readTool(
                         "get_diagnostics",
                         "Get diagnostics",
@@ -1718,7 +1720,15 @@ final class AutomationCommandCatalog {
             case "get_events":
                 properties.put("latestId", integerProperty("Latest event id."))
                         .put("events", arrayProperty(
-                                "Structured events.", openObjectProperty("Event.")));
+                                "Structured events.", openObjectProperty("Event.")))
+                        .put("nextAfterId", integerProperty(
+                                "Cursor for the next request; present with afterId."))
+                        .put("truncated", booleanProperty(
+                                "Events after the cursor were evicted; resynchronize from get_state."))
+                        .put("hasMore", booleanProperty(
+                                "More retained events follow this page."))
+                        .put("waitExpired", booleanProperty(
+                                "The bounded wait ended without a newer event."));
                 break;
             case "get_diagnostics":
                 properties.put("report", stringProperty(

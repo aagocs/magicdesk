@@ -1,8 +1,11 @@
 package io.github.mekhontsev.magicdesk;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -127,5 +130,89 @@ public final class DesktopAutomationEventJournalTest {
             releaseCopy.countDown();
             thread.join(2_000L);
         }
+    }
+
+    @Test
+    public void cursorPagesReturnOldestEventsFirstAndContinueWithoutGaps() throws Exception {
+        final long before = DesktopAutomationEventJournal.latestId();
+        final long first = DesktopAutomationEventJournal.record("test", "page-1", true, "");
+        final long second = DesktopAutomationEventJournal.record("test", "page-2", true, "");
+        final long third = DesktopAutomationEventJournal.record("test", "page-3", true, "");
+        final var page = DesktopAutomationEventJournal.page(before, 2, 0L);
+        assertEquals(2, page.events.length());
+        assertEquals(first, page.events.getJSONObject(0).getLong("id"));
+        assertEquals(second, page.nextAfterId);
+        assertTrue(page.hasMore);
+        assertFalse(page.truncated);
+        assertFalse(page.waitExpired);
+        final var rest = DesktopAutomationEventJournal.page(page.nextAfterId, 2, 0L);
+        assertEquals(1, rest.events.length());
+        assertEquals(third, rest.nextAfterId);
+        assertFalse(rest.hasMore);
+    }
+
+    @Test(timeout = 5_000)
+    public void cursorWaitReturnsThePublishedEvent() throws Exception {
+        final long cursor = DesktopAutomationEventJournal.latestId();
+        final var reader = new FutureTask<>(() -> DesktopAutomationEventJournal.page(cursor, 10, 4_000L));
+        final var thread = new Thread(reader);
+        thread.start();
+        final long published = DesktopAutomationEventJournal.record("test", "wake", true, "");
+        final var page = reader.get(4, TimeUnit.SECONDS);
+        assertEquals(published, page.events.getJSONObject(0).getLong("id"));
+        assertFalse(page.waitExpired);
+        thread.join(1_000L);
+    }
+
+    @Test(timeout = 5_000)
+    public void expiredCursorWaitReturnsAnEmptyPageAtTheSameCursor() throws Exception {
+        final long cursor = DesktopAutomationEventJournal.latestId() + 1_000_000L;
+        final var page = DesktopAutomationEventJournal.page(cursor, 10, 20L);
+        assertEquals(0, page.events.length());
+        assertTrue(page.waitExpired);
+        assertEquals(cursor, page.nextAfterId);
+        assertEquals(0, DesktopAutomationEventJournal.pageWaiters());
+    }
+
+    @Test
+    public void evictedCursorIsReportedAsTruncated() throws Exception {
+        final long cursor = DesktopAutomationEventJournal.record("test", "evicted", true, "");
+        for (int index = 0; index < 300; index++) {
+            DesktopAutomationEventJournal.record("test", "filler", true, "");
+        }
+        final var page = DesktopAutomationEventJournal.page(cursor, 256, 0L);
+        assertTrue(page.truncated);
+        assertTrue(page.events.getJSONObject(0).getLong("id") > cursor + 1L);
+        final long latest = DesktopAutomationEventJournal.latestId();
+        assertFalse(DesktopAutomationEventJournal.page(latest - 1L, 1, 0L).truncated);
+    }
+
+    @Test(timeout = 10_000)
+    public void concurrentCursorWaitsAreCapped() throws Exception {
+        final long future = DesktopAutomationEventJournal.latestId() + 1_000_000L;
+        final var threads = new ArrayList<Thread>();
+        for (int index = 0; index < DesktopAutomationEventJournal.MAX_PAGE_WAITERS; index++) {
+            final var thread = new Thread(() -> {
+                try {
+                    DesktopAutomationEventJournal.page(future, 1, 1_500L);
+                } catch (Exception error) {
+                    throw new AssertionError(error);
+                }
+            });
+            thread.start();
+            threads.add(thread);
+        }
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (DesktopAutomationEventJournal.pageWaiters() < DesktopAutomationEventJournal.MAX_PAGE_WAITERS) {
+            assertTrue("waiters did not start", System.nanoTime() < deadline);
+            Thread.onSpinWait();
+        }
+        assertThrows(IllegalStateException.class,
+                () -> DesktopAutomationEventJournal.page(future, 1, 1_000L));
+        for (final Thread thread : threads) {
+            thread.join(3_000L);
+            assertFalse(thread.isAlive());
+        }
+        assertEquals(0, DesktopAutomationEventJournal.pageWaiters());
     }
 }

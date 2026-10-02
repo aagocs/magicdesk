@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /** Bounded process-local history for structured automation operations. */
 final class DesktopAutomationEventJournal {
@@ -14,7 +15,9 @@ final class DesktopAutomationEventJournal {
     private static final int MAX_DETAIL_CHARS = 1_000;
     private static final Object LOCK = new Object();
     private static final ArrayDeque<Event> EVENTS = new ArrayDeque<>();
+    static final int MAX_PAGE_WAITERS = 2;
     private static long sLastId;
+    private static int sWaiters;
 
     private DesktopAutomationEventJournal() {
     }
@@ -94,6 +97,88 @@ final class DesktopAutomationEventJournal {
         return new Snapshot(latestId, result);
     }
 
+    /**
+     * Returns the oldest retained events after {@code afterId}, waiting up to
+     * {@code waitMillis} for one to be published when none exists yet.
+     */
+    static Page page(
+            final long afterId,
+            final int requestedLimit,
+            final long waitMillis) throws InterruptedException, JSONException {
+        final int limit = Math.max(1, Math.min(MAX_EVENTS, requestedLimit));
+        final long cursor = Math.max(0L, afterId);
+        final List<Event> selected = new ArrayList<>();
+        final long latestId;
+        final boolean truncated;
+        final boolean hasMore;
+        boolean waited = false;
+        synchronized (LOCK) {
+            if (waitMillis > 0L && sLastId <= cursor) {
+                if (sWaiters >= MAX_PAGE_WAITERS) {
+                    throw new IllegalStateException("too many concurrent event waits; retry later");
+                }
+                sWaiters++;
+                waited = true;
+                try {
+                    final long deadline = System.nanoTime()
+                            + TimeUnit.MILLISECONDS.toNanos(waitMillis);
+                    long remaining = waitMillis;
+                    while (sLastId <= cursor && remaining > 0L) {
+                        // EVENT_WAIT: a journal publication wakes the reader; expiry returns an
+                        // empty page with waitExpired and never implies that nothing happened later.
+                        EventDrivenWaits.await(
+                                LOCK, EventDrivenWaits.Reason.AUTOMATION_EVENT, remaining);
+                        remaining = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime());
+                    }
+                } finally {
+                    sWaiters--;
+                }
+            }
+            latestId = sLastId;
+            final Event oldest = EVENTS.peekFirst();
+            truncated = oldest != null && oldest.id > cursor + 1L;
+            for (final Event event : EVENTS) {
+                if (event.id > cursor && selected.size() < limit) {
+                    selected.add(event);
+                }
+            }
+            hasMore = !selected.isEmpty()
+                    && selected.get(selected.size() - 1).id < latestId;
+        }
+        final JSONArray events = new JSONArray();
+        for (final Event event : selected) {
+            events.put(event.toJson());
+        }
+        final long next = selected.isEmpty()
+                ? cursor : selected.get(selected.size() - 1).id;
+        return new Page(latestId, events, next, truncated, hasMore,
+                waited && selected.isEmpty());
+    }
+
+    static final class Page {
+        final long latestId;
+        final JSONArray events;
+        final long nextAfterId;
+        final boolean truncated;
+        final boolean hasMore;
+        final boolean waitExpired;
+
+        Page(
+                final long latestId,
+                final JSONArray events,
+                final long nextAfterId,
+                final boolean truncated,
+                final boolean hasMore,
+                final boolean waitExpired) {
+            this.latestId = latestId;
+            this.events = events;
+            this.nextAfterId = nextAfterId;
+            this.truncated = truncated;
+            this.hasMore = hasMore;
+            this.waitExpired = waitExpired;
+        }
+    }
+
     static final class Snapshot {
         final long latestId;
         final JSONArray events;
@@ -101,6 +186,12 @@ final class DesktopAutomationEventJournal {
         Snapshot(final long latestId, final JSONArray events) {
             this.latestId = latestId;
             this.events = events;
+        }
+    }
+
+    static int pageWaiters() {
+        synchronized (LOCK) {
+            return sWaiters;
         }
     }
 

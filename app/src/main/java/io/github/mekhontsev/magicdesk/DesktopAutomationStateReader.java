@@ -400,6 +400,19 @@ final class DesktopAutomationStateReader {
                 .put("events", snapshot.events);
     }
 
+    JSONObject eventPage(final long afterId, final int limit, final long waitMillis)
+            throws JSONException, InterruptedException {
+        final DesktopAutomationEventJournal.Page page =
+                DesktopAutomationEventJournal.page(afterId, limit, waitMillis);
+        return new JSONObject()
+                .put("latestId", page.latestId)
+                .put("events", page.events)
+                .put("nextAfterId", page.nextAfterId)
+                .put("truncated", page.truncated)
+                .put("hasMore", page.hasMore)
+                .put("waitExpired", page.waitExpired);
+    }
+
     JSONObject uiElements(final JSONObject arguments) throws JSONException {
         final JSONObject args = arguments == null
                 ? new JSONObject() : arguments;

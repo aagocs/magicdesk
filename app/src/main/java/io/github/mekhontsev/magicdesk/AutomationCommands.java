@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 /** Shared command execution; transport adapters own framing and client authorization. */
 final class AutomationCommands implements AutoCloseable {
+    static final long MAX_EVENT_WAIT_MILLIS = 30_000L;
     private final Context mContext;
     private final DesktopAutomationController mAutomation;
     private final DesktopAutomationFileTools mFiles =
@@ -59,6 +60,37 @@ final class AutomationCommands implements AutoCloseable {
             return DesktopAutomationResult.failure(
                     DesktopAutomationErrorCode.ACTION_FAILED,
                     ShellAccess.usefulMessage(error), false);
+        }
+    }
+
+    private DesktopAutomationResult events(final JSONObject args) throws JSONException {
+        final int limit = Math.max(1, args.optInt("limit", 100));
+        final long waitMillis = args.optLong("waitMillis", 0L);
+        if (waitMillis < 0L || waitMillis > MAX_EVENT_WAIT_MILLIS) {
+            throw new IllegalArgumentException(
+                    "waitMillis must be between 0 and " + MAX_EVENT_WAIT_MILLIS);
+        }
+        if (!args.has("afterId")) {
+            if (waitMillis > 0L) {
+                throw new IllegalArgumentException("waitMillis requires afterId");
+            }
+            return DesktopAutomationResult.success(
+                    "ok", mAutomation.stateReader().events(0L, limit));
+        }
+        final long afterId = args.getLong("afterId");
+        if (afterId < 0L) {
+            throw new IllegalArgumentException("afterId must not be negative");
+        }
+        try {
+            return DesktopAutomationResult.success(
+                    "ok", mAutomation.stateReader().eventPage(afterId, limit, waitMillis));
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return DesktopAutomationResult.failure(
+                    DesktopAutomationErrorCode.ACTION_FAILED, "event wait was interrupted", true);
+        } catch (IllegalStateException busy) {
+            return DesktopAutomationResult.failure(
+                    DesktopAutomationErrorCode.ACTION_FAILED, busy.getMessage(), true);
         }
     }
 
@@ -132,10 +164,7 @@ final class AutomationCommands implements AutoCloseable {
                 data = mAutomation.stateReader().uiElements(args);
                 return DesktopAutomationResult.success("ok", data);
             case "get_events":
-                data = mAutomation.stateReader().events(
-                        Math.max(0L, args.optLong("afterId", 0L)),
-                        Math.max(1, args.optInt("limit", 100)));
-                return DesktopAutomationResult.success("ok", data);
+                return events(args);
             case "get_diagnostics":
                 data = mAutomation.stateReader().diagnostics();
                 return DesktopAutomationResult.success("ok", data);
