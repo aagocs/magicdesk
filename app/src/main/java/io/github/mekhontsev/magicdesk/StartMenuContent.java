@@ -816,6 +816,15 @@ final class StartMenuContent {
         }
     }
 
+    private int searchPageSize() {
+        if (mSearchResultsScroll == null || mSearchResultsList == null
+                || mSearchResultsList.getChildCount() == 0) {
+            return 1;
+        }
+        final int rowHeight = mSearchResultsList.getChildAt(0).getHeight();
+        return rowHeight > 0 ? Math.max(1, mSearchResultsScroll.getHeight() / rowHeight) : 1;
+    }
+
     private boolean handleSearchKey(
             final int keyCode,
             final KeyEvent event) {
@@ -829,6 +838,13 @@ final class StartMenuContent {
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !mSearchResults.isEmpty()) {
             mSearchSelection.move(-1);
+            updateSearchSelection();
+            return true;
+        }
+        if ((keyCode == KeyEvent.KEYCODE_PAGE_DOWN || keyCode == KeyEvent.KEYCODE_PAGE_UP)
+                && !mSearchResults.isEmpty()) {
+            mSearchSelection.move(keyCode == KeyEvent.KEYCODE_PAGE_DOWN
+                    ? searchPageSize() : -searchPageSize());
             updateSearchSelection();
             return true;
         }

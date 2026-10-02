@@ -13,24 +13,27 @@ attempt the entire UX redesign in one change.
 ## Current status
 
 - Source audit completed against `ec4bd633` on 2026-10-02. UX-020 now has an
-  implementation in review; changed-build device validation is pending.
-- The owner selected **both equally**: wired external monitor with mouse and
-  keyboard, and portable/virtual Desktop viewed and controlled from a PC through
-  scrcpy. Neither is a secondary target. Wireless remains a supported regression
-  target; explicit phone Desktop must remain functional.
+  implementation merged in [PR #2](https://github.com/aagocs/magicdesk/pull/2);
+  full Linux/Windows CI and changed-build phone and independent virtual Start
+  checks pass. Managed workstation coverage is pending. Page navigation is the
+  next bounded increment; see the new evidence below.
+- Wired monitor/mouse/keyboard and portable PC/scrcpy sessions have equal
+  priority. Wireless remains a regression target; explicit phone Desktop must
+  remain functional.
 - GitHub Issues were disabled when this plan was created. Track stable IDs here
   until issue tracking is enabled, then link issues rather than duplicating their
   changing status. Do not enable repository settings as part of UX work.
-- A Samsung SM-G998B/API 35 is connected through wireless ADB. The unchanged
-  runtime baseline is `1.13.1-dev.163.6d945e2`, source `6d945e22` (the fork's
-  initial changes above it are documentation only), Standard Android adapter and
-  Shizuku UID 2000. A complete refreshed compatibility report and reproduction
-  captures are retained privately outside tracked source. OEM HOME remains
-  Samsung's launcher; WMShell desktop support is currently unverified.
-- Local JDK 17 and Android connection tools are available for host fixtures and
-  device checks. Full Android assembly/Lint runs through repository CI; a local
-  Android SDK/native build toolchain is not configured. Wired and portable
-  workstation validation remain pending.
+- Complete current-main compatibility and exact Start reproductions were
+  captured privately on API 35 under shell UID 2000. Changed-build independent
+  Start checks pass on the phone and an owned 1280x720/160-dpi virtual display;
+  actual scrcpy capture succeeds. These do not establish managed Desktop or
+  physical keyboard/mouse coverage. Temporary resources were removed by exact
+  identity; OEM HOME was retained.
+- Runtime `442610ee` passed Linux/Windows CI and independent Start device checks.
+  Build identity and environment details remain in private evidence.
+- Local host fixtures are available; full Android/native verification uses CI.
+  Wired hardware and portable physical-input coverage remain pending, with equal
+  product priority. Never include personal setup details or credentials here.
 
 Statuses mean: **investigated** = source boundary traced; **planned** = acceptance
 defined; **in progress** = implementation underway; **verified** = required checks
@@ -41,13 +44,17 @@ user-visible bug. Update status and evidence with each implementation change.
 
 | ID | Priority | Outcome | Status | Prerequisite |
 | --- | --- | --- | --- | --- |
-| UX-001 | P0 | Reproducible wired and portable baseline | In progress; phone Start baseline captured | Wired and portable coverage |
+| UX-001 | P0 | Reproducible wired and portable baseline | In progress; phone and independent virtual Start baseline captured | Managed Desktop, wired and PC input coverage |
 | UX-010 | P0 | External-only Desktop preserves OEM HOME | Investigated; design unproven | UX-001 and framework hosting probe |
 | UX-011 | P0 | Portable output remains live with phone panel off | Planned | UX-001; repeat after UX-010 |
 | UX-012 | P0 | Direct PC and physical mouse/keyboard control | Investigated; device audit pending | UX-001; repeat after UX-010 |
-| UX-020 | P1 | Start keyboard selection stays visible and stable | In progress; host fixtures pass, device reproduction confirmed | Changed-build and workstation verification |
+| UX-020 | P1 | Start keyboard selection stays visible and stable | Merged; CI, phone and independent virtual Start pass | Managed workstation and physical input coverage |
 | UX-021 | P1 | Consistent taskbar/window interactions | Planned | UX-001 and focused interaction audit |
 | UX-022 | P1 | Useful, compact workstation defaults | Planned | UX-020/021 findings and fresh-settings baseline |
+| TEST-001 | P1 | Faster, repeatable development feedback | Implemented; focused/full CI and semantic device checks pass, including failure cleanup | Extend focused suites as owning boundaries change |
+| UX-023 | P1 | Start Page Up/Down moves by the visible page | In review; host, Linux/Windows CI and phone/independent virtual Start pass | Managed workstation and physical input coverage |
+| WS-030 | P1 | Daily workstation workflows | Planned; see [workstation roadmap](workstation-gaming.md) | OEM ownership, input and shell foundations |
+| GAME-001 | P1 | Gaming compatibility preflight | Planned; Linux client path unverified | Explicit environment preparation; see [gaming stages](workstation-gaming.md#staged-work-and-acceptance) |
 
 P0 items define the product contract. A small P1 shell improvement may ship
 independently, but it does not fulfill the OEM-phone goal. Do not mark a P0 item
@@ -72,6 +79,23 @@ complete refreshed compatibility report and exact reproduction. Record known
 failures and unavailable paths without weakening existing self-test assertions.
 Private reports/captures stay outside tracked source; add a sanitized summary
 and the evidence reference to the relevant work item.
+
+### Environment preflight and next agent
+
+Discover authorized devices, current transports, MCP availability and runtime
+identity each session. Do not assume a particular endpoint, device, permission
+set or local toolchain. Reuse a healthy authorized service and existing
+credentials; never restart healthy Shizuku merely to repeat setup. Keep all
+connection tokens, hardware/network identifiers, account details and full
+compatibility/UI reports outside tracked source.
+
+Future test updates must use the existing development certificate to preserve
+settings and authorization. Unsigned CI APKs need a verified signature. Never
+uninstall or clear application data without explicit approval. Close an active
+Desktop through production cleanup before installation. Manual CI produces
+unsigned artifacts; main-branch publishing requires separately configured
+release-signing secrets. Forking source does not supply upstream signing keys.
+Verify signing configuration before promising an installable release.
 
 ## UX-010: external workspace ownership without phone HOME takeover
 
@@ -181,8 +205,10 @@ entry identity. These observations have now been reproduced on the unchanged
 phone build: independent Apps/Start on display 0, query `a`, focus search, then
 14 Down key presses. The selected row is reported `selected=true`,
 `visible=false`, outside the ScrollView's visible bounds, while the search
-EditText remains focused. This establishes the shared Start defect; wired/portable
-desktop UI and physical keyboard behavior have not yet been verified.
+EditText remains focused. Independent Start on an owned 1280x720/160-dpi virtual
+display reproduces the same invisible selection after eight Down presses.
+scrcpy captures the actual virtual display. This establishes the shared Start
+defect; managed Desktop UI and physical keyboard behavior remain unverified.
 
 Reproduce with enough matching apps/files to exceed the visible search viewport:
 open Start, type a query, repeatedly press Down beyond the first visible page,
@@ -221,12 +247,92 @@ viewport/reveals the selected row in `onLayout`, after Android positions childre
 Result updates retain the viewport and a visible/pending keyboard selection,
 without pulling a mouse-scrolled offscreen selection back into view.
 
-Host validation: `StartSearchSelectionTest`, `StartSearchNavigationTest` and
-`StartDestinationTest` pass together (18 tests), including actual production
+Host validation: `StartSearchSelectionTest`, `StartSearchNavigationTest`,
+`StartDestinationTest` and `ApplicationCatalogTest` pass together (23 tests),
+including actual production
 key-handler/layout-adapter bodies through the existing runtime fixture. The
 pre-change host reproduction fails on viewport rebuilding and selection drift.
 Full CI assembly/Lint and changed-build phone, wired and portable results must be
 recorded before this work item is marked verified.
+
+The first fork CI run stopped at an inherited version gate that required release
+tags, before compilation. The gate now validates a tagless fork's first version
+and still requires both name and code to exceed a tagged release. Seven isolated
+Git-fixture tests cover both paths; no release tags or version numbers changed.
+The next full run compiled Android code and ran 3,321 app tests; one existing
+catalog-loading source guard failed after rendering was reordered. Loading now
+remains before search rendering and that guard passes locally. The Linux job in
+[CI run 36940961879](https://github.com/aagocs/magicdesk/actions/runs/36940961879)
+passes at runtime commit `442610ee`: 3,576 tests across five modules, zero
+failures/errors, two skipped app tests, release Lint/assembly, independent X11
+host, native/boundary fixtures and APK checks. Windows `verifyDevelopment` and
+the independent X11 host also pass in that run; its reports record 3,591 tests,
+zero failures/errors and 48 skips. The manual CI run validates unsigned artifacts;
+no release was published.
+
+Changed-build independent Start checks on API 35 under shell UID 2000:
+
+- Phone independent Start: query `a`, 14 Down presses beyond the first viewport,
+  then three Up presses. The selected actionable row is fully inside the
+  ScrollView, with positive geometry; search remains focused with query `a`.
+- Independent virtual Start: same checks at 1280x720/160 dpi, eight Down presses
+  then three Up presses. Actual scrcpy 4.1 capture succeeds on the changed build.
+- Both surfaces: changing the query to `Shizuku` selects its matching row;
+  Enter opens that application on the requested display. Escape closes a newly
+  opened Start task, confirmed by fresh global `task_absent` observation.
+- Cleanup: the exact owned virtual display is removed and `display_absent`
+  confirms removal; the exact awake lease is released. Phone Home returns to
+  the existing OEM launcher. No Desktop/HOME lease or display-input route was acquired.
+
+Private evidence uses the `changed-phone`/`changed-virtual` UI snapshots, complete
+compatibility report and changed virtual-display recording alongside the baseline
+captures. Host fixtures cover stable identity across asynchronous insertions,
+held Enter and mouse-scrolled viewport retention; those cases are not claimed as
+physical device input coverage. Managed Desktop's Start popup, physical PC
+keyboard/mouse and wired testing remain pending. This bounded shell fix does not
+resolve UX-010's package-wide HOME lease.
+
+## TEST-001 / UX-023: quick feedback and Start page navigation
+
+[Fast testing](testing-workflow.md) documents the new JDK-only runner, focused CI,
+semantic device script, cache contract and one-final-candidate verification flow.
+The new paging fixture failed against the unchanged production handler, then
+passed after implementation: 24 focused tests in 2.64 seconds. No Android/native
+toolchain setup is needed for this feedback loop.
+
+Current-main runtime baseline: merge `1a17ede1` contains runtime `442610ee`.
+A complete refreshed compatibility report and exact phone/owned virtual Start
+reproductions are retained privately. Query `a`, focused search, Page Down then
+Page Up leaves selection unchanged on both surfaces. Escape closes the exact
+task. No Desktop/HOME/input ownership is acquired. The semantic script confirms
+that baseline and owned cleanup. Device identity, connection and report data
+are deliberately excluded from public documentation.
+
+Implemented candidate `94ca9f86`: `StartMenuContent` derives a page size from the
+measured result viewport and row height, clamps it to at least one result and
+moves selection through the existing selection/reveal path. Page keys retain
+search focus and existing views; they are not consumed for empty results.
+Home/End remain normal search text-editing keys. The focused fixture verifies
+measured paging, end clamping, tiny/unlaid viewport fallback and no body rebuild.
+[PR #3](https://github.com/aagocs/magicdesk/pull/3) contains this increment.
+[Full CI run](https://github.com/aagocs/magicdesk/actions/runs/36944630655)
+passes at this exact runtime candidate. Linux: 3,577 tests, zero failures/errors, two skips,
+release Lint/assembly, native fixtures, independent X11 host and APK boundaries.
+Windows `verifyDevelopment` and the independent X11 host pass: 3,592 tests,
+zero failures/errors and 48 skips. Later commits change documentation and the
+separately exercised device script; Android runtime/build inputs remain identical.
+The automatically duplicated PR full build was canceled after that gate passed;
+the separate quick host workflow validates the PR head without another native build.
+Changed-build independent Start on phone and owned virtual display passes Page
+Down/Up, fully visible selected-row geometry, retained search focus and Escape
+closure with global task observation. Exact display and awake-lease cleanup pass.
+The script also rejects an intentional wrong behavior expectation and cleans up
+the owned task/lease. Changed-build timings were approximately 4s on the phone
+and 14s including virtual-display creation/removal. A cold-launch check exposed
+asynchronous application enumeration: the harness now awaits selected results
+through UI events before inspection, rather than assuming loading has finished.
+Managed Desktop and physical-input/wired coverage remain
+pending. This increment does not resolve OEM HOME ownership.
 
 ## UX-021/022: interaction audit and defaults
 
