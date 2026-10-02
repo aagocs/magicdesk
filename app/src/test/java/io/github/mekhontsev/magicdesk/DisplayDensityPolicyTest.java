@@ -24,4 +24,23 @@ public final class DisplayDensityPolicyTest {
         assertEquals(192,
                 DisplayDensityPolicy.recommendedExternalDpi(0, 0, 520));
     }
+
+    @Test
+    public void recommendationNeverExceedsTheDisplayMaximum() {
+        assertEquals(240,
+                DisplayDensityPolicy.recommendedExternalDpi(3840, 2160, 240));
+        assertEquals(DisplayDensityPolicy.MIN_DPI,
+                DisplayDensityPolicy.recommendedExternalDpi(3840, 2160, 10));
+        assertEquals(DisplayDensityPolicy.MIN_DPI,
+                DisplayDensityPolicy.recommendedExternalDpi(0, 0, 10));
+    }
+
+    @Test
+    public void snapRoundsToStepsAboveTheMinimum() {
+        assertEquals(DisplayDensityPolicy.MIN_DPI, DisplayDensityPolicy.snapDpi(50, 520));
+        assertEquals(100, DisplayDensityPolicy.snapDpi(101, 520));
+        assertEquals(104, DisplayDensityPolicy.snapDpi(103, 520));
+        assertEquals(520, DisplayDensityPolicy.snapDpi(900, 520));
+        assertEquals(DisplayDensityPolicy.MIN_DPI, DisplayDensityPolicy.snapDpi(200, 50));
+    }
 }
