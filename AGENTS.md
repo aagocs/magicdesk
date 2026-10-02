@@ -14,6 +14,11 @@ conventional desktop workstation.** Read [Fork Product Direction](https://github
 changing session ownership, HOME/launcher behavior, display power, input routing,
 taskbar/Start behavior, window interactions, or large-screen defaults.
 
+For HOME-specific architecture hypotheses and the device probe, also read the
+[HOME Ownership Design](https://github.com/aagocs/magicdesk/wiki/HOME-Ownership-Design).
+Treat unverified framework behavior there as a hypothesis; the source audit is
+not a device result.
+
 Then read [UX Implementation Plan](https://github.com/aagocs/magicdesk/wiki/UX-Implementation-Plan) for the source audit, work-item IDs, next steps
 and acceptance matrix. Wired mouse/keyboard and portable PC/scrcpy sessions are
 equal-priority targets for this fork. Keep that plan current when work starts or
