@@ -772,7 +772,7 @@
     <string name="shortcut_desktop_action">Show or restore desktop</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Show this list</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">Switch keyboard layout</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">Select previous app</string>

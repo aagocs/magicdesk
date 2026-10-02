@@ -773,7 +773,7 @@
     <string name="shortcut_desktop_action">Desktop anzeigen oder wiederherstellen</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Diese Liste anzeigen</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">Tastaturlayout wechseln</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">Vorherige App auswählen</string>

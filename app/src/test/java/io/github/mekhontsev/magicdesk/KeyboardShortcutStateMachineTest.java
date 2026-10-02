@@ -196,10 +196,34 @@ public final class KeyboardShortcutStateMachineTest {
             assertEquals(actions[i], s.accept(keys[i], true, 0, false, false, false, true).action);
         }
         assertEquals(TOGGLE_LAYOUT, new KeyboardShortcutStateMachine().accept(
-                KeyEvent.KEYCODE_SPACE, true, 0, true, false, false, false).action);
+                KeyEvent.KEYCODE_SPACE, true, 0, false, false, false, true).action);
         assertEquals(CLOSE, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_F4, true, 0, false, true, false, false).action);
         assertEquals(SCREEN_RECORDING, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_SYSRQ, true, 0, false, false, true, true).action);
+    }
+
+    @Test public void ctrlSpaceReachesTheFocusedApplication() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final KeyboardShortcutStateMachine.Result down = s.accept(
+                KeyEvent.KEYCODE_SPACE, true, 0, true, false, false, false);
+        assertEquals(NONE, down.action);
+        assertFalse(down.consumed);
+        final KeyboardShortcutStateMachine.Result up = s.accept(
+                KeyEvent.KEYCODE_SPACE, false, 0, true, false, false, false);
+        assertFalse(up.consumed);
+    }
+
+    @Test public void winSpaceTogglesLayoutOnceAndIsBalanced() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final KeyboardShortcutStateMachine.Result down = s.accept(
+                KeyEvent.KEYCODE_SPACE, true, 0, false, false, false, true);
+        assertEquals(TOGGLE_LAYOUT, down.action);
+        assertTrue(down.consumed);
+        final KeyboardShortcutStateMachine.Result repeat = s.accept(
+                KeyEvent.KEYCODE_SPACE, true, 1, false, false, false, true);
+        assertEquals(NONE, repeat.action);
+        assertTrue(s.accept(KeyEvent.KEYCODE_SPACE, false, 0, false, false, false, true).consumed);
+        assertEquals(NONE, s.accept(KeyEvent.KEYCODE_SPACE, true, 0, false, false, true, true).action);
     }
 }

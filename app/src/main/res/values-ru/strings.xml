@@ -793,7 +793,7 @@
     <string name="shortcut_desktop_action">Показать или восстановить рабочий стол</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Показать этот список</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">Сменить раскладку клавиатуры</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">Выбрать предыдущее приложение</string>

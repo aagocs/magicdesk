@@ -763,7 +763,7 @@
     <string name="shortcut_desktop_action">显示或还原桌面</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">显示此列表</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">切换键盘布局</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">选择上一个应用</string>

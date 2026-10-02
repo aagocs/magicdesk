@@ -763,7 +763,7 @@ indicator offers hardware layouts separately from on-screen keyboards.
 | `Win+I` | MagicDesk Settings |
 | `Win+Print Screen` | Capture desktop |
 | `Win+Shift+Print Screen` | Start/stop recording |
-| `Ctrl+Space` | Next configured physical-keyboard layout |
+| `Win+Space` | Next configured physical-keyboard layout |
 | `Win+/` | All shortcuts |
 
 ## Security

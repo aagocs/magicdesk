@@ -783,7 +783,7 @@
     <string name="shortcut_desktop_action">Afficher ou restaurer le bureau</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Afficher cette liste</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">Changer de disposition du clavier</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">Sélectionner l\'app précédente</string>

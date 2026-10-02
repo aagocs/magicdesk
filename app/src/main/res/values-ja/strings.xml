@@ -763,7 +763,7 @@
     <string name="shortcut_desktop_action">デスクトップを表示または復元</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">この一覧を表示</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">キーボード配列を切り替え</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">前のアプリを選択</string>

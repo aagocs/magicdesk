@@ -783,7 +783,7 @@
     <string name="shortcut_desktop_action">Mostrar o restaurar escritorio</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Mostrar esta lista</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">Cambiar distribución de teclado</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">Seleccionar app anterior</string>

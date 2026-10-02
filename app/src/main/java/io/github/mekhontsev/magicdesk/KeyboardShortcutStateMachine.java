@@ -162,9 +162,6 @@ final class KeyboardShortcutStateMachine {
                 return Action.CLOSE;
             }
         }
-        if (ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_SPACE) {
-            return Action.TOGGLE_LAYOUT;
-        }
         if (!ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
             return Action.DISMISS;
         }
@@ -189,6 +186,7 @@ final class KeyboardShortcutStateMachine {
             case KeyEvent.KEYCODE_DPAD_RIGHT -> Action.SNAP_RIGHT;
             case KeyEvent.KEYCODE_D -> Action.SHOW_DESKTOP;
             case KeyEvent.KEYCODE_SLASH -> Action.SHORTCUT_HELP;
+            case KeyEvent.KEYCODE_SPACE -> Action.TOGGLE_LAYOUT;
             default -> Action.NONE;
         };
     }
