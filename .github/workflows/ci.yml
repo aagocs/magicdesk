@@ -56,6 +56,9 @@ jobs:
       - name: Focused desktop host checks
         run: python3 scripts/verify-host.py --suite start --download-deps
 
+      - name: Focused taskbar host checks
+        run: python3 scripts/verify-host.py --suite taskbar
+
       - name: Verify native host fixtures
         if: runner.os == 'Linux'
         timeout-minutes: 3

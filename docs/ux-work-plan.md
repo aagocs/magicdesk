@@ -49,7 +49,7 @@ user-visible bug. Update status and evidence with each implementation change.
 | UX-011 | P0 | Portable output remains live with phone panel off | Planned | UX-001; repeat after UX-010 |
 | UX-012 | P0 | Direct PC and physical mouse/keyboard control | Investigated; device audit pending | UX-001; repeat after UX-010 |
 | UX-020 | P1 | Start keyboard selection stays visible and stable | Merged; CI, phone and independent virtual Start pass | Managed workstation and physical input coverage |
-| UX-021 | P1 | Consistent taskbar/window interactions | Source audit complete; follow-ups #18/#19 await reproduction | Managed Desktop and physical-input baseline |
+| UX-021 | P1 | Consistent taskbar/window interactions | Source audit complete; #18 fix implemented on `claude/pensive-hopper-3v5che` (host-verified, device pending); #19 awaits reproduction | Managed Desktop and physical-input baseline |
 | UX-022 | P1 | Useful, compact workstation defaults | Planned | UX-020/021 findings and fresh-settings baseline |
 | TEST-001 | P1 | Faster, repeatable development feedback | Implemented; focused/full CI and semantic device checks pass, including failure cleanup | Extend focused suites as owning boundaries change |
 | UX-023 | P1 | Start Page Up/Down moves by the visible page | In review; host, Linux/Windows CI and phone/independent virtual Start pass | Managed workstation and physical input coverage |
@@ -342,7 +342,16 @@ concealment, pin/running indicators, context menus, maximize/restore, snap and
 fullscreen owners across Android and hosted windows. Source findings have exact
 device reproductions: [pin-state identity #18](https://github.com/aagocs/magicdesk/issues/18)
 and [taskbar keyboard interaction during refresh #19](https://github.com/aagocs/magicdesk/issues/19).
-Neither is claimed as a device-verified bug. See
+Neither is claimed as a device-verified bug.
+
+**#18 status (implemented, not device-verified):** the context menu looked up
+`state.app.packageName` in a `List<AppReference>`, which never matches, so the
+label was always Pin. `TaskbarPins` now owns the membership/toggle decision for
+the menu and `TaskbarController.togglePinned`, keyed on `app.reference`. The
+`taskbar` host suite (`scripts/verify-host.py --suite taskbar`) covers repeated
+toggles, same-package/different-profile distinction and the caller wiring, and
+fails against the unchanged menu. Changed-build menu label/action agreement on a
+device remains pending. See
 [coordination #4](https://github.com/aagocs/magicdesk/issues/4) for current owners;
 the audit does not change another agent's HOME/session work.
 
