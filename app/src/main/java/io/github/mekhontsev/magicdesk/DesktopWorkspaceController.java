@@ -51,6 +51,9 @@ final class DesktopWorkspaceController {
     private int mEditingWidgetId = -1;
     private final DesktopFileSelectionModel mFileSelection =
             new DesktopFileSelectionModel();
+    private DesktopFileSelectionModel.Snapshot mMarqueeStartSelection;
+    private List<DesktopMarqueeSelection.ItemBounds> mMarqueeItemBounds =
+            List.of();
 
     DesktopWorkspaceController(
             final DesktopShellActivity activity,
@@ -89,6 +92,7 @@ final class DesktopWorkspaceController {
         grid.setListener(new DesktopGridLayout.Listener() {
             @Override
             public void onGridSizeChanged(final int columns, final int rows) {
+                cancelMarqueeSelection();
                 final int capacity = columns * rows;
                 render(mApps);
                 if (capacity > mLastCapacity) {
@@ -120,6 +124,7 @@ final class DesktopWorkspaceController {
     }
 
     void stop() {
+        cancelMarqueeSelection();
         mFolder.stop();
         mWidgets.stop();
     }
@@ -142,6 +147,7 @@ final class DesktopWorkspaceController {
     }
 
     void render(final List<AppItem> apps) {
+        cancelMarqueeSelection();
         mApps = apps == null ? new ArrayList<>() : new ArrayList<>(apps);
         if (mGrid == null
                 || mGrid.getColumnCount() <= 0
@@ -1179,6 +1185,80 @@ final class DesktopWorkspaceController {
         }
     }
 
+    void beginMarqueeSelection() {
+        if (mGrid == null || mMarqueeStartSelection != null) {
+            return;
+        }
+        mMarqueeStartSelection = mFileSelection.snapshot();
+        final Map<String, View> renderedFiles = new LinkedHashMap<>();
+        for (int index = 0; index < mGrid.getChildCount(); index++) {
+            final View child = mGrid.getChildAt(index);
+            final ViewGroup.LayoutParams raw = child.getLayoutParams();
+            if (!(raw instanceof DesktopGridLayout.LayoutParams)
+                    || child.getVisibility() != View.VISIBLE) {
+                continue;
+            }
+            final String itemId =
+                    ((DesktopGridLayout.LayoutParams) raw).itemId;
+            if (itemId.startsWith(FILE_PREFIX)) {
+                renderedFiles.put(itemId, child);
+            }
+        }
+        mMarqueeItemBounds = new ArrayList<>();
+        for (final String itemId : visibleFileItemIds()) {
+            final View item = renderedFiles.get(itemId);
+            if (item == null || item.getWidth() <= 0 || item.getHeight() <= 0) {
+                continue;
+            }
+            mMarqueeItemBounds.add(new DesktopMarqueeSelection.ItemBounds(
+                    itemId,
+                    DesktopMarqueeSelection.Rectangle.bounds(
+                            item.getLeft(), item.getTop(),
+                            item.getRight(), item.getBottom())));
+        }
+    }
+
+    void updateMarqueeSelection(
+            final DesktopMarqueeSelection.Rectangle marquee,
+            final boolean control,
+            final boolean shift) {
+        if (mGrid == null || mMarqueeStartSelection == null
+                || mGrid.getWidth() <= 0 || mGrid.getHeight() <= 0) {
+            return;
+        }
+        final DesktopMarqueeSelection.Rectangle viewport =
+                DesktopMarqueeSelection.Rectangle.bounds(
+                        0, 0, mGrid.getWidth(), mGrid.getHeight());
+        final DesktopMarqueeSelection.Rectangle visibleMarquee =
+                marquee == null
+                        ? DesktopMarqueeSelection.Rectangle.empty()
+                        : marquee.intersect(viewport);
+        final List<String> intersecting =
+                DesktopMarqueeSelection.intersectingItemIds(
+                        visibleMarquee, viewport, mMarqueeItemBounds);
+        mGrid.setMarqueeBounds(visibleMarquee);
+        mFileSelection.selectMarquee(
+                intersecting, mMarqueeStartSelection, control, shift);
+        updateRenderedSelection();
+    }
+
+    void finishMarqueeSelection() {
+        if (mGrid != null) {
+            mGrid.setMarqueeBounds(null);
+        }
+        mMarqueeStartSelection = null;
+        mMarqueeItemBounds = List.of();
+    }
+
+    void cancelMarqueeSelection() {
+        if (mMarqueeStartSelection == null) {
+            return;
+        }
+        mFileSelection.restore(mMarqueeStartSelection);
+        finishMarqueeSelection();
+        updateRenderedSelection();
+    }
+
     private DesktopFile selectedFile() {
         if (!mFileSelection.isSingleSelection()) {
             return null;
@@ -1520,6 +1600,7 @@ final class DesktopWorkspaceController {
     private void onFilesChanged(
             final List<DesktopFile> files,
             final boolean successfulRead) {
+        cancelMarqueeSelection();
         mFiles = new ArrayList<>(files);
         if (successfulRead) {
             final Set<String> liveFiles = new HashSet<>();

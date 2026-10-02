@@ -34,8 +34,11 @@ SUITES = {
                   "TaskLocalInsetsSourceParserTest", "TaskStackParserTest"],
     },
     "selection": {
-        "production": ["DesktopFileSelectionModel"],
-        "tests": ["DesktopFileSelectionModelTest"],
+        "production": ["DesktopFileSelectionModel", "DesktopMarqueeSelection",
+                       "DesktopMarqueeGestureTracker"],
+        "tests": ["DesktopFileSelectionModelTest", "DesktopMarqueeSelectionTest",
+                  "DesktopMarqueeGestureTrackerTest",
+                  "DesktopMarqueeIntegrationContractTest"],
     },
 }
 SUITES["taskbar"] = {

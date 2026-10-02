@@ -91,4 +91,57 @@ public final class DesktopFileSelectionModelTest {
         assertFalse(selection.selectModified("hidden", List.of("a", "b"), false, true));
         assertEquals(List.of("a"), selection.selectedItemIds());
     }
+
+    @Test
+    public void plainMarqueeReplacesSelectionAndUsesVisualOrderForAnchor() {
+        final DesktopFileSelectionModel selection = new DesktopFileSelectionModel();
+        selection.selectOnly("old");
+        final DesktopFileSelectionModel.Snapshot start = selection.snapshot();
+
+        selection.selectMarquee(List.of("b", "c"), start, false, false);
+        assertEquals(List.of("b", "c"), selection.selectedItemIds());
+        assertEquals("b", selection.snapshot().anchor);
+        assertEquals("c", selection.focusedItemId());
+    }
+
+    @Test
+    public void controlMarqueeTogglesAgainstTheOriginalSelection() {
+        final DesktopFileSelectionModel selection = new DesktopFileSelectionModel();
+        selection.selectAll(List.of("a", "c"));
+        final DesktopFileSelectionModel.Snapshot start = selection.snapshot();
+
+        selection.selectMarquee(List.of("a", "b"), start, true, false);
+        assertEquals(List.of("c", "b"), selection.selectedItemIds());
+        selection.selectMarquee(List.of("a"), start, true, false);
+        assertEquals(List.of("c"), selection.selectedItemIds());
+    }
+
+    @Test
+    public void shiftMarqueeAddsHitsAndPreservesExistingAnchor() {
+        final DesktopFileSelectionModel selection = new DesktopFileSelectionModel();
+        selection.selectOnly("a");
+        selection.selectModified("c", List.of("a", "b", "c"), true, false);
+        final DesktopFileSelectionModel.Snapshot start = selection.snapshot();
+
+        selection.selectMarquee(List.of("b", "d"), start, false, true);
+        assertEquals(List.of("a", "c", "b", "d"), selection.selectedItemIds());
+        assertEquals("a", selection.snapshot().anchor);
+        assertEquals("d", selection.focusedItemId());
+    }
+
+    @Test
+    public void cancelledMarqueeRestoresSelectionAnchorAndFocus() {
+        final DesktopFileSelectionModel selection = new DesktopFileSelectionModel();
+        selection.selectOnly("b");
+        selection.selectModified("d", List.of("a", "b", "c", "d"), false, true);
+        final DesktopFileSelectionModel.Snapshot start = selection.snapshot();
+
+        selection.selectMarquee(List.of("a"), start, false, false);
+        selection.restore(start);
+        assertEquals(List.of("b", "c", "d"), selection.selectedItemIds());
+        assertEquals("d", selection.focusedItemId());
+
+        selection.selectModified("a", List.of("a", "b", "c", "d"), false, true);
+        assertEquals(List.of("a", "b"), selection.selectedItemIds());
+    }
 }

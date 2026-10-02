@@ -24,6 +24,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
@@ -1036,11 +1037,23 @@ public abstract class DesktopShellActivity extends Activity
         desktop.setFocusable(false);
         desktop.setFocusableInTouchMode(false);
         desktop.setDefaultFocusHighlightEnabled(false);
+        final DesktopGridLayout desktopIcons =
+                mDesktopWorkspaceController.createGrid();
+        final DesktopMarqueeGestureTracker marqueeGesture =
+                new DesktopMarqueeGestureTracker();
+        final int marqueeTouchSlop = ViewConfiguration.get(this)
+                .getScaledTouchSlop();
+        final boolean[] backgroundLongPress = {false};
+        final int[] marqueeMetaState = {0};
+        final float[] gridPoint = new float[2];
+        final int[] rootWindowLocation = new int[2];
+        final int[] gridWindowLocation = new int[2];
         final GestureDetector desktopGestures = new GestureDetector(
                 this,
                 new GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onDown(final MotionEvent event) {
+                        backgroundLongPress[0] = false;
                         hideAllPanels();
                         mDesktopWorkspaceController.cancelEditMode();
                         clearInteractionVisibleTasks();
@@ -1055,12 +1068,94 @@ public abstract class DesktopShellActivity extends Activity
 
                     @Override
                     public void onLongPress(final MotionEvent event) {
+                        backgroundLongPress[0] = true;
                         captureInteractionStackForPanel();
                         showDesktopContextMenu(event.getRawX(), event.getRawY());
                     }
                 });
         root.setOnTouchListener((view, event) -> {
-            if (mInputController.handleTouchEvent(event, true)) return true;
+            if (mInputController.handleTouchEvent(event, true)) {
+                if (marqueeGesture.isActive()) {
+                    marqueeGesture.cancel();
+                    mDesktopWorkspaceController.cancelMarqueeSelection();
+                } else {
+                    marqueeGesture.cancel();
+                }
+                return true;
+            }
+            final int action = event.getActionMasked();
+            desktopGridPoint(
+                    root,
+                    desktopIcons,
+                    event,
+                    gridPoint,
+                    rootWindowLocation,
+                    gridWindowLocation);
+            if (action == MotionEvent.ACTION_DOWN) {
+                backgroundLongPress[0] = false;
+                marqueeMetaState[0] = KeyEvent.normalizeMetaState(
+                        event.getMetaState());
+                marqueeGesture.down(
+                        gridPoint[0],
+                        gridPoint[1],
+                        isInsideGrid(desktopIcons, gridPoint)
+                                && isPrimaryMarqueePointer(event));
+            } else if (action == MotionEvent.ACTION_POINTER_DOWN) {
+                if (marqueeGesture.cancel()
+                        == DesktopMarqueeGestureTracker.Transition.CANCELLED) {
+                    mDesktopWorkspaceController.cancelMarqueeSelection();
+                }
+            } else if (action == MotionEvent.ACTION_MOVE) {
+                if (backgroundLongPress[0]) {
+                    if (marqueeGesture.cancel()
+                            == DesktopMarqueeGestureTracker.Transition.CANCELLED) {
+                        mDesktopWorkspaceController.cancelMarqueeSelection();
+                    }
+                } else {
+                    final DesktopMarqueeGestureTracker.Transition transition =
+                            marqueeGesture.move(
+                                    gridPoint[0], gridPoint[1], marqueeTouchSlop);
+                    if (transition
+                            == DesktopMarqueeGestureTracker.Transition.STARTED) {
+                        final MotionEvent cancelGesture =
+                                MotionEvent.obtain(event);
+                        cancelGesture.setAction(MotionEvent.ACTION_CANCEL);
+                        desktopGestures.onTouchEvent(cancelGesture);
+                        cancelGesture.recycle();
+                        mDesktopWorkspaceController.beginMarqueeSelection();
+                        updateMarqueeSelection(
+                                marqueeGesture,
+                                gridPoint,
+                                marqueeMetaState[0]);
+                        return true;
+                    }
+                    if (transition
+                            == DesktopMarqueeGestureTracker.Transition.UPDATED) {
+                        updateMarqueeSelection(
+                                marqueeGesture,
+                                gridPoint,
+                                marqueeMetaState[0]);
+                        return true;
+                    }
+                }
+            } else if (action == MotionEvent.ACTION_UP) {
+                if (marqueeGesture.isActive()) {
+                    updateMarqueeSelection(
+                            marqueeGesture, gridPoint, marqueeMetaState[0]);
+                    marqueeGesture.up();
+                    mDesktopWorkspaceController.finishMarqueeSelection();
+                    return true;
+                }
+                marqueeGesture.up();
+            } else if (action == MotionEvent.ACTION_CANCEL) {
+                if (marqueeGesture.cancel()
+                        == DesktopMarqueeGestureTracker.Transition.CANCELLED) {
+                    mDesktopWorkspaceController.cancelMarqueeSelection();
+                    hideAllPanels();
+                    clearInteractionVisibleTasks();
+                    return true;
+                }
+            }
             final boolean handled = desktopGestures.onTouchEvent(event);
             if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
                 hideAllPanels();
@@ -1076,8 +1171,6 @@ public abstract class DesktopShellActivity extends Activity
         registerAutomationUiElement(
                 root, "desktop", "desktop", "Desktop");
 
-        final DesktopGridLayout desktopIcons =
-                mDesktopWorkspaceController.createGrid();
         final LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1);
         desktop.addView(desktopIcons, iconsParams);
@@ -1110,6 +1203,63 @@ public abstract class DesktopShellActivity extends Activity
         mCalendarController.createPanel();
         mShortcutHelpController.createPanel();
         return root;
+    }
+
+    private static void desktopGridPoint(
+            final View root,
+            final DesktopGridLayout grid,
+            final MotionEvent event,
+            final float[] outPoint,
+            final int[] rootLocation,
+            final int[] gridLocation) {
+        root.getLocationInWindow(rootLocation);
+        grid.getLocationInWindow(gridLocation);
+        outPoint[0] = event.getX()
+                + rootLocation[0] - gridLocation[0];
+        outPoint[1] = event.getY()
+                + rootLocation[1] - gridLocation[1];
+    }
+
+    private static boolean isInsideGrid(
+            final DesktopGridLayout grid,
+            final float[] point) {
+        return point[0] >= 0 && point[1] >= 0
+                && point[0] < grid.getWidth()
+                && point[1] < grid.getHeight();
+    }
+
+    private static boolean isPrimaryMarqueePointer(
+            final MotionEvent event) {
+        final int toolType = event.getToolType(0);
+        final int buttons = event.getButtonState();
+        final int secondaryButtons = MotionEvent.BUTTON_SECONDARY
+                | MotionEvent.BUTTON_TERTIARY
+                | MotionEvent.BUTTON_STYLUS_PRIMARY
+                | MotionEvent.BUTTON_STYLUS_SECONDARY;
+        if ((buttons & secondaryButtons) != 0) {
+            return false;
+        }
+        if (toolType == MotionEvent.TOOL_TYPE_MOUSE) {
+            return (buttons & MotionEvent.BUTTON_PRIMARY) != 0;
+        }
+        return toolType == MotionEvent.TOOL_TYPE_FINGER
+                || toolType == MotionEvent.TOOL_TYPE_STYLUS;
+    }
+
+    private void updateMarqueeSelection(
+            final DesktopMarqueeGestureTracker gesture,
+            final float[] gridPoint,
+            final int metaState) {
+        final DesktopMarqueeSelection.Rectangle marquee =
+                DesktopMarqueeSelection.Rectangle.normalized(
+                        gesture.startX(), gesture.startY(),
+                        gridPoint[0], gridPoint[1]);
+        final int normalizedMetaState =
+                KeyEvent.normalizeMetaState(metaState);
+        mDesktopWorkspaceController.updateMarqueeSelection(
+                marquee,
+                (normalizedMetaState & KeyEvent.META_CTRL_ON) != 0,
+                (normalizedMetaState & KeyEvent.META_SHIFT_ON) != 0);
     }
 
     void toggleCalendarPanel() {

@@ -2,6 +2,9 @@ package io.github.mekhontsev.magicdesk;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.DragEvent;
 import android.view.View;
@@ -20,6 +23,9 @@ final class DesktopGridLayout extends ViewGroup {
 
     private final int mCellWidth;
     private final int mCellHeight;
+    private final Paint mMarqueeFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mMarqueeStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private RectF mMarqueeBounds;
     private Listener mListener;
     private int mColumns;
     private int mRows;
@@ -42,8 +48,38 @@ final class DesktopGridLayout extends ViewGroup {
         setDefaultFocusHighlightEnabled(false);
         mCellWidth = Math.max(1, cellWidth);
         mCellHeight = Math.max(1, cellHeight);
+        mMarqueeFill.setColor(0x3D3B82F6);
+        mMarqueeFill.setStyle(Paint.Style.FILL);
+        mMarqueeStroke.setColor(0xFF3B82F6);
+        mMarqueeStroke.setStyle(Paint.Style.STROKE);
+        mMarqueeStroke.setStrokeWidth(
+                Math.max(1f, getResources().getDisplayMetrics().density));
         setClipChildren(false);
         setOnDragListener((view, event) -> handleDrag(event, 0, 0));
+    }
+
+    void setMarqueeBounds(
+            final DesktopMarqueeSelection.Rectangle bounds) {
+        if (bounds == null || bounds.isEmpty()) {
+            mMarqueeBounds = null;
+        } else {
+            mMarqueeBounds = new RectF(
+                    bounds.left, bounds.top, bounds.right, bounds.bottom);
+        }
+        invalidate();
+    }
+
+    @Override
+    protected void dispatchDraw(final Canvas canvas) {
+        super.dispatchDraw(canvas);
+        if (mMarqueeBounds == null) {
+            return;
+        }
+        final int saveCount = canvas.save();
+        canvas.clipRect(0, 0, getWidth(), getHeight());
+        canvas.drawRect(mMarqueeBounds, mMarqueeFill);
+        canvas.drawRect(mMarqueeBounds, mMarqueeStroke);
+        canvas.restoreToCount(saveCount);
     }
 
     void setListener(final Listener listener) {

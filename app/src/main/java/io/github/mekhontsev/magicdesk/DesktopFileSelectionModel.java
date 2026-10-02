@@ -2,12 +2,29 @@ package io.github.mekhontsev.magicdesk;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 /** Selection state for desktop files, independent of Android views. */
 final class DesktopFileSelectionModel {
+    static final class Snapshot {
+        final Set<String> selected;
+        final String anchor;
+        final String focused;
+
+        private Snapshot(
+                final Collection<String> selected,
+                final String anchor,
+                final String focused) {
+            this.selected = Collections.unmodifiableSet(
+                    new LinkedHashSet<>(selected));
+            this.anchor = anchor;
+            this.focused = focused;
+        }
+    }
+
     private final LinkedHashSet<String> mSelected = new LinkedHashSet<>();
     private String mAnchor;
     private String mFocused;
@@ -19,6 +36,68 @@ final class DesktopFileSelectionModel {
         }
         mAnchor = itemId;
         mFocused = itemId;
+    }
+
+    Snapshot snapshot() {
+        return new Snapshot(mSelected, mAnchor, mFocused);
+    }
+
+    void restore(final Snapshot snapshot) {
+        if (snapshot == null) {
+            return;
+        }
+        mSelected.clear();
+        mSelected.addAll(snapshot.selected);
+        mAnchor = snapshot.anchor;
+        mFocused = snapshot.focused;
+    }
+
+    void selectMarquee(
+            final Collection<String> itemIds,
+            final Snapshot original,
+            final boolean control,
+            final boolean shift) {
+        if (original == null) {
+            return;
+        }
+        restore(original);
+        final LinkedHashSet<String> hits = new LinkedHashSet<>();
+        if (itemIds != null) {
+            for (final String itemId : itemIds) {
+                if (itemId != null) {
+                    hits.add(itemId);
+                }
+            }
+        }
+        if (control) {
+            for (final String itemId : hits) {
+                if (!mSelected.add(itemId)) {
+                    mSelected.remove(itemId);
+                }
+            }
+        } else if (shift) {
+            mSelected.addAll(hits);
+        } else {
+            mSelected.clear();
+            mSelected.addAll(hits);
+        }
+
+        if (hits.isEmpty()) {
+            if (!control && !shift) {
+                mAnchor = null;
+                mFocused = null;
+            }
+            return;
+        }
+        final String first = hits.iterator().next();
+        String last = first;
+        for (final String itemId : hits) {
+            last = itemId;
+        }
+        if (!control && !shift || mAnchor == null) {
+            mAnchor = first;
+        }
+        mFocused = last;
     }
 
     boolean selectModified(
