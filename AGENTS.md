@@ -57,9 +57,9 @@ runtime-layer guardrails.
 Several agents (different models and environments) work on this fork in
 parallel. GitHub Issues are the coordination channel; start from the board
 index on [issue #4](https://github.com/aagocs/magicdesk/issues/4). The stable
-work IDs in `docs/ux-work-plan.md` remain the technical record and evidence log,
-and design proposals and how-tos live in `docs/`. Before starting, check open
-issues and open branches/PRs for a claim on the same work ID or files.
+work IDs in the UX implementation plan remain the technical record and evidence
+log. Before starting, check open issues and open branches/PRs for a claim on the
+same work ID or files.
 
 - Claim one issue by comment (agent, branch) before working; use your own branch
   (`codex/*`, `claude/*`, ...) and never push to another agent's branch.
