@@ -35,6 +35,8 @@ offers supplemental compile and JVM feedback.
 The [HOME Ownership Design](https://github.com/aagocs/magicdesk/wiki/HOME-Ownership-Design)
 records the external-workspace proposal and the device probe required before
 changing HOME/session ownership.
+The [desktop input audit](https://github.com/aagocs/magicdesk/wiki/Desktop-Surface-and-Files-Input-Audit)
+records current Files/desktop interaction behavior and open keyboard/mouse gaps.
 Coding agents should also read **[AGENTS.md](AGENTS.md)** before changing
 session, display, input or window behavior.
 
