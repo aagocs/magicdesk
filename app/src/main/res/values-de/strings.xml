@@ -742,7 +742,7 @@
     <string name="shortcut_lock_action">Gerät sperren</string>
     <string name="shortcut_notifications">Win + N</string>
     <string name="shortcut_notifications_action">Benachrichtigungen anzeigen</string>
-    <string name="shortcut_system">Win + Q</string>
+    <string name="shortcut_system">Win + A / Win + Q</string>
     <string name="shortcut_system_action">Systemsteuerung anzeigen</string>
     <string name="shortcut_settings">Win + I</string>
     <string name="shortcut_settings_action">MagicDesk-Einstellungen öffnen</string>

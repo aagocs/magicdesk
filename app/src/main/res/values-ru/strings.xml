@@ -762,7 +762,7 @@
     <string name="shortcut_lock_action">Заблокировать устройство</string>
     <string name="shortcut_notifications">Win + N</string>
     <string name="shortcut_notifications_action">Показать уведомления</string>
-    <string name="shortcut_system">Win + Q</string>
+    <string name="shortcut_system">Win + A / Win + Q</string>
     <string name="shortcut_system_action">Показать системные настройки</string>
     <string name="shortcut_settings">Win + I</string>
     <string name="shortcut_settings_action">Открыть настройки MagicDesk</string>

@@ -732,7 +732,7 @@
     <string name="shortcut_lock_action">端末をロック</string>
     <string name="shortcut_notifications">Win + N</string>
     <string name="shortcut_notifications_action">通知を表示</string>
-    <string name="shortcut_system">Win + Q</string>
+    <string name="shortcut_system">Win + A / Win + Q</string>
     <string name="shortcut_system_action">システムコントロールを表示</string>
     <string name="shortcut_settings">Win + I</string>
     <string name="shortcut_settings_action">MagicDesk の設定を開く</string>

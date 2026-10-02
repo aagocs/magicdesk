@@ -752,7 +752,7 @@
     <string name="shortcut_lock_action">Verrouiller l\'appareil</string>
     <string name="shortcut_notifications">Win + N</string>
     <string name="shortcut_notifications_action">Afficher les notifications</string>
-    <string name="shortcut_system">Win + Q</string>
+    <string name="shortcut_system">Win + A / Win + Q</string>
     <string name="shortcut_system_action">Afficher les commandes système</string>
     <string name="shortcut_settings">Win + I</string>
     <string name="shortcut_settings_action">Ouvrir les paramètres de MagicDesk</string>

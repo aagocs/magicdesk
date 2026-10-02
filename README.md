@@ -762,7 +762,8 @@ indicator offers hardware layouts separately from on-screen keyboards.
 | `Alt+F4` | Close active task |
 | `Win+Backspace` | Send Android Back to the desktop display |
 | `Win+L` | Lock phone |
-| `Win+N` / `Win+Q` | Notifications / Quick controls |
+| `Win+N` | Notifications |
+| `Win+A` / `Win+Q` | Quick controls |
 | `Win+I` | MagicDesk Settings |
 | `Win+Print Screen` | Capture desktop |
 | `Win+Shift+Print Screen` | Start/stop recording |

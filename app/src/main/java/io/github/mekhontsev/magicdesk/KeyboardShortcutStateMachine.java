@@ -184,7 +184,8 @@ final class KeyboardShortcutStateMachine {
             case KeyEvent.KEYCODE_DEL -> Action.BACK;
             case KeyEvent.KEYCODE_L -> Action.LOCK;
             case KeyEvent.KEYCODE_N -> Action.NOTIFICATIONS;
-            case KeyEvent.KEYCODE_Q -> Action.SYSTEM;
+            // Win+A matches Windows quick settings; Win+Q stays as the documented alias.
+            case KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_Q -> Action.SYSTEM;
             case KeyEvent.KEYCODE_I -> Action.SETTINGS;
             case KeyEvent.KEYCODE_DPAD_UP -> Action.FULLSCREEN;
             case KeyEvent.KEYCODE_DPAD_DOWN -> Action.RESTORE;

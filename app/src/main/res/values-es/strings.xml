@@ -752,7 +752,7 @@
     <string name="shortcut_lock_action">Bloquear dispositivo</string>
     <string name="shortcut_notifications">Win + N</string>
     <string name="shortcut_notifications_action">Mostrar notificaciones</string>
-    <string name="shortcut_system">Win + Q</string>
+    <string name="shortcut_system">Win + A / Win + Q</string>
     <string name="shortcut_system_action">Mostrar controles del sistema</string>
     <string name="shortcut_settings">Win + I</string>
     <string name="shortcut_settings_action">Abrir ajustes de MagicDesk</string>
