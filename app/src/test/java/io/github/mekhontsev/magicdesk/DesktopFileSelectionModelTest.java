@@ -78,7 +78,7 @@ public final class DesktopFileSelectionModelTest {
         selection.selectModified("a", List.of("a", "b", "c", "d"), true, false);
 
         assertEquals(List.of("a", "c"), selection.selectedItemIdsInOrder(
-                List.of("d", "c", "b", "a")));
+                List.of("a", "b", "c", "d")));
     }
 
     @Test
