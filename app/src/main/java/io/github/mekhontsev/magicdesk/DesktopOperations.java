@@ -250,6 +250,19 @@ public final class DesktopOperations {
         }
     }
 
+    static void openBuiltin(final String builtin) {
+        if (!DesktopRuntimeBridge.openBuiltin(
+                MagicDeskRuntime.inputDisplayId(), builtin)) {
+            Log.w(TAG, "MagicDesk desktop is unavailable for built-in " + builtin);
+        }
+    }
+
+    static void openStartSearch() {
+        if (!MagicDeskRuntime.showStart(MagicDeskRuntime.inputDisplayId())) {
+            Log.w(TAG, "MagicDesk desktop is unavailable for Start search");
+        }
+    }
+
     static void toggleNotificationCenter() {
         if (!MagicDeskRuntime.toggleNotificationCenter(MagicDeskRuntime.inputDisplayId())) {
             Log.w(TAG, "MagicDesk desktop is unavailable for notifications");

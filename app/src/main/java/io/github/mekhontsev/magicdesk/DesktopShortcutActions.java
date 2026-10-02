@@ -94,6 +94,15 @@ final class DesktopShortcutActions {
             case SHORTCUT_HELP:
                 DesktopOperations.showShortcutHelp();
                 break;
+            case OPEN_FILES:
+                DesktopOperations.openBuiltin("files");
+                break;
+            case OPEN_TASK_MANAGER:
+                DesktopOperations.openBuiltin("task_manager");
+                break;
+            case OPEN_START_SEARCH:
+                DesktopOperations.openStartSearch();
+                break;
             case NONE:
             default:
                 break;

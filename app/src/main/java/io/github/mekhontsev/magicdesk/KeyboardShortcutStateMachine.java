@@ -35,7 +35,10 @@ final class KeyboardShortcutStateMachine {
         DISPLAY_CANCEL,
         SCREENSHOT,
         SCREEN_RECORDING,
-        SHORTCUT_HELP
+        SHORTCUT_HELP,
+        OPEN_FILES,
+        OPEN_TASK_MANAGER,
+        OPEN_START_SEARCH
     }
 
 
@@ -165,6 +168,9 @@ final class KeyboardShortcutStateMachine {
         if (ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_SPACE) {
             return Action.TOGGLE_LAYOUT;
         }
+        if (ctrl && !alt && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
+            return shift ? Action.OPEN_TASK_MANAGER : Action.OPEN_START_SEARCH;
+        }
         if (!ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
             return Action.DISMISS;
         }
@@ -179,10 +185,13 @@ final class KeyboardShortcutStateMachine {
         }
         return switch (key) {
             case KeyEvent.KEYCODE_DEL -> Action.BACK;
+            // Win+Q remains an alias for users of the existing shortcut.
+            case KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_Q -> Action.SYSTEM;
+            case KeyEvent.KEYCODE_E -> Action.OPEN_FILES;
             case KeyEvent.KEYCODE_L -> Action.LOCK;
             case KeyEvent.KEYCODE_N -> Action.NOTIFICATIONS;
-            case KeyEvent.KEYCODE_Q -> Action.SYSTEM;
             case KeyEvent.KEYCODE_I -> Action.SETTINGS;
+            case KeyEvent.KEYCODE_S -> Action.OPEN_START_SEARCH;
             case KeyEvent.KEYCODE_DPAD_UP -> Action.FULLSCREEN;
             case KeyEvent.KEYCODE_DPAD_DOWN -> Action.RESTORE;
             case KeyEvent.KEYCODE_DPAD_LEFT -> Action.SNAP_LEFT;

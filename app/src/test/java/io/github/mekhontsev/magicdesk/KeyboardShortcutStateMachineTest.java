@@ -185,12 +185,13 @@ public final class KeyboardShortcutStateMachineTest {
 
     @Test public void allWindowAndSystemActionsRemainAvailable() {
         final int[] keys = {KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_L, KeyEvent.KEYCODE_N,
-                KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_I, KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_I,
+                KeyEvent.KEYCODE_DPAD_UP,
                 KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
                 KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_SYSRQ, KeyEvent.KEYCODE_SLASH};
         final KeyboardShortcutStateMachine.Action[] actions = {BACK, LOCK, NOTIFICATIONS,
-                SYSTEM, SETTINGS, FULLSCREEN, RESTORE, SNAP_LEFT, SNAP_RIGHT, SHOW_DESKTOP,
-                SCREENSHOT, SHORTCUT_HELP};
+                SYSTEM, SYSTEM, SETTINGS, FULLSCREEN, RESTORE, SNAP_LEFT, SNAP_RIGHT,
+                SHOW_DESKTOP, SCREENSHOT, SHORTCUT_HELP};
         for (int i = 0; i < keys.length; i++) {
             final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
             assertEquals(actions[i], s.accept(keys[i], true, 0, false, false, false, true).action);
@@ -201,5 +202,59 @@ public final class KeyboardShortcutStateMachineTest {
                 KeyEvent.KEYCODE_F4, true, 0, false, true, false, false).action);
         assertEquals(SCREEN_RECORDING, new KeyboardShortcutStateMachine().accept(
                 KeyEvent.KEYCODE_SYSRQ, true, 0, false, false, true, true).action);
+    }
+
+    @Test public void conventionalLauncherChordsEmitOneBalancedAction() {
+        assertBalancedChord(KeyEvent.KEYCODE_E, false, false, false, true, OPEN_FILES);
+        assertBalancedChord(KeyEvent.KEYCODE_ESCAPE, true, true, false, false,
+                OPEN_TASK_MANAGER);
+        assertBalancedChord(KeyEvent.KEYCODE_S, false, false, false, true,
+                OPEN_START_SEARCH);
+        assertBalancedChord(KeyEvent.KEYCODE_ESCAPE, true, false, false, false,
+                OPEN_START_SEARCH);
+    }
+
+    @Test public void launcherChordRepeatsAreConsumedWithoutRepeatedCommands() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        assertEquals(OPEN_FILES, s.accept(KeyEvent.KEYCODE_E, true, 0,
+                false, false, false, true).action);
+        for (int repeat = 1; repeat < 4; repeat++) {
+            final var result = s.accept(KeyEvent.KEYCODE_E, true, repeat,
+                    false, false, false, true);
+            assertTrue(result.consumed);
+            assertEquals(NONE, result.action);
+        }
+        assertTrue(s.accept(KeyEvent.KEYCODE_E, false, 0,
+                false, false, false, false).consumed);
+        assertFalse(s.accept(KeyEvent.KEYCODE_E, true, 0,
+                false, false, false, false).consumed);
+    }
+
+    @Test public void launcherChordsPassThroughOutsideDesktopAndTypingIsUnchanged() {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        assertFalse(s.accept(KeyEvent.KEYCODE_E, true, 0,
+                false, false, false, true, false).consumed);
+        assertFalse(s.accept(KeyEvent.KEYCODE_ESCAPE, true, 0,
+                true, true, false, false, false).consumed);
+        assertFalse(s.accept(KeyEvent.KEYCODE_S, true, 0,
+                false, false, false, true, false).consumed);
+        assertFalse(s.accept(KeyEvent.KEYCODE_ESCAPE, true, 0,
+                true, false, false, false, false).consumed);
+        assertFalse(s.accept(KeyEvent.KEYCODE_E, true, 0,
+                true, false, true, false).consumed);
+    }
+
+    private static void assertBalancedChord(
+            final int key, final boolean ctrl, final boolean shift,
+            final boolean alt, final boolean meta,
+            final KeyboardShortcutStateMachine.Action expected) {
+        final KeyboardShortcutStateMachine s = new KeyboardShortcutStateMachine();
+        final var down = s.accept(key, true, 0, ctrl, alt, shift, meta);
+        assertTrue(down.consumed);
+        assertEquals(expected, down.action);
+        final var repeat = s.accept(key, true, 1, ctrl, alt, shift, meta);
+        assertTrue(repeat.consumed);
+        assertEquals(NONE, repeat.action);
+        assertTrue(s.accept(key, false, 0, ctrl, alt, shift, meta).consumed);
     }
 }
