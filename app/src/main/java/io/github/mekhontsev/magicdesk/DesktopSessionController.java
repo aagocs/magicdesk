@@ -189,16 +189,15 @@ final class DesktopSessionController {
         final DesktopSessionSnapshot session =
                 DesktopRuntimeBridge.getSessionSnapshot(target.workspaceDisplayId);
         final DesktopDisplayTarget activeTarget = session.target();
-        final DesktopHomeRoleLease.State lease =
-                DesktopHomeRoleLease.snapshot();
+        final DesktopWorkspaceMembership.Snapshot membership =
+                DesktopWorkspaceMembership.active();
         if (!session.hasHost()
                 || session.activeWorkspaceDisplayId() != target.workspaceDisplayId
                 || activeTarget == null
                 || !activeTarget.sameBinding(target)
                 || session.policy() != policy
-                || lease == null
-                || lease.phase != DesktopHomeRoleLease.Phase.ACTIVE
-                || !lease.matches(target)) {
+                || membership == null
+                || !membership.matches(target)) {
             return null;
         }
         return session;

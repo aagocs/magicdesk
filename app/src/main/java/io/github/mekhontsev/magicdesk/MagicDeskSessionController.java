@@ -174,9 +174,9 @@ final class MagicDeskSessionController {
 
     private java.util.List<DesktopDisplayTarget> resolveDesktopTargets() {
         final java.util.Map<Integer, DesktopDisplayTarget> targets = new java.util.TreeMap<>();
-        final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
-        if (lease != null) {
-            for (final DesktopDisplayTarget target : lease.targets) {
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.current();
+        if (membership != null) {
+            for (final DesktopDisplayTarget target : membership.targets) {
                 targets.put(target.workspaceDisplayId, target);
             }
         }

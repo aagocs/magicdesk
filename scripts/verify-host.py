@@ -34,6 +34,10 @@ SUITES = {
                   "TaskLocalInsetsSourceParserTest", "TaskStackParserTest"],
     },
 }
+SUITES["taskbar"] = {
+    "production": ["TaskbarPins"],
+    "tests": ["TaskbarPinsTest"],
+}
 DEPENDENCIES = {
     "junit": ("junit/junit/4.13.2", "junit-4.13.2.jar",
               "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3"),

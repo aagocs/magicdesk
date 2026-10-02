@@ -7,11 +7,11 @@ reviewers and users diagnosing compatibility problems.
 
 
 For this fork's user-facing target state, also read
-[product direction](product-direction.md). Architecture describes the current
+[product direction](https://github.com/aagocs/magicdesk/wiki/Fork-Product-Direction). Architecture describes the current
 ownership model; it must not be mistaken for a requirement to preserve every
 current UX coupling, especially package-wide HOME ownership for external-only
 Desktop sessions.
-The [UX implementation plan](ux-work-plan.md) maps the fork's next changes to
+The [UX implementation plan](https://github.com/aagocs/magicdesk/wiki/UX-Implementation-Plan) maps the fork's next changes to
 these existing owners; its proposals are not implemented runtime contracts.
 
 ## Runtime Layers

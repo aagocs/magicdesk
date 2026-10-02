@@ -40,3 +40,5 @@ jobs:
           python3 scripts/verify-host.py --suite start --download-deps
           python3 scripts/verify-host.py --suite input
           python3 scripts/verify-host.py --suite parsers
+      - name: Verify taskbar pin fixtures
+        run: python3 scripts/verify-host.py --suite taskbar

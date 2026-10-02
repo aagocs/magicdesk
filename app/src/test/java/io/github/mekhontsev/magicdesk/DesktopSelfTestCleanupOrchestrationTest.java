@@ -52,6 +52,10 @@ public final class DesktopSelfTestCleanupOrchestrationTest {
                     static State lease = new State();
                     static State snapshot() { return lease; }
                 }
+                static class DesktopWorkspaceMembership {
+                    static class Snapshot { DesktopDisplayTarget targetForDisplay(int displayId) { return new DesktopDisplayTarget(); } }
+                    static Snapshot current() { return DesktopHomeRoleLease.lease == null ? null : new Snapshot(); }
+                }
                 static Runnable pendingClose;
                 static class DesktopRuntimeBridge {
                     static boolean active = true;

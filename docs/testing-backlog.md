@@ -5,7 +5,7 @@ runs. Build success does not prove firmware behavior. Exact run IDs, results,
 fingerprints and reproduction details belong in compatibility reports.
 
 Fork UX acceptance scenarios and their evidence requirements live in the
-[UX implementation plan](ux-work-plan.md#acceptance-matrix). Existing device
+[UX implementation plan](https://github.com/aagocs/magicdesk/wiki/UX-Implementation-Plan#acceptance-matrix). Existing device
 coverage below does not verify the proposed OEM-phone/desktop changes. Wired
 and portable PC/scrcpy coverage are equally required for that direction.
 
