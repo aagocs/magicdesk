@@ -105,6 +105,15 @@ final class DesktopShortcutActions {
                 DesktopOperations.manageActiveWindow(
                         DesktopTaskController.SHORTCUT_MOVE_DISPLAY_NEXT);
                 break;
+            case OPEN_FILES:
+                DesktopOperations.openBuiltin("files");
+                break;
+            case OPEN_TASK_MANAGER:
+                DesktopOperations.openBuiltin("task_manager");
+                break;
+            case OPEN_START:
+                DesktopOperations.showStart();
+                break;
             case NONE:
             default:
                 break;

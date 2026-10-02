@@ -21,6 +21,18 @@ SUITES = {
         "tests": ["StartSearchSelectionTest", "StartSearchNavigationTest",
                   "StartDestinationTest", "ApplicationCatalogTest"],
     },
+    "input": {
+        "production": ["InputFocusCommitAwaiter", "InputRoutingLease",
+                       "FrameworkInputRoutingSnapshot"],
+        "tests": ["InputFocusCommitAwaiterTest", "InputRoutingLeaseTest"],
+    },
+    "parsers": {
+        "production": ["SystemUiDesktopRepositoryParser", "WmShellTransitionStateParser",
+                       "TaskLocalInsetsSourceParser", "TaskStackParser",
+                       "PackageNameValidator"],
+        "tests": ["SystemUiDesktopRepositoryParserTest", "WmShellTransitionStateParserTest",
+                  "TaskLocalInsetsSourceParserTest", "TaskStackParserTest"],
+    },
 }
 SUITES["taskbar"] = {
     "production": ["TaskbarPins"],

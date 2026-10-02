@@ -745,7 +745,7 @@
     <string name="shortcut_lock_action">Lock device</string>
     <string name="shortcut_notifications">Win + N</string>
     <string name="shortcut_notifications_action">Show notifications</string>
-    <string name="shortcut_system">Win + Q</string>
+    <string name="shortcut_system">Win + A / Win + Q</string>
     <string name="shortcut_system_action">Show system controls</string>
     <string name="shortcut_settings">Win + I</string>
     <string name="shortcut_settings_action">Open MagicDesk settings</string>
@@ -774,9 +774,15 @@
     <string name="action_bitrate_increase">Increase recording bitrate</string>
     <string name="shortcut_desktop">Win + D</string>
     <string name="shortcut_desktop_action">Show or restore desktop</string>
+    <string name="shortcut_files">Win + E</string>
+    <string name="shortcut_files_action">Open Files</string>
+    <string name="shortcut_task_manager">Ctrl + Shift + Esc</string>
+    <string name="shortcut_task_manager_action">Open Task Manager</string>
+    <string name="shortcut_start">Win + S / Ctrl + Esc</string>
+    <string name="shortcut_start_action">Open Start</string>
     <string name="shortcut_help">Win + /</string>
     <string name="shortcut_help_action">Show this list</string>
-    <string name="shortcut_layout">Ctrl + Space</string>
+    <string name="shortcut_layout">Win + Space</string>
     <string name="shortcut_layout_action">Switch keyboard layout</string>
     <string name="shortcut_previous">Alt + Shift + Tab</string>
     <string name="shortcut_previous_action">Select previous app</string>

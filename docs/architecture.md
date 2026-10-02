@@ -4308,7 +4308,7 @@ target ends the sequence. Standalone Win+Up/Down retain fullscreen/restore
 semantics. The sequence is local to each keyboard; all resulting arrangements
 use `DesktopTaskController`, also shared by MCP and CLI `arrange_task`.
 
-`Ctrl+Space` uses `HardwareKeyboardLayoutController` to select the next
+`Win+Space` uses `HardwareKeyboardLayoutController` to select the next
 configured Android layout for connected physical keyboards and update the
 taskbar label. No virtual keyboard identities or copied key streams are involved.
 Initial synchronization and IME-change notifications resolve the current Android
@@ -4322,7 +4322,7 @@ The taskbar keyboard menu reads a `HardwareKeyboardLayouts` snapshot through the
 same privileged adapter without applying overrides or changing the IME. It shows
 configured hardware layouts separately from enabled on-screen keyboards. An
 explicit descriptor selection revalidates live choices and uses the same bounded
-Android subtype cycle as Ctrl+Space; it never reports a different layout as the
+Android subtype cycle as Win+Space; it never reports a different layout as the
 requested one. Menu loading is generation-scoped and cannot reopen a dismissed
 panel. No new service, root request or periodic enumeration is involved.
 

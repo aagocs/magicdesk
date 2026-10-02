@@ -38,7 +38,10 @@ final class KeyboardShortcutStateMachine {
         SHORTCUT_HELP,
         ACTIVATE_TASKBAR_ENTRY,
         MOVE_DISPLAY_PREVIOUS,
-        MOVE_DISPLAY_NEXT
+        MOVE_DISPLAY_NEXT,
+        OPEN_FILES,
+        OPEN_TASK_MANAGER,
+        OPEN_START
     }
 
 
@@ -185,11 +188,11 @@ final class KeyboardShortcutStateMachine {
                 return Action.CLOSE;
             }
         }
-        if (ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_SPACE) {
-            return Action.TOGGLE_LAYOUT;
-        }
         if (!ctrl && !alt && !shift && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
             return Action.DISMISS;
+        }
+        if (ctrl && !alt && !meta && key == KeyEvent.KEYCODE_ESCAPE) {
+            return shift ? Action.OPEN_TASK_MANAGER : Action.OPEN_START;
         }
         if (!meta || ctrl || alt) {
             return Action.NONE;
@@ -206,7 +209,8 @@ final class KeyboardShortcutStateMachine {
             case KeyEvent.KEYCODE_DEL -> Action.BACK;
             case KeyEvent.KEYCODE_L -> Action.LOCK;
             case KeyEvent.KEYCODE_N -> Action.NOTIFICATIONS;
-            case KeyEvent.KEYCODE_Q -> Action.SYSTEM;
+            // Win+A matches Windows quick settings; Win+Q stays as the documented alias.
+            case KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_Q -> Action.SYSTEM;
             case KeyEvent.KEYCODE_I -> Action.SETTINGS;
             case KeyEvent.KEYCODE_DPAD_UP -> Action.FULLSCREEN;
             case KeyEvent.KEYCODE_DPAD_DOWN -> Action.RESTORE;
@@ -214,6 +218,9 @@ final class KeyboardShortcutStateMachine {
             case KeyEvent.KEYCODE_DPAD_RIGHT -> Action.SNAP_RIGHT;
             case KeyEvent.KEYCODE_D -> Action.SHOW_DESKTOP;
             case KeyEvent.KEYCODE_SLASH -> Action.SHORTCUT_HELP;
+            case KeyEvent.KEYCODE_SPACE -> Action.TOGGLE_LAYOUT;
+            case KeyEvent.KEYCODE_E -> Action.OPEN_FILES;
+            case KeyEvent.KEYCODE_S -> Action.OPEN_START;
             default -> Action.NONE;
         };
     }
