@@ -1061,6 +1061,7 @@ public abstract class DesktopShellActivity extends Activity
                 });
         root.setOnTouchListener((view, event) -> {
             if (mInputController.handleTouchEvent(event, true)) return true;
+            mDesktopWorkspaceController.observeBackgroundPointer(event);
             final boolean handled = desktopGestures.onTouchEvent(event);
             if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
                 hideAllPanels();

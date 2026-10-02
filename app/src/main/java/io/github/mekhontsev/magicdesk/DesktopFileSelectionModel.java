@@ -21,6 +21,26 @@ final class DesktopFileSelectionModel {
         mFocused = itemId;
     }
 
+    /**
+     * Replaces the selection with {@code itemIds} in the given order; the anchor is the first
+     * item and the focused item the last. Used by marquee selection, where the set is recomputed
+     * from geometry on every pointer move.
+     */
+    void setSelection(final Collection<String> itemIds) {
+        mSelected.clear();
+        if (itemIds != null) {
+            mSelected.addAll(itemIds);
+        }
+        mAnchor = null;
+        mFocused = null;
+        for (final String itemId : mSelected) {
+            if (mAnchor == null) {
+                mAnchor = itemId;
+            }
+            mFocused = itemId;
+        }
+    }
+
     boolean selectModified(
             final String itemId,
             final List<String> visibleItemIds,

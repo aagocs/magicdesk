@@ -51,6 +51,35 @@ final class DesktopWorkspaceController {
     private int mEditingWidgetId = -1;
     private final DesktopFileSelectionModel mFileSelection =
             new DesktopFileSelectionModel();
+    private final DesktopMarqueeController mMarquee =
+            new DesktopMarqueeController(new DesktopMarqueeController.Host() {
+                @Override
+                public DesktopGridLayout grid() {
+                    return mGrid;
+                }
+
+                @Override
+                public boolean isSelectableItem(final String itemId) {
+                    return itemId.startsWith(FILE_PREFIX);
+                }
+
+                @Override
+                public List<String> selectedItemIds() {
+                    return mFileSelection.selectedItemIds();
+                }
+
+                @Override
+                public void setSelection(final List<String> itemIds) {
+                    mItemActivation.reset();
+                    mFileSelection.setSelection(itemIds);
+                    updateRenderedSelection();
+                }
+
+                @Override
+                public int touchSlop() {
+                    return ViewConfiguration.get(mActivity).getScaledTouchSlop();
+                }
+            });
 
     DesktopWorkspaceController(
             final DesktopShellActivity activity,
@@ -124,7 +153,16 @@ final class DesktopWorkspaceController {
         mWidgets.stop();
     }
 
+    /**
+     * Observes the pointer sequence the wallpaper parent receives for empty desktop space,
+     * for rubber-band selection. It never consumes events.
+     */
+    void observeBackgroundPointer(final MotionEvent event) {
+        mMarquee.onTouch(event);
+    }
+
     void release() {
+        mMarquee.reset();
         mContentRequests.close();
         mOpenWith.close();
         mContentWorker.shutdownNow();

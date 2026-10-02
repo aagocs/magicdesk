@@ -91,4 +91,25 @@ public final class DesktopFileSelectionModelTest {
         assertFalse(selection.selectModified("hidden", List.of("a", "b"), false, true));
         assertEquals(List.of("a"), selection.selectedItemIds());
     }
+
+    @Test
+    public void setSelectionReplacesTheSetKeepingOrderAnchorAndFocus() {
+        final DesktopFileSelectionModel model = new DesktopFileSelectionModel();
+        model.selectOnly("file:old");
+        model.setSelection(java.util.List.of("file:b", "file:a", "file:c"));
+        org.junit.Assert.assertEquals(
+                java.util.List.of("file:b", "file:a", "file:c"), model.selectedItemIds());
+        org.junit.Assert.assertFalse(model.contains("file:old"));
+        org.junit.Assert.assertEquals("file:c", model.focusedItemId());
+        // Shift-click after a marquee extends from the first marquee item.
+        model.selectModified("file:d", java.util.List.of(
+                "file:a", "file:b", "file:c", "file:d"), false, true);
+        org.junit.Assert.assertEquals(
+                java.util.List.of("file:b", "file:c", "file:d"), model.selectedItemIds());
+        model.setSelection(java.util.List.of());
+        org.junit.Assert.assertTrue(model.isEmpty());
+        org.junit.Assert.assertNull(model.focusedItemId());
+        model.setSelection(null);
+        org.junit.Assert.assertTrue(model.isEmpty());
+    }
 }
