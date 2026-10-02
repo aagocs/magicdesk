@@ -13,9 +13,9 @@ final class DesktopWorkspacePicker {
     private DesktopWorkspacePicker() { }
 
     static void select(final Activity activity, final Consumer<DesktopDisplayTarget> action) {
-        final DesktopHomeRoleLease.State lease = DesktopHomeRoleLease.snapshot();
-        final List<DesktopDisplayTarget> targets = lease == null
-                ? DesktopRuntimeBridge.workspaceTargets() : lease.targets;
+        final DesktopWorkspaceMembership.Snapshot membership = DesktopWorkspaceMembership.current();
+        final List<DesktopDisplayTarget> targets = membership == null
+                ? DesktopRuntimeBridge.workspaceTargets() : membership.targets;
         if (targets.isEmpty()) { return; }
         if (targets.size() == 1) { action.accept(targets.get(0)); return; }
         final DisplayManager manager = activity.getSystemService(DisplayManager.class);

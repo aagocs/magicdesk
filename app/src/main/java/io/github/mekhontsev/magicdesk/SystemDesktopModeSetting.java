@@ -32,7 +32,7 @@ final class SystemDesktopModeSetting {
 
     static boolean canChange() {
         return ShellAccess.isReady() && !DesktopRuntimeBridge.hasWorkspaces()
-                && DesktopHomeRoleLease.snapshot() == null;
+                && !DesktopWorkspaceMembership.exists();
     }
 
     static boolean setEnabled(final Context context, final boolean enabled) throws IOException {

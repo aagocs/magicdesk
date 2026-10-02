@@ -180,14 +180,14 @@ public final class DisplayPresentationReturnTest {
                     static DesktopSessionSnapshot current = new DesktopSessionSnapshot();
                     static DesktopSessionSnapshot getSessionSnapshot(int id) { return current; }
                 }
-                static class DesktopHomeRoleLease {
+                static class DesktopWorkspaceMembership {
                     enum Phase { ACTIVE, RELEASING }
-                    static class State {
+                    static class Snapshot {
                         Phase phase = Phase.ACTIVE;
                         boolean matches(DesktopDisplayTarget target) { return true; }
                     }
-                    static State lease = new State();
-                    static State snapshot() { return lease; }
+                    static Snapshot membership = new Snapshot();
+                    static Snapshot active() { return membership.phase == Phase.ACTIVE ? membership : null; }
                 }
                 static class DisplayPresentations {
                     static int shows;
@@ -224,7 +224,7 @@ public final class DisplayPresentationReturnTest {
                     DesktopRuntimeBridge.current.policy = s.policy;
                     DisplayPresentations.pending.accept(null);
                     check(!results.remove(0).success() && MagicDeskRuntime.commands == 2, "replacement workspace activated");
-                    DesktopHomeRoleLease.lease.phase = DesktopHomeRoleLease.Phase.RELEASING;
+                    DesktopWorkspaceMembership.membership.phase = DesktopWorkspaceMembership.Phase.RELEASING;
                     check(!showExistingSession(s.target, results::add), "closing session accepted");
                     check(!showExistingSession(null, results::add), "missing target accepted");
                 }

@@ -171,7 +171,7 @@ public final class DesktopHomeStartupGuardTest {
             final String activitySource = Files.readString(Path.of(
                     "src/main/java/io/github/mekhontsev/magicdesk/" + activity + ".java"));
             assertFalse(activitySource.contains("shouldDiscardStaleHomeLaunch"));
-            assertTrue(activitySource.contains("HomeLease()"));
+            assertTrue(activitySource.contains("hasActiveWorkspace()"));
         }
     }
 
