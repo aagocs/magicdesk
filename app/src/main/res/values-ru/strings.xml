@@ -754,6 +754,10 @@
     <string name="shortcut_snap_right_action">Окно в правую половину</string>
     <string name="shortcut_snap_corner">Win + Left/Right, затем Up/Down</string>
     <string name="shortcut_snap_corner_action">Удерживая Win: верхний угол / половина / нижний угол</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">Открыть или переключиться на элемент 1–9 панели задач</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">Переместить окно на предыдущий / следующий дисплей</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">Закрыть активное окно</string>
     <string name="shortcut_back">Win + Backspace</string>

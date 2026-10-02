@@ -1906,6 +1906,10 @@ public abstract class DesktopShellActivity extends Activity
         mAppTasks.launchInternalWindow(intent, target, label);
     }
 
+    void activateTaskbarEntry(final int index) {
+        mTaskbarController.activateEntry(index);
+    }
+
     void toggleShortcutHelp() {
         mShortcutHelpController.toggle(
                 mDesktopPanelWindowController,

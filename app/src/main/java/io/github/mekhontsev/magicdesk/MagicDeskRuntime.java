@@ -443,6 +443,11 @@ public final class MagicDeskRuntime {
         return backend != null && backend.cancelAltTab(displayId);
     }
 
+    static boolean activateTaskbarEntry(final int displayId, final int index) {
+        final MagicDeskRuntimeBackend backend = backend();
+        return backend != null && backend.activateTaskbarEntry(displayId, index);
+    }
+
     static boolean toggleShortcutHelp(final int displayId) {
         final MagicDeskRuntimeBackend backend = backend();
         return backend != null && backend.toggleShortcutHelp(displayId);

@@ -42,6 +42,8 @@ final class DesktopWindowTransitionController {
     static final int SHORTCUT_SNAP_BOTTOM_RIGHT = 9;
     static final int SHORTCUT_MAXIMIZE = 10;
     static final int SHORTCUT_UNMAXIMIZE = 11;
+    static final int SHORTCUT_MOVE_DISPLAY_PREVIOUS = 12;
+    static final int SHORTCUT_MOVE_DISPLAY_NEXT = 13;
     private static final int WINDOWING_MODE_FULLSCREEN = 1;
     private static final int WINDOWING_MODE_FREEFORM = 5;
     private static final long STARTUP_IMMERSIVE_SETTLE_MILLIS = 1_000L;
@@ -136,7 +138,9 @@ final class DesktopWindowTransitionController {
                 || shortcut == SHORTCUT_SNAP_TOP_LEFT
                 || shortcut == SHORTCUT_SNAP_TOP_RIGHT
                 || shortcut == SHORTCUT_SNAP_BOTTOM_LEFT
-                || shortcut == SHORTCUT_SNAP_BOTTOM_RIGHT;
+                || shortcut == SHORTCUT_SNAP_BOTTOM_RIGHT
+                || shortcut == SHORTCUT_MOVE_DISPLAY_PREVIOUS
+                || shortcut == SHORTCUT_MOVE_DISPLAY_NEXT;
     }
 
     static RestoreShortcutAction classifyRestoreShortcut(

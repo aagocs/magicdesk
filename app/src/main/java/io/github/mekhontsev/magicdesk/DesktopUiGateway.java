@@ -701,6 +701,15 @@ final class DesktopUiGateway {
         return true;
     }
 
+    boolean activateTaskbarEntry(final int displayId, final int index) {
+        final DesktopShellActivity activity = usableDesktop(displayId, true);
+        if (activity == null || index < 0) {
+            return false;
+        }
+        postToHost(activity, () -> activity.activateTaskbarEntry(index));
+        return true;
+    }
+
     boolean toggleShortcutHelp(final int displayId) {
         final DesktopShellActivity activity = usableDesktop(displayId, true);
         if (activity == null) {

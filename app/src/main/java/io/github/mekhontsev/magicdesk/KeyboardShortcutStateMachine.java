@@ -35,16 +35,25 @@ final class KeyboardShortcutStateMachine {
         DISPLAY_CANCEL,
         SCREENSHOT,
         SCREEN_RECORDING,
-        SHORTCUT_HELP
+        SHORTCUT_HELP,
+        ACTIVATE_TASKBAR_ENTRY,
+        MOVE_DISPLAY_PREVIOUS,
+        MOVE_DISPLAY_NEXT
     }
 
 
     static final class Result {
         final boolean consumed;
         final Action action;
+        /** Zero-based taskbar position for {@link Action#ACTIVATE_TASKBAR_ENTRY}, otherwise -1. */
+        final int index;
         Result(final boolean consumed, final Action action) {
+            this(consumed, action, -1);
+        }
+        Result(final boolean consumed, final Action action, final int index) {
             this.consumed = consumed;
             this.action = action;
+            this.index = index;
         }
     }
 
@@ -106,6 +115,12 @@ final class KeyboardShortcutStateMachine {
         if (repeats != 0) {
             return new Result(false, Action.NONE);
         }
+        final int taskbarIndex = taskbarIndex(key, ctrl, alt, shift, meta);
+        if (taskbarIndex >= 0) {
+            clearSnapSequence();
+            mConsumed.add(key);
+            return new Result(true, Action.ACTIVATE_TASKBAR_ENTRY, taskbarIndex);
+        }
         final Action action = snapSequence(action(key, ctrl, alt, shift, meta));
         if (action == Action.ALT_TAB_FORWARD || action == Action.ALT_TAB_REVERSE) {
             mAltTabActive = true;
@@ -152,6 +167,14 @@ final class KeyboardShortcutStateMachine {
         return cancel;
     }
 
+    /** Meta+1…9 address the taskbar's rendered entries; the dispatcher resolves the entry. */
+    private static int taskbarIndex(final int key, final boolean ctrl, final boolean alt,
+            final boolean shift, final boolean meta) {
+        return meta && !ctrl && !alt && !shift
+                && key >= KeyEvent.KEYCODE_1 && key <= KeyEvent.KEYCODE_9
+                ? key - KeyEvent.KEYCODE_1 : -1;
+    }
+
     private static Action action(final int key, final boolean ctrl, final boolean alt,
             final boolean shift, final boolean meta) {
         if (alt && !ctrl && !meta) {
@@ -175,7 +198,9 @@ final class KeyboardShortcutStateMachine {
             return shift ? Action.SCREEN_RECORDING : Action.SCREENSHOT;
         }
         if (shift) {
-            return Action.NONE;
+            return key == KeyEvent.KEYCODE_DPAD_LEFT ? Action.MOVE_DISPLAY_PREVIOUS
+                    : key == KeyEvent.KEYCODE_DPAD_RIGHT ? Action.MOVE_DISPLAY_NEXT
+                    : Action.NONE;
         }
         return switch (key) {
             case KeyEvent.KEYCODE_DEL -> Action.BACK;

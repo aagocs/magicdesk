@@ -354,6 +354,11 @@ public final class MagicDeskRuntimeService extends Service
     }
 
     @Override
+    public boolean activateTaskbarEntry(final int displayId, final int index) {
+        return !mDestroyed && DesktopRuntimeBridge.activateTaskbarEntry(displayId, index);
+    }
+
+    @Override
     public boolean toggleShortcutHelp(final int displayId) {
         return !mDestroyed && DesktopRuntimeBridge.toggleShortcutHelp(displayId);
     }

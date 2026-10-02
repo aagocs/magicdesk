@@ -53,6 +53,10 @@ final class DesktopTaskController implements DesktopTaskRuntime {
             DesktopWindowTransitionController.SHORTCUT_SNAP_BOTTOM_RIGHT;
     static final int SHORTCUT_CLOSE =
             DesktopWindowTransitionController.SHORTCUT_CLOSE;
+    static final int SHORTCUT_MOVE_DISPLAY_PREVIOUS =
+            DesktopWindowTransitionController.SHORTCUT_MOVE_DISPLAY_PREVIOUS;
+    static final int SHORTCUT_MOVE_DISPLAY_NEXT =
+            DesktopWindowTransitionController.SHORTCUT_MOVE_DISPLAY_NEXT;
     private final Context mApplicationContext;
     private final int mObserverDisplayId;
     private final Handler mHandler;
@@ -1773,7 +1777,30 @@ final class DesktopTaskController implements DesktopTaskRuntime {
             final TaskRepository.TaskEntry task) {
         recordFocusEvent("shortcut_target", mDisplayId, task.taskId,
                 true, "shortcut=" + shortcut);
+        if (shortcut == SHORTCUT_MOVE_DISPLAY_PREVIOUS
+                || shortcut == SHORTCUT_MOVE_DISPLAY_NEXT) {
+            moveTaskToAdjacentDisplay(task, shortcut == SHORTCUT_MOVE_DISPLAY_PREVIOUS);
+            return;
+        }
         mWindowTransitions.applyShortcut(task, shortcut);
+    }
+
+    /** A display transfer, not a window transition: the shared placement path owns it. */
+    private static void moveTaskToAdjacentDisplay(
+            final TaskRepository.TaskEntry task, final boolean previous) {
+        final int target = DesktopDisplayCycle.adjacent(
+                task.displayId, DesktopRuntimeBridge.workspaceDisplayIds(), previous);
+        if (target < 0) {
+            Log.i(TAG, "no other Desktop display for task=" + task.taskId);
+            return;
+        }
+        TaskRepository.moveTaskToDisplay(task, target, null, null, result -> {
+            if (!result.success) {
+                Log.w(TAG, "move task=" + task.taskId + " to display=" + target
+                        + " failed: " + result.message);
+            }
+            MagicDeskRuntime.refreshDesktopTasks();
+        });
     }
 
     static TaskRepository.TaskEntry selectShortcutTask(

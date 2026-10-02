@@ -286,6 +286,10 @@ public final class DesktopRuntimeBridge {
         return UI.cancelAltTab(displayId);
     }
 
+    static boolean activateTaskbarEntry(final int displayId, final int index) {
+        return UI.activateTaskbarEntry(displayId, index);
+    }
+
     static boolean toggleShortcutHelp(final int displayId) {
         return UI.toggleShortcutHelp(displayId);
     }

@@ -724,6 +724,10 @@
     <string name="shortcut_snap_right_action">ウィンドウを右に配置</string>
     <string name="shortcut_snap_corner">Win + Left/Right、続いて Up/Down</string>
     <string name="shortcut_snap_corner_action">Win を押したまま：上角 / 半分 / 下角</string>
+    <string name="shortcut_taskbar_item">Win + 1…9</string>
+    <string name="shortcut_taskbar_item_action">タスクバーの 1–9 番目の項目を開く/切り替え</string>
+    <string name="shortcut_move_display">Win + Shift + Left/Right</string>
+    <string name="shortcut_move_display_action">ウィンドウを前/次のディスプレイへ移動</string>
     <string name="shortcut_close">Alt + F4</string>
     <string name="shortcut_close_action">アクティブウィンドウを閉じる</string>
     <string name="shortcut_back">Win + Backspace</string>

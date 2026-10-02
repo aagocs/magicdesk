@@ -244,6 +244,12 @@ public final class DesktopOperations {
         }
     }
 
+    static void activateTaskbarEntry(final int index) {
+        if (!MagicDeskRuntime.activateTaskbarEntry(MagicDeskRuntime.inputDisplayId(), index)) {
+            Log.w(TAG, "MagicDesk desktop is unavailable for taskbar entry " + index);
+        }
+    }
+
     static void showShortcutHelp() {
         if (!MagicDeskRuntime.toggleShortcutHelp(MagicDeskRuntime.inputDisplayId())) {
             Log.w(TAG, "MagicDesk desktop is unavailable for shortcut help");
