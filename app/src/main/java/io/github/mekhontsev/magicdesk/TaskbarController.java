@@ -153,6 +153,9 @@ final class TaskbarController {
     }
 
     void create() {
+        // A fresh install's first Desktop taskbar starts with built-in launchers.
+        DesktopPreferences.initializeTaskbarApps(
+                AppProfile.current(mActivity).application(BuildConfig.APPLICATION_ID));
         final LinearLayout taskbar = new LinearLayout(mActivity);
 
         final Button start = mUi.actionButton(
