@@ -51,8 +51,8 @@ user-visible bug. Update status and evidence with each implementation change.
 | UX-020 | P1 | Start keyboard selection stays visible and stable | Merged; CI, phone and independent virtual Start pass | Managed workstation and physical input coverage |
 | UX-021 | P1 | Consistent taskbar/window interactions | Planned | UX-001 and focused interaction audit |
 | UX-022 | P1 | Useful, compact workstation defaults | Planned | UX-020/021 findings and fresh-settings baseline |
-| TEST-001 | P1 | Faster, repeatable development feedback | Implemented; focused CI and semantic device checks pass, including failure cleanup | Full final runtime CI |
-| UX-023 | P1 | Start Page Up/Down moves by the visible page | Implemented; host, Linux CI and phone/independent virtual Start pass | Windows CI; managed workstation and physical input coverage |
+| TEST-001 | P1 | Faster, repeatable development feedback | Implemented; focused/full CI and semantic device checks pass, including failure cleanup | Extend focused suites as owning boundaries change |
+| UX-023 | P1 | Start Page Up/Down moves by the visible page | In review; host, Linux/Windows CI and phone/independent virtual Start pass | Managed workstation and physical input coverage |
 | WS-030 | P1 | Daily workstation workflows | Planned; see [workstation roadmap](workstation-gaming.md) | OEM ownership, input and shell foundations |
 | GAME-001 | P1 | Gaming compatibility preflight | Planned; Linux client path unverified | Explicit environment preparation; see [gaming stages](workstation-gaming.md#staged-work-and-acceptance) |
 
@@ -314,10 +314,15 @@ moves selection through the existing selection/reveal path. Page keys retain
 search focus and existing views; they are not consumed for empty results.
 Home/End remain normal search text-editing keys. The focused fixture verifies
 measured paging, end clamping, tiny/unlaid viewport fallback and no body rebuild.
+[PR #3](https://github.com/aagocs/magicdesk/pull/3) contains this increment.
 [Full CI run](https://github.com/aagocs/magicdesk/actions/runs/36944630655)
-validates this exact runtime candidate; final results and changed-device evidence
-will be recorded here. Linux passed: 3,577 tests, zero failures/errors, two skips,
+passes at this exact runtime candidate. Linux: 3,577 tests, zero failures/errors, two skips,
 release Lint/assembly, native fixtures, independent X11 host and APK boundaries.
+Windows `verifyDevelopment` and the independent X11 host pass: 3,592 tests,
+zero failures/errors and 48 skips. Later commits change documentation and the
+separately exercised device script; Android runtime/build inputs remain identical.
+The automatically duplicated PR full build was canceled after that gate passed;
+the separate quick host workflow validates the PR head without another native build.
 Changed-build independent Start on phone and owned virtual display passes Page
 Down/Up, fully visible selected-row geometry, retained search focus and Escape
 closure with global task observation. Exact display and awake-lease cleanup pass.
