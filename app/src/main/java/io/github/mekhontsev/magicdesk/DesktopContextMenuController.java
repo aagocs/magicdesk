@@ -709,8 +709,8 @@ if (RuntimeLimits.active().termux() && TermuxIntegration.isInstalled(mActivity))
                 view -> showWindowMenu(state));
 
         if (BuiltInDesktopAppCatalog.isPinnable(state.app.launchTarget)) {
-            final boolean pinned = mActivity.getPinnedApps()
-                    .contains(state.app.packageName);
+            final boolean pinned = TaskbarPins.isPinned(
+                    mActivity.getPinnedApps(), state.app.reference);
             addAction(
                     pinned ? R.string.action_unpin : R.string.action_pin,
                     UiColor.SURFACE,

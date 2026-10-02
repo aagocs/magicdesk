@@ -578,13 +578,7 @@ final class TaskbarController {
 
     void togglePinned(final AppItem app) {
         final List<AppReference> pinned = getPinnedApps();
-        final boolean nowPinned;
-        if (pinned.remove(app.reference)) {
-            nowPinned = false;
-        } else {
-            pinned.add(app.reference);
-            nowPinned = true;
-        }
+        final boolean nowPinned = TaskbarPins.toggle(pinned, app.reference);
         DesktopPreferences.saveTaskbarApps(pinned);
         renderPins(mActivity.getLauncherApps());
         mActivity.renderStartMenuContent();
