@@ -118,8 +118,12 @@ public final class FileManagerContractTest {
         }
         final String drag = Files.readString(sources.resolve("FileDragPayload.java"));
         assertTrue(drag.contains("List<AndroidContentPayload.UriItem> shareableItems"));
+        final String clipboard = Files.readString(sources.resolve("FileClipboardInterop.java"));
+        assertTrue(clipboard.contains("new AndroidContentPayload.UriItem("));
+        assertTrue(clipboard.contains("file.uri, file.mimeType"));
         final String desktop = Files.readString(sources.resolve("DesktopWorkspaceController.java"));
-        assertTrue(desktop.contains("new AndroidContentPayload.UriItem(file.uri, file.mimeType)"));
+        assertTrue(desktop.contains("new AndroidContentPayload.UriItem("));
+        assertTrue(desktop.contains("selected.uri, selected.mimeType"));
         final String content = Files.readString(sources.resolve("AndroidContentPayload.java"));
         final String conversion = content.substring(content.indexOf("static AndroidContentPayload drag("),
                 content.indexOf("static AndroidContentPayload create("));

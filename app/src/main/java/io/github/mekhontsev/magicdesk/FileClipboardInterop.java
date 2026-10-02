@@ -62,23 +62,35 @@ final class FileClipboardInterop {
         return FileOperationClipboard.snapshot();
     }
 
-    static synchronized FileOperationClipboard.Snapshot storeDesktopFile(
+    static synchronized FileOperationClipboard.Snapshot storeDesktopFiles(
             final Context context,
-            final DesktopFile file,
-            final String absolutePath,
+            final List<DesktopFile> desktopFiles,
             final FileOperationClipboard.Mode mode) {
+        if (desktopFiles == null || desktopFiles.isEmpty()) {
+            return FileOperationClipboard.snapshot();
+        }
         final FileOperationClipboard.Snapshot previous =
                 FileOperationClipboard.snapshot();
+        final List<String> paths = new ArrayList<>(desktopFiles.size());
+        final List<AndroidContentPayload.UriItem> items =
+                new ArrayList<>(desktopFiles.size());
+        boolean canPublishAndroidContent = true;
+        for (final DesktopFile file : desktopFiles) {
+            paths.add(ShellDesktopDirectory.ABSOLUTE_PATH
+                    + "/" + file.relativePath);
+            if (file.directory) {
+                canPublishAndroidContent = false;
+            } else {
+                items.add(new AndroidContentPayload.UriItem(
+                        file.uri, file.mimeType));
+            }
+        }
         final FileOperationClipboard.Snapshot stored =
-                FileOperationClipboard.set(List.of(absolutePath), mode);
+                FileOperationClipboard.set(paths, mode);
         boolean published = false;
-        if (!file.directory) {
+        if (canPublishAndroidContent) {
             try {
-                published = publish(
-                        context,
-                        List.of(new AndroidContentPayload.UriItem(
-                                file.uri, file.mimeType)),
-                        stored);
+                published = publish(context, items, stored);
             } catch (RuntimeException ignored) {
                 // Android interop is additive; internal copy/move still works.
             }

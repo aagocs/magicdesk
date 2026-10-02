@@ -23,7 +23,15 @@ final class DesktopItemViewFactory {
     }
 
     View app(final AppItem app, final String label) {
+        return app(app, label, false);
+    }
+
+    View app(
+            final AppItem app,
+            final String label,
+            final boolean selected) {
         final LinearLayout item = iconContainer();
+        setSelected(item, selected);
         final ImageView icon = new ImageView(mActivity);
         icon.setImageDrawable(app.icon);
         item.addView(icon, iconParams());
@@ -33,12 +41,7 @@ final class DesktopItemViewFactory {
 
     View file(final DesktopFile file, final boolean selected) {
         final LinearLayout item = iconContainer();
-        if (selected) {
-            item.setBackground(mUi.rounded(
-                    UiColor.SURFACE,
-                    dp(8),
-                    UiColor.ACCENT));
-        }
+        setSelected(item, selected);
         final ImageView icon = new ImageView(mActivity);
         icon.setScaleType(file.thumbnail == null
                 ? ImageView.ScaleType.CENTER_INSIDE
@@ -74,6 +77,12 @@ final class DesktopItemViewFactory {
         item.addView(icon, iconParams());
         addLabel(item, file.displayName());
         return item;
+    }
+
+    void setSelected(final View item, final boolean selected) {
+        item.setBackground(selected
+                ? mUi.rounded(UiColor.SURFACE, dp(8), UiColor.ACCENT)
+                : null);
     }
 
     View overflow(final int hiddenCount) {

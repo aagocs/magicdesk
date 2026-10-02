@@ -12,9 +12,11 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +49,8 @@ final class DesktopWorkspaceController {
             new LinkedHashMap<>();
     private int mLastCapacity;
     private int mEditingWidgetId = -1;
-    private String mSelectedFileItemId;
+    private final DesktopFileSelectionModel mFileSelection =
+            new DesktopFileSelectionModel();
 
     DesktopWorkspaceController(
             final DesktopShellActivity activity,
@@ -595,12 +598,18 @@ final class DesktopWorkspaceController {
     }
 
     void copyFile(final DesktopFile file, final boolean move) {
-        FileClipboardInterop.storeDesktopFile(
+        copyFiles(List.of(file), move);
+    }
+
+    private void copyFiles(
+            final List<DesktopFile> files, final boolean move) {
+        if (files == null || files.isEmpty()) {
+            return;
+        }
+        FileClipboardInterop.storeDesktopFiles(
                 mActivity,
-                file,
-                desktopAbsolutePath(file),
-                move
-                        ? FileOperationClipboard.Mode.MOVE
+                files,
+                move ? FileOperationClipboard.Mode.MOVE
                         : FileOperationClipboard.Mode.COPY);
         mActivity.setStatus(mActivity.getString(
                 move
@@ -652,16 +661,17 @@ final class DesktopWorkspaceController {
 
     boolean handleKeyboardCommand(final FileKeyboardCommand command) {
         final DesktopFile selected = selectedFile();
+        final List<DesktopFile> selectedFiles = selectedFiles();
         switch (command) {
             case COPY:
-                if (selected != null) {
-                    copyFile(selected, false);
+                if (!selectedFiles.isEmpty()) {
+                    copyFiles(selectedFiles, false);
                     return true;
                 }
                 break;
             case CUT:
-                if (selected != null) {
-                    copyFile(selected, true);
+                if (!selectedFiles.isEmpty()) {
+                    copyFiles(selectedFiles, true);
                     return true;
                 }
                 break;
@@ -684,13 +694,27 @@ final class DesktopWorkspaceController {
                 }
                 break;
             case DELETE:
-                if (selected != null) {
-                    mActivity.confirmDeleteDesktopFile(selected);
+                if (!selectedFiles.isEmpty()) {
+                    if (selectedFiles.size() == 1) {
+                        mActivity.confirmDeleteDesktopFile(
+                                selectedFiles.get(0));
+                    } else {
+                        mActivity.confirmDeleteDesktopFiles(selectedFiles);
+                    }
+                    return true;
+                }
+                break;
+            case SELECT_ALL:
+                final List<String> visible = visibleFileItemIds();
+                if (!visible.isEmpty()) {
+                    mFileSelection.selectAll(visible);
+                    mItemActivation.reset();
+                    render(mApps);
                     return true;
                 }
                 break;
             case CLEAR_SELECTION:
-                if (selected != null) {
+                if (!mFileSelection.isEmpty()) {
                     clearFileSelection();
                     return true;
                 }
@@ -823,8 +847,8 @@ final class DesktopWorkspaceController {
 
     void renameFile(final DesktopFile file, final String newName) {
         final String previousItemId = fileItemId(file.relativePath);
-        if (previousItemId.equals(mSelectedFileItemId)) {
-            mSelectedFileItemId = null;
+        if (mFileSelection.contains(previousItemId)) {
+            mFileSelection.remove(previousItemId);
             mItemActivation.reset();
         }
         mFolder.rename(file, newName, renamed -> {
@@ -838,8 +862,8 @@ final class DesktopWorkspaceController {
 
     void deleteFile(final DesktopFile file) {
         final String itemId = fileItemId(file.relativePath);
-        if (itemId.equals(mSelectedFileItemId)) {
-            mSelectedFileItemId = null;
+        if (mFileSelection.contains(itemId)) {
+            mFileSelection.remove(itemId);
             mItemActivation.reset();
         }
         mFolder.delete(file, () -> {
@@ -848,6 +872,18 @@ final class DesktopWorkspaceController {
                     R.string.status_desktop_entry_deleted,
                     file.name));
         });
+    }
+
+    void deleteFiles(final List<DesktopFile> files) {
+        if (files == null || files.isEmpty()) {
+            return;
+        }
+        final List<String> paths = new ArrayList<>(files.size());
+        for (final DesktopFile file : files) {
+            paths.add(desktopAbsolutePath(file));
+        }
+        mItemActivation.reset();
+        mFolder.deletePaths(paths);
     }
 
     void resetDisplayProfile() {
@@ -926,7 +962,10 @@ final class DesktopWorkspaceController {
         if (entry.app != null) {
             final DesktopApplicationShortcut shortcut =
                     entry.file.applicationShortcut();
-            view = mViews.app(entry.app, shortcut.name);
+            view = mViews.app(
+                    entry.app,
+                    shortcut.name,
+                    mFileSelection.contains(entry.itemId));
             view.setOnClickListener(target -> {
                 mActivity.hideAllPanels();
                 mActivity.launchDesktopShortcut(
@@ -940,7 +979,7 @@ final class DesktopWorkspaceController {
         } else if (entry.file != null) {
             view = mViews.file(
                     entry.file,
-                    entry.itemId.equals(mSelectedFileItemId));
+                    mFileSelection.contains(entry.itemId));
             view.setOnClickListener(target ->
                     activateFile(entry.itemId, entry.file));
             mActivity.registerDraggableFileContextTarget(view, entry.file);
@@ -1121,34 +1160,82 @@ final class DesktopWorkspaceController {
             final String itemId, final DesktopFile file) {
         if (mItemActivation.shouldActivate(
                 itemId, SystemClock.uptimeMillis())) {
-            mSelectedFileItemId = null;
+            mFileSelection.clear();
             openFile(file);
             return;
         }
-        if (!itemId.equals(mSelectedFileItemId)) {
-            mSelectedFileItemId = itemId;
+        if (!mFileSelection.isSingleSelection()
+                || !mFileSelection.contains(itemId)) {
+            mFileSelection.selectOnly(itemId);
             render(mApps);
         }
     }
 
     void clearFileSelection() {
         mItemActivation.reset();
-        if (mSelectedFileItemId != null) {
-            mSelectedFileItemId = null;
+        if (!mFileSelection.isEmpty()) {
+            mFileSelection.clear();
             render(mApps);
         }
     }
 
     private DesktopFile selectedFile() {
-        if (mSelectedFileItemId == null) {
+        if (!mFileSelection.isSingleSelection()) {
             return null;
         }
+        final String selectedItemId =
+                mFileSelection.selectedItemIds().get(0);
         for (final DesktopFile file : mFiles) {
-            if (mSelectedFileItemId.equals(fileItemId(file.relativePath))) {
+            if (selectedItemId.equals(fileItemId(file.relativePath))) {
                 return file;
             }
         }
         return null;
+    }
+
+    private List<DesktopFile> selectedFiles() {
+        final List<DesktopFile> selected = new ArrayList<>();
+        final Map<String, DesktopFile> filesByItemId = new LinkedHashMap<>();
+        for (final DesktopFile file : mFiles) {
+            filesByItemId.put(fileItemId(file.relativePath), file);
+        }
+        for (final String itemId : mFileSelection.selectedItemIdsInOrder(
+                visibleFileItemIds())) {
+            final DesktopFile file = filesByItemId.get(itemId);
+            if (file != null) {
+                selected.add(file);
+            }
+        }
+        return selected;
+    }
+
+    private DesktopFile fileForItemId(final String itemId) {
+        for (final DesktopFile file : mFiles) {
+            if (itemId.equals(fileItemId(file.relativePath))) {
+                return file;
+            }
+        }
+        return null;
+    }
+
+    private List<String> visibleFileItemIds() {
+        final List<String> itemIds = new ArrayList<>();
+        final Set<String> liveFileItemIds = new HashSet<>();
+        for (final DesktopFile file : mFiles) {
+            liveFileItemIds.add(fileItemId(file.relativePath));
+        }
+        for (final String itemId : mRenderedPlacements.keySet()) {
+            if (itemId.startsWith(FILE_PREFIX)
+                    && liveFileItemIds.contains(itemId)) {
+                itemIds.add(itemId);
+            }
+        }
+        itemIds.sort(Comparator
+                .comparingInt((String itemId) ->
+                        mRenderedPlacements.get(itemId).row)
+                .thenComparingInt(itemId ->
+                        mRenderedPlacements.get(itemId).column));
+        return itemIds;
     }
 
     private void enableDrag(
@@ -1167,14 +1254,16 @@ final class DesktopWorkspaceController {
                 mItemActivation.reset();
                 final FileDragPayload filePayload = file == null
                         ? null : new FileDragPayload(
-                                List.of(desktopAbsolutePath(file)),
+                                pathsForDrag(target, itemId, file),
                                 itemId,
                                 (event.getMetaState()
                                         & KeyEvent.META_CTRL_ON) != 0);
                 final ClipData data = dragData(
                         itemId, file, filePayload);
                 final int flags = file == null
-                        ? 0 : FileDragPayload.dragFlags(!file.directory);
+                        ? 0 : FileDragPayload.dragFlags(
+                                !dragShareableItems(
+                                        file, filePayload).isEmpty());
                 return target.startDragAndDrop(
                         data,
                         new View.DragShadowBuilder(target),
@@ -1192,9 +1281,67 @@ final class DesktopWorkspaceController {
                     @Override
                     public boolean onTap(
                             final View target, final MotionEvent event) {
+                        if (file != null && event != null) {
+                            final int modifiers = KeyEvent.normalizeMetaState(
+                                    event.getMetaState());
+                            final boolean control = (modifiers
+                                    & KeyEvent.META_CTRL_ON) != 0;
+                            final boolean shift = (modifiers
+                                    & KeyEvent.META_SHIFT_ON) != 0;
+                            if (control || shift) {
+                                mItemActivation.reset();
+                                if (mFileSelection.selectModified(
+                                        itemId,
+                                        visibleFileItemIds(),
+                                        control,
+                                        shift)) {
+                                    render(mApps);
+                                    return true;
+                                }
+                            }
+                        }
                         return target.performClick();
                     }
                 });
+    }
+
+    private List<String> pathsForDrag(
+            final View target,
+            final String itemId,
+            final DesktopFile file) {
+        if (!mFileSelection.contains(itemId)) {
+            mFileSelection.selectOnly(itemId);
+            updateRenderedSelection();
+            return List.of(desktopAbsolutePath(file));
+        }
+        final List<DesktopFile> selected = selectedFiles();
+        if (selected.size() <= 1) {
+            return List.of(desktopAbsolutePath(file));
+        }
+        final List<String> paths = new ArrayList<>(selected.size());
+        for (final DesktopFile item : selected) {
+            paths.add(desktopAbsolutePath(item));
+        }
+        return paths;
+    }
+
+    private void updateRenderedSelection() {
+        if (mGrid == null) {
+            return;
+        }
+        for (int index = 0; index < mGrid.getChildCount(); index++) {
+            final View child = mGrid.getChildAt(index);
+            final ViewGroup.LayoutParams raw = child.getLayoutParams();
+            if (!(raw instanceof DesktopGridLayout.LayoutParams)) {
+                continue;
+            }
+            final String itemId =
+                    ((DesktopGridLayout.LayoutParams) raw).itemId;
+            if (itemId.startsWith(FILE_PREFIX)) {
+                mViews.setSelected(
+                        child, mFileSelection.contains(itemId));
+            }
+        }
     }
 
     private ClipData dragData(
@@ -1213,8 +1360,34 @@ final class DesktopWorkspaceController {
                     mActivity.getString(R.string.desktop_drag_label),
                     List.of());
         }
-        return payload.clipData(file.name, List.of(
-                new AndroidContentPayload.UriItem(file.uri, file.mimeType)));
+        return payload.clipData(
+                file.name,
+                dragShareableItems(file, payload));
+    }
+
+    private List<AndroidContentPayload.UriItem> dragShareableItems(
+            final DesktopFile file,
+            final FileDragPayload payload) {
+        if (file == null || file.directory || payload == null
+                || payload.absolutePaths.size()
+                        > AndroidContentPayload.MAX_URI_ITEMS) {
+            return List.of();
+        }
+        final List<DesktopFile> files = payload.absolutePaths.size() == 1
+                ? List.of(file) : selectedFiles();
+        if (files.size() != payload.absolutePaths.size()) {
+            return List.of();
+        }
+        final List<AndroidContentPayload.UriItem> items =
+                new ArrayList<>(files.size());
+        for (final DesktopFile selected : files) {
+            if (selected.directory) {
+                return List.of();
+            }
+            items.add(new AndroidContentPayload.UriItem(
+                    selected.uri, selected.mimeType));
+        }
+        return items;
     }
 
     private boolean importDroppedFiles(final DragEvent event) {
@@ -1353,9 +1526,11 @@ final class DesktopWorkspaceController {
             for (final DesktopFile file : files) {
                 liveFiles.add(fileItemId(file.relativePath));
             }
-            if (mSelectedFileItemId != null
-                    && !liveFiles.contains(mSelectedFileItemId)) {
-                mSelectedFileItemId = null;
+            final int previousSelectionSize =
+                    mFileSelection.selectedItemIds().size();
+            mFileSelection.retain(liveFiles);
+            if (previousSelectionSize
+                    != mFileSelection.selectedItemIds().size()) {
                 mItemActivation.reset();
             }
             final Map<String, GlobalDesktopPlacement> storedPlacements =
