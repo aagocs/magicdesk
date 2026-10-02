@@ -66,6 +66,8 @@ interface MagicDeskRuntimeBackend {
 
     boolean showStart(final int displayId);
 
+    boolean toggleStart(final int displayId);
+
     boolean toggleDesktopWorkspace(final int displayId);
 
     boolean toggleDesktopWorkspace(int displayId, TaskRepository.ActionCallback callback);

@@ -375,6 +375,11 @@ public final class MagicDeskRuntimeService extends Service
     }
 
     @Override
+    public boolean toggleStart(final int displayId) {
+        return !mDestroyed && DesktopRuntimeBridge.toggleStart(displayId);
+    }
+
+    @Override
     public boolean openSettings(final int displayId) {
         return !mDestroyed && DesktopRuntimeBridge.openSettings(displayId);
     }

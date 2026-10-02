@@ -114,6 +114,9 @@ final class DesktopShortcutActions {
             case OPEN_START:
                 DesktopOperations.showStart();
                 break;
+            case TOGGLE_START:
+                DesktopOperations.toggleStart();
+                break;
             case NONE:
             default:
                 break;

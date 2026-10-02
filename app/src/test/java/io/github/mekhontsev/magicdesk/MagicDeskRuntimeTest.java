@@ -409,6 +409,11 @@ public final class MagicDeskRuntimeTest {
         }
 
         @Override
+        public boolean toggleStart(final int displayId) {
+            return false;
+        }
+
+        @Override
         public boolean openSettings(final int displayId) {
             assertEquals(7, displayId);
             uiCommands |= 128;

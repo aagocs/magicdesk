@@ -132,6 +132,10 @@ public final class DesktopRuntimeBridge {
         return UI.revealPhoneTaskbar();
     }
 
+    static boolean toggleStart(final int displayId) {
+        return UI.toggleStart(displayId);
+    }
+
     static boolean showStart(final int displayId) {
         return UI.showStart(displayId);
     }
