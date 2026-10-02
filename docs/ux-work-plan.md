@@ -49,7 +49,7 @@ user-visible bug. Update status and evidence with each implementation change.
 | UX-011 | P0 | Portable output remains live with phone panel off | Planned | UX-001; repeat after UX-010 |
 | UX-012 | P0 | Direct PC and physical mouse/keyboard control | Investigated; device audit pending | UX-001; repeat after UX-010 |
 | UX-020 | P1 | Start keyboard selection stays visible and stable | Merged; CI, phone and independent virtual Start pass | Managed workstation and physical input coverage |
-| UX-021 | P1 | Consistent taskbar/window interactions | Planned | UX-001 and focused interaction audit |
+| UX-021 | P1 | Consistent taskbar/window interactions | Source audit complete; follow-ups #18/#19 await reproduction | Managed Desktop and physical-input baseline |
 | UX-022 | P1 | Useful, compact workstation defaults | Planned | UX-020/021 findings and fresh-settings baseline |
 | TEST-001 | P1 | Faster, repeatable development feedback | Implemented; focused/full CI and semantic device checks pass, including failure cleanup | Extend focused suites as owning boundaries change |
 | UX-023 | P1 | Start Page Up/Down moves by the visible page | In review; host, Linux/Windows CI and phone/independent virtual Start pass | Managed workstation and physical input coverage |
@@ -335,6 +335,16 @@ Managed Desktop and physical-input/wired coverage remain
 pending. This increment does not resolve OEM HOME ownership.
 
 ## UX-021/022: interaction audit and defaults
+
+UX-021's [source-only audit](taskbar-interaction-audit.md) is tracked by
+[issue #12](https://github.com/aagocs/magicdesk/issues/12). It records activation,
+concealment, pin/running indicators, context menus, maximize/restore, snap and
+fullscreen owners across Android and hosted windows. Source findings have exact
+device reproductions: [pin-state identity #18](https://github.com/aagocs/magicdesk/issues/18)
+and [taskbar keyboard interaction during refresh #19](https://github.com/aagocs/magicdesk/issues/19).
+Neither is claimed as a device-verified bug. See
+[coordination #4](https://github.com/aagocs/magicdesk/issues/4) for current owners;
+the audit does not change another agent's HOME/session work.
 
 Audit taskbar activation, pinned versus running indicators, right-click menus,
 minimize/conceal, maximize/restore, snap and fullscreen with Android, terminal,
